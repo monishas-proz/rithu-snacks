@@ -5,7 +5,7 @@ import { ROLES } from "@/lib/constants";
 export async function requireAuth() {
   const session = await auth();
   if (!session?.user) {
-    redirect("/login");
+    redirect("/admin/login");
   }
   return session;
 }
