@@ -208,7 +208,7 @@ export default function CheckoutPaymentPage() {
               </Button>
 
               {placeOrder.error && (
-                <p className="mt-2 text-sm text-destructive">
+                <p className="mt-2 text-sm text-error-600">
                   {placeOrder.error.message}
                 </p>
               )}

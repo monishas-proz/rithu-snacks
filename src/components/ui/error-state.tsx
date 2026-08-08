@@ -18,7 +18,7 @@ function ErrorState({
   return (
     <div className={cn("flex flex-col items-center justify-center py-12 text-center", className)}>
       <div className="rounded-full bg-destructive/10 p-4 mb-4">
-        <AlertCircle className="h-8 w-8 text-destructive" />
+        <AlertCircle className="h-8 w-8 text-error-600" />
       </div>
       <h3 className="text-lg font-semibold mb-1">{title}</h3>
       <p className="text-sm text-muted-foreground max-w-sm mb-4">{message}</p>

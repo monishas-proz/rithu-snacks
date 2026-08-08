@@ -53,7 +53,7 @@ export function OrderDetailView({
             <Button
               variant="outline"
               size="sm"
-              className="text-destructive"
+              className="text-error-600"
               onClick={onCancel}
               disabled={isCancelling}
             >

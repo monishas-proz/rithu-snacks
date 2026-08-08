@@ -1,32 +1,33 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import AuthFormLayout from "@/components/auth/AuthFormLayout";
+import { Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, type LoginInput } from "@/lib/validations/auth";
 import { FormInput } from "@/components/forms/form-input";
+import { FormPasswordInput } from "@/components/forms/FormPasswordInput";
 import { FormSubmitButton } from "@/components/forms/form-submit-button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
-import { AlertCircle, ArrowLeft } from "lucide-react";
+import {
+  LockKeyhole,
+  Mail,
+  AlertCircle,
+} from "lucide-react";
 import Link from "next/link";
+import { Checkbox } from "@/components/ui/checkbox";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
-  const [error, setError] = useState("");
 
   const methods = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
+    mode: "onChange",
+    reValidateMode: "onChange",
     defaultValues: {
       email: "",
       password: "",
@@ -34,102 +35,117 @@ function LoginForm() {
   });
 
   const onSubmit = async (data: LoginInput) => {
-    setError("");
-
     try {
       const result = await signIn("credentials", {
-        email: data.email,
+        email: data.email.trim(),
         password: data.password,
         redirect: false,
       });
 
       if (result?.error) {
-        setError("Invalid email or password. Please try again.");
+        methods.setError("root", {
+          type: "server",
+          message: "Invalid email or password. Please try again.",
+        });
       } else if (result?.ok) {
         router.push(callbackUrl);
         router.refresh();
       }
     } catch {
-      setError("Something went wrong. Please try again later.");
+      methods.setError("root", {
+        type: "server",
+        message: "Something went wrong. Please try again later.",
+      });
     }
   };
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader className="text-center">
-        <Link
-          href="/"
-          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-2 self-start"
-        >
-          <ArrowLeft className="mr-1 h-4 w-4" />
-          Back to home
-        </Link>
-        <CardTitle className="text-2xl">Welcome Back</CardTitle>
-        <CardDescription>Sign in to your account</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <FormProvider {...methods}>
-          <form
-            onSubmit={methods.handleSubmit(onSubmit)}
-            className="space-y-4"
-          >
-            {error && (
-              <div className="flex items-center gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                <AlertCircle className="h-4 w-4 shrink-0" />
-                {error}
-              </div>
-            )}
-
-            <FormInput
-              name="email"
-              label="Email Address"
-              type="email"
-              placeholder="you@example.com"
-              autoComplete="email"
-            />
-
-            <FormInput
-              name="password"
-              label="Password"
-              type="password"
-              placeholder="Enter your password"
-              autoComplete="current-password"
-            />
-
-            <FormSubmitButton className="w-full">Sign In</FormSubmitButton>
-          </form>
-        </FormProvider>
-
-        <div className="mt-6 text-center text-sm text-muted-foreground">
-          Don&apos;t have an account?{" "}
+    <AuthFormLayout
+      showLogo
+      showFooter
+      title="Welcome Back"
+      subtitle="Sign in to access your favorite heritage snacks."
+      bottomContent={
+        <div className="text-sm text-neutral-600">
+          New to RithuSnacks?{" "}
           <Link
             href={
               callbackUrl !== "/"
                 ? `/register?callbackUrl=${encodeURIComponent(callbackUrl)}`
                 : "/register"
             }
-            className="font-medium text-primary hover:underline"
+            className="font-medium text-secondary-600 hover:underline"
           >
-            Register
+            Create an account
           </Link>
         </div>
-      </CardContent>
-    </Card>
+      }
+    >
+      <FormProvider {...methods}>
+        <form
+          onSubmit={methods.handleSubmit(onSubmit)}
+          className="space-y-5 md:space-y-6"
+        >
+          {/* Server Error */}
+          {methods.formState.errors.root?.message && (
+            <div className="flex items-center gap-2 rounded-lg border border-error-200 bg-error-50 p-3 text-sm text-error-600">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              {methods.formState.errors.root.message}
+            </div>
+          )}
+
+          <FormInput
+            name="email"
+            label="Email Address"
+            type="email"
+            placeholder="Enter your email"
+            autoComplete="email"
+            leftIcon={<Mail size={18} />}
+          />
+
+          <FormPasswordInput
+            name="password"
+            label="Password"
+            placeholder="Enter your password"
+            leftIcon={<LockKeyhole size={18} />}
+          />
+
+          <div className="flex items-center justify-between">
+            <Checkbox
+              label="Remember Me"
+              className="border-neutral-300"
+            />
+
+            <Link
+              href="/forgot-password"
+              className="text-sm font-medium text-secondary-600 hover:underline"
+            >
+              Forgot Password?
+            </Link>
+          </div>
+
+          <FormSubmitButton
+            size="xl"
+            className="mt-2 h-12 md:h-14 w-full rounded-lg bg-secondary-600 text-sm text-white hover:bg-secondary-700 cursor-pointer"
+          >
+            Sign In
+          </FormSubmitButton>
+        </form>
+      </FormProvider>
+    </AuthFormLayout>
   );
 }
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/50 px-4">
-      <Suspense
-        fallback={
-          <div className="flex items-center justify-center py-12">
-            <Spinner size="lg" />
-          </div>
-        }
-      >
-        <LoginForm />
-      </Suspense>
-    </div>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center">
+          <Spinner size="lg" />
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }

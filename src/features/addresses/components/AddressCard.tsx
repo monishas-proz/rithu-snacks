@@ -57,7 +57,7 @@ export function AddressCard({
         <Button
           variant="ghost"
           size="icon"
-          className="text-destructive"
+          className="text-error-600"
           onClick={() => onDelete(address.id)}
           aria-label="Delete address"
         >

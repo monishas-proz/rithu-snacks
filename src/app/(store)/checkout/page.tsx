@@ -254,7 +254,7 @@ export default function CheckoutPage() {
               )}
 
               {summaryError && checkout.couponCode && (
-                <p className="mt-2 text-sm text-destructive">
+                <p className="mt-2 text-sm text-error-600">
                   {summaryError.message}
                 </p>
               )}
@@ -338,7 +338,7 @@ export default function CheckoutPage() {
               )}
 
               {placeOrder.error && (
-                <p className="mt-2 text-sm text-destructive">
+                <p className="mt-2 text-sm text-error-600">
                   {placeOrder.error.message}
                 </p>
               )}

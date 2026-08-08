@@ -184,7 +184,7 @@ export default function AdminOrdersPage() {
           <Button
             variant="ghost"
             size="icon"
-            className="text-destructive"
+            className="text-error-600"
             onClick={() => setCancelOrderId(row.original.id)}
             aria-label="Cancel order"
           >
@@ -327,7 +327,7 @@ export default function AdminOrdersPage() {
                 </Button>
                 <Button
                   variant="outline"
-                  className="text-destructive"
+                  className="text-error-600"
                   onClick={() => setCancelOrderId(orderDetail.id)}
                   disabled={orderLocked}
                 >

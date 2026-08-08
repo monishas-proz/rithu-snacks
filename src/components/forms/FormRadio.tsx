@@ -42,7 +42,7 @@ const FormRadio = React.forwardRef<HTMLInputElement, FormRadioProps>(
               "peer-checked:border-primary peer-checked:bg-primary",
               "peer-focus-visible:ring-2 peer-focus-visible:ring-primary/30",
               "peer-disabled:cursor-not-allowed peer-disabled:opacity-50",
-              error && "border-red-500",
+              error && "border-error-600",
               className
             )}
           >
