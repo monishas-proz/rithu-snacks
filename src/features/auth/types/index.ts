@@ -9,7 +9,7 @@ export type {
 
 export interface AuthTokensResult {
   user: {
-    id: number;
+    id: string; // Exposed UUID
     name: string;
     email: string;
     phone: string | null;

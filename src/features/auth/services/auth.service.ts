@@ -23,6 +23,7 @@ export const authService = {
     }
 
     const userIdNum = Number(user.id);
+    const userUuid = user.uuid || user.id.toString();
 
     await userRepository.update(user.id, { last_login_at: new Date() } as never);
 
@@ -38,7 +39,7 @@ export const authService = {
 
     return {
       user: {
-        id: userIdNum,
+        id: userUuid, // Expose user's UUID in the id property of response DTO sent to FE
         name: user.name,
         email: user.email ?? "",
         phone: user.phone ?? null,
@@ -61,7 +62,7 @@ export const authService = {
       throw ApiError.unauthorized("User account is inactive or no longer exists");
     }
 
-    const userIdNum = Number(user.id);
+    const userIdNum = Number(user.internalId || user.id);
 
     const accessToken = generateAccessToken({
       userId: userIdNum,

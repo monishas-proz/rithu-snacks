@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { db } from "@/lib/db/prisma";
 import { Prisma } from "@/generated/prisma";
 import type { GetUserParams } from "../types";
@@ -23,9 +24,12 @@ const userSelect = {
 
 function formatUser<T extends Record<string, any>>(user: T) {
   if (!user) return user;
+  const userUuid = user.uuid || String(user.id);
   return {
     ...user,
-    id: typeof user.id === "bigint" ? Number(user.id) : user.id,
+    id: userUuid, // Expose UUID as primary "id" property to frontend
+    uuid: userUuid,
+    internalId: typeof user.id === "bigint" ? Number(user.id) : user.id,
     roleId: typeof user.roleId === "bigint" ? Number(user.roleId) : user.roleId,
     custId: user.cust_id ?? null,
     roleName: user.role?.name,
@@ -82,9 +86,17 @@ export const userRepository = {
     };
   },
 
-  async findById(id: number | bigint) {
-    const user = await db.user.findUnique({
-      where: { id: BigInt(id) },
+  async findById(idOrUuid: string | number | bigint) {
+    let where: Prisma.UserWhereInput;
+
+    if (typeof idOrUuid === "string" && (idOrUuid.includes("-") || isNaN(Number(idOrUuid)))) {
+      where = { uuid: idOrUuid };
+    } else {
+      where = { id: BigInt(idOrUuid) };
+    }
+
+    const user = await db.user.findFirst({
+      where,
       select: userSelect,
     });
     return user ? formatUser(user) : null;
@@ -103,34 +115,50 @@ export const userRepository = {
   },
 
   async create(data: Prisma.UserCreateInput) {
+    const userToCreate = {
+      ...data,
+      uuid: data.uuid || crypto.randomUUID(),
+    };
+
     const user = await db.user.create({
-      data,
+      data: userToCreate,
       select: userSelect,
     });
     return formatUser(user);
   },
 
-  async update(id: number | bigint, data: Prisma.UserUpdateInput) {
+  async update(idOrUuid: string | number | bigint, data: Prisma.UserUpdateInput) {
+    const existing = await this.findById(idOrUuid);
+    if (!existing) return null;
+
     const user = await db.user.update({
-      where: { id: BigInt(id) },
+      where: { id: BigInt(existing.internalId) },
       data,
       select: userSelect,
     });
     return formatUser(user);
   },
 
-  async delete(id: number | bigint) {
-    const deleted = await db.user.delete({ where: { id: BigInt(id) } });
+  async delete(idOrUuid: string | number | bigint) {
+    const existing = await this.findById(idOrUuid);
+    if (!existing) return null;
+
+    const deleted = await db.user.delete({
+      where: { id: BigInt(existing.internalId) },
+    });
     return formatUser(deleted);
   },
 
-  async resetPassword(id: number | bigint, hashedPassword: string) {
+  async resetPassword(idOrUuid: string | number | bigint, hashedPassword: string) {
+    const existing = await this.findById(idOrUuid);
+    if (!existing) return null;
+
     const updated = await db.user.update({
-      where: { id: BigInt(id) },
+      where: { id: BigInt(existing.internalId) },
       data: { password_hash: hashedPassword },
-      select: { id: true },
+      select: { id: true, uuid: true },
     });
-    return { id: Number(updated.id) };
+    return { id: updated.uuid || updated.id.toString() };
   },
 
   async count(where?: Prisma.UserWhereInput) {

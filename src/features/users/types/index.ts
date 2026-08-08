@@ -1,5 +1,5 @@
 export interface UserListItem {
-  id: number;
+  id: string; // Exposed UUID identifier
   uuid?: string | null;
   custId?: string | null;
   name: string;
@@ -27,6 +27,7 @@ export interface GetUserResult {
 }
 
 export interface CreateUserInput {
+  uuid?: string;
   name: string;
   email: string;
   password: string;

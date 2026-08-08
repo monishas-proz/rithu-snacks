@@ -17,7 +17,7 @@ export const POST = createApiHandler(
 
       return apiCreated(
         {
-          id: user.id,
+          id: user.id, // Exposes user's UUID in the id property
           name: user.name,
           email: user.email,
           phone: user.phone,

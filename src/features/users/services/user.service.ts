@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { ApiError } from "@/lib/api/api-error";
 import { userRepository } from "../repositories/user.repository";
@@ -8,7 +9,7 @@ export const userService = {
     return userRepository.findAll(params);
   },
 
-  async getUser(id: number | bigint) {
+  async getUser(id: string | number | bigint) {
     const user = await userRepository.findById(id);
     if (!user) {
       throw ApiError.notFound("User not found");
@@ -31,8 +32,9 @@ export const userService = {
 
     const hashedPassword = await bcrypt.hash(data.password, 12);
 
-    // Registration ALWAYS assigns role_id = 3 (CUSTOMER)
+    // Registration ALWAYS assigns role_id = 3 (CUSTOMER) and generates a UUID for FE identification
     return userRepository.create({
+      uuid: crypto.randomUUID(),
       name: data.name,
       email: data.email,
       password_hash: hashedPassword,
@@ -42,7 +44,7 @@ export const userService = {
     });
   },
 
-  async updateUser(id: number | bigint, data: UpdateUserInput) {
+  async updateUser(id: string | number | bigint, data: UpdateUserInput) {
     const existing = await userRepository.findById(id);
     if (!existing) {
       throw ApiError.notFound("User not found");
@@ -57,7 +59,7 @@ export const userService = {
 
     if (data.phone && data.phone !== existing.phone) {
       const phoneExists = await userRepository.findByPhone(data.phone);
-      if (phoneExists && Number(phoneExists.id) !== Number(id)) {
+      if (phoneExists && phoneExists.uuid !== existing.uuid && Number(phoneExists.id) !== Number(existing.internalId)) {
         throw ApiError.conflict("An account with this phone number already exists");
       }
     }
@@ -71,7 +73,7 @@ export const userService = {
     return userRepository.update(id, updateData as never);
   },
 
-  async deleteUser(id: number | bigint) {
+  async deleteUser(id: string | number | bigint) {
     const existing = await userRepository.findById(id);
     if (!existing) {
       throw ApiError.notFound("User not found");
@@ -80,7 +82,7 @@ export const userService = {
     return userRepository.delete(id);
   },
 
-  async resetPassword(id: number | bigint, password: string) {
+  async resetPassword(id: string | number | bigint, password: string) {
     const existing = await userRepository.findById(id);
     if (!existing) {
       throw ApiError.notFound("User not found");
@@ -90,7 +92,7 @@ export const userService = {
     return userRepository.resetPassword(id, hashedPassword);
   },
 
-  async toggleStatus(id: number | bigint) {
+  async toggleStatus(id: string | number | bigint) {
     const existing = await userRepository.findById(id);
     if (!existing) {
       throw ApiError.notFound("User not found");
