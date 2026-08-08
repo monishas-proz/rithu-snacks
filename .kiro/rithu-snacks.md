@@ -399,7 +399,7 @@ const columns: ColumnDef<DataType>[] = [
           <Pencil className="h-4 w-4" />
         </Button>
         <Button variant="ghost" size="icon" onClick={() => onDelete(row.original)}>
-          <Trash2 className="h-4 w-4 text-destructive" />
+          <Trash2 className="h-4 w-4 text-error-600" />
         </Button>
       </div>
     ),

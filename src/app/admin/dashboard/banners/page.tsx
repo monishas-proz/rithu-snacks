@@ -86,7 +86,7 @@ export default function AdminBannersPage() {
     { accessorKey: "position", header: "Position", cell: ({ row }) => row.original.position || "-" },
     { accessorKey: "sortOrder", header: "Sort" },
     { accessorKey: "isActive", header: "Status", cell: ({ row }) => (<Badge variant={row.original.isActive ? "success" : "secondary"}>{row.original.isActive ? "Active" : "Inactive"}</Badge>) },
-    { id: "actions", header: "Actions", cell: ({ row }) => (<div className="flex items-center gap-1"><Button variant="ghost" size="icon" onClick={() => openEditModal(row.original)}><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => setDeleteId(row.original.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></div>) },
+    { id: "actions", header: "Actions", cell: ({ row }) => (<div className="flex items-center gap-1"><Button variant="ghost" size="icon" onClick={() => openEditModal(row.original)}><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => setDeleteId(row.original.id)}><Trash2 className="h-4 w-4 text-error-600" /></Button></div>) },
   ];
 
   if (isLoading) return <LoadingState text="Loading banners..." />;
@@ -101,9 +101,9 @@ export default function AdminBannersPage() {
       </AdminContent>
       <FormModal open={modalOpen} onClose={() => setModalOpen(false)} title={editingBanner ? "Edit Banner" : "Create Banner"} footer={<><Button variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button><Button onClick={handleSubmit(onSubmit)} disabled={isSubmitting}>{isSubmitting ? "Saving..." : "Save"}</Button></>}>
         <form className="space-y-4">
-          <div><label className="text-sm font-medium">Title *</label><input {...register("title")} className="mt-1 flex h-10 w-full rounded-md border px-3 text-sm" />{errors.title && <p className="text-xs text-destructive mt-1">{errors.title.message}</p>}</div>
+          <div><label className="text-sm font-medium">Title *</label><input {...register("title")} className="mt-1 flex h-10 w-full rounded-md border px-3 text-sm" />{errors.title && <p className="text-xs text-error-600 mt-1">{errors.title.message}</p>}</div>
           <div><label className="text-sm font-medium">Subtitle</label><input {...register("subtitle")} className="mt-1 flex h-10 w-full rounded-md border px-3 text-sm" /></div>
-          <div><label className="text-sm font-medium">Image URL *</label><input {...register("image")} className="mt-1 flex h-10 w-full rounded-md border px-3 text-sm" placeholder="https://..." />{errors.image && <p className="text-xs text-destructive mt-1">{errors.image.message}</p>}</div>
+          <div><label className="text-sm font-medium">Image URL *</label><input {...register("image")} className="mt-1 flex h-10 w-full rounded-md border px-3 text-sm" placeholder="https://..." />{errors.image && <p className="text-xs text-error-600 mt-1">{errors.image.message}</p>}</div>
           <div><label className="text-sm font-medium">Link</label><input {...register("link")} className="mt-1 flex h-10 w-full rounded-md border px-3 text-sm" placeholder="/products" /></div>
           <div className="grid grid-cols-2 gap-4">
             <div><label className="text-sm font-medium">Position</label><input {...register("position")} className="mt-1 flex h-10 w-full rounded-md border px-3 text-sm" placeholder="hero, footer" /></div>

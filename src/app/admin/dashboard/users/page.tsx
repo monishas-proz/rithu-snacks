@@ -225,7 +225,7 @@ export default function AdminUsersPage() {
             title="Delete"
             onClick={() => setDeleteId(row.original.id)}
           >
-            <Trash2 className="h-4 w-4 text-destructive" />
+            <Trash2 className="h-4 w-4 text-error-600" />
           </Button>
         </div>
       ),
@@ -281,7 +281,7 @@ export default function AdminUsersPage() {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Name <span className="text-destructive">*</span>
+              Name <span className="text-error-600">*</span>
             </label>
             <input
               {...register("name")}
@@ -289,13 +289,13 @@ export default function AdminUsersPage() {
               placeholder="Full name"
             />
             {errors.name && (
-              <p className="mt-1 text-sm text-destructive">{errors.name.message}</p>
+              <p className="mt-1 text-sm text-error-600">{errors.name.message}</p>
             )}
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email <span className="text-destructive">*</span>
+              Email <span className="text-error-600">*</span>
             </label>
             <input
               {...register("email")}
@@ -304,14 +304,14 @@ export default function AdminUsersPage() {
               placeholder="user@example.com"
             />
             {errors.email && (
-              <p className="mt-1 text-sm text-destructive">{errors.email.message}</p>
+              <p className="mt-1 text-sm text-error-600">{errors.email.message}</p>
             )}
           </div>
 
           {modalMode === "create" && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Password <span className="text-destructive">*</span>
+                Password <span className="text-error-600">*</span>
               </label>
               <input
                 {...register("password")}
@@ -320,7 +320,7 @@ export default function AdminUsersPage() {
                 placeholder="Minimum 6 characters"
               />
               {errors.password && (
-                <p className="mt-1 text-sm text-destructive">{errors.password.message}</p>
+                <p className="mt-1 text-sm text-error-600">{errors.password.message}</p>
               )}
             </div>
           )}
@@ -335,7 +335,7 @@ export default function AdminUsersPage() {
               placeholder="Phone number"
             />
             {errors.phone && (
-              <p className="mt-1 text-sm text-destructive">{errors.phone.message}</p>
+              <p className="mt-1 text-sm text-error-600">{errors.phone.message}</p>
             )}
           </div>
 
@@ -351,7 +351,7 @@ export default function AdminUsersPage() {
                 placeholder="1"
               />
               {errors.roleId && (
-                <p className="mt-1 text-sm text-destructive">{errors.roleId.message}</p>
+                <p className="mt-1 text-sm text-error-600">{errors.roleId.message}</p>
               )}
             </div>
 
@@ -368,7 +368,7 @@ export default function AdminUsersPage() {
                 <option value="BLOCKED">Blocked</option>
               </select>
               {errors.status && (
-                <p className="mt-1 text-sm text-destructive">{errors.status.message}</p>
+                <p className="mt-1 text-sm text-error-600">{errors.status.message}</p>
               )}
             </div>
           </div>
@@ -401,7 +401,7 @@ export default function AdminUsersPage() {
         >
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              New Password <span className="text-destructive">*</span>
+              New Password <span className="text-error-600">*</span>
             </label>
             <input
               {...registerResetPassword("password")}
@@ -410,7 +410,7 @@ export default function AdminUsersPage() {
               placeholder="Minimum 6 characters"
             />
             {resetPasswordErrors.password && (
-              <p className="mt-1 text-sm text-destructive">
+              <p className="mt-1 text-sm text-error-600">
                 {resetPasswordErrors.password.message}
               </p>
             )}

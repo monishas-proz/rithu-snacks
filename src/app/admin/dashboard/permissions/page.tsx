@@ -127,7 +127,7 @@ export default function AdminPermissionsPage() {
             size="icon"
             onClick={() => setDeleteId(row.original.id)}
           >
-            <Trash2 className="h-4 w-4 text-destructive" />
+            <Trash2 className="h-4 w-4 text-error-600" />
           </Button>
         </div>
       ),
@@ -194,7 +194,7 @@ export default function AdminPermissionsPage() {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Name <span className="text-destructive">*</span>
+              Name <span className="text-error-600">*</span>
             </label>
             <input
               {...register("name")}
@@ -202,13 +202,13 @@ export default function AdminPermissionsPage() {
               placeholder="e.g. products.create"
             />
             {errors.name && (
-              <p className="mt-1 text-sm text-destructive">{errors.name.message}</p>
+              <p className="mt-1 text-sm text-error-600">{errors.name.message}</p>
             )}
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Module <span className="text-destructive">*</span>
+              Module <span className="text-error-600">*</span>
             </label>
             <input
               {...register("module")}
@@ -216,7 +216,7 @@ export default function AdminPermissionsPage() {
               placeholder="e.g. products"
             />
             {errors.module && (
-              <p className="mt-1 text-sm text-destructive">{errors.module.message}</p>
+              <p className="mt-1 text-sm text-error-600">{errors.module.message}</p>
             )}
           </div>
 
@@ -231,7 +231,7 @@ export default function AdminPermissionsPage() {
               placeholder="Permission description"
             />
             {errors.description && (
-              <p className="mt-1 text-sm text-destructive">{errors.description.message}</p>
+              <p className="mt-1 text-sm text-error-600">{errors.description.message}</p>
             )}
           </div>
         </form>

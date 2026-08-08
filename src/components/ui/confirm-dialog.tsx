@@ -31,7 +31,7 @@ function ConfirmDialog({
     <Modal open={open} onClose={onClose}>
       <div className="flex flex-col items-center text-center">
         <div className="rounded-full bg-destructive/10 p-3 mb-4">
-          <AlertTriangle className="h-6 w-6 text-destructive" />
+          <AlertTriangle className="h-6 w-6 text-error-600" />
         </div>
         <h3 className="text-lg font-semibold mb-2">{title}</h3>
         <p className="text-sm text-muted-foreground mb-6">{description}</p>

@@ -175,7 +175,7 @@ export default function AdminCouponsPage() {
             size="icon"
             onClick={() => setDeleteId(row.original.id)}
           >
-            <Trash2 className="h-4 w-4 text-destructive" />
+            <Trash2 className="h-4 w-4 text-error-600" />
           </Button>
         </div>
       ),
@@ -239,7 +239,7 @@ export default function AdminCouponsPage() {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Code <span className="text-destructive">*</span>
+              Code <span className="text-error-600">*</span>
             </label>
             <input
               {...register("code")}
@@ -247,14 +247,14 @@ export default function AdminCouponsPage() {
               placeholder="e.g. SUMMER20"
             />
             {errors.code && (
-              <p className="mt-1 text-sm text-destructive">{errors.code.message}</p>
+              <p className="mt-1 text-sm text-error-600">{errors.code.message}</p>
             )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Type <span className="text-destructive">*</span>
+                Type <span className="text-error-600">*</span>
               </label>
               <select
                 {...register("type")}
@@ -267,7 +267,7 @@ export default function AdminCouponsPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Value <span className="text-destructive">*</span>
+                Value <span className="text-error-600">*</span>
               </label>
               <input
                 type="number"
@@ -277,7 +277,7 @@ export default function AdminCouponsPage() {
                 placeholder="0"
               />
               {errors.value && (
-                <p className="mt-1 text-sm text-destructive">{errors.value.message}</p>
+                <p className="mt-1 text-sm text-error-600">{errors.value.message}</p>
               )}
             </div>
           </div>

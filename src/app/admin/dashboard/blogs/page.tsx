@@ -158,7 +158,7 @@ export default function AdminBlogsPage() {
             size="icon"
             onClick={() => setDeleteId(row.original.id)}
           >
-            <Trash2 className="h-4 w-4 text-destructive" />
+            <Trash2 className="h-4 w-4 text-error-600" />
           </Button>
         </div>
       ),
@@ -223,7 +223,7 @@ export default function AdminBlogsPage() {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Title <span className="text-destructive">*</span>
+              Title <span className="text-error-600">*</span>
             </label>
             <input
               {...register("title")}
@@ -231,7 +231,7 @@ export default function AdminBlogsPage() {
               placeholder="Blog title"
             />
             {errors.title && (
-              <p className="mt-1 text-sm text-destructive">{errors.title.message}</p>
+              <p className="mt-1 text-sm text-error-600">{errors.title.message}</p>
             )}
           </div>
 
@@ -247,7 +247,7 @@ export default function AdminBlogsPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Content <span className="text-destructive">*</span>
+              Content <span className="text-error-600">*</span>
             </label>
             <textarea
               {...register("content")}
@@ -256,7 +256,7 @@ export default function AdminBlogsPage() {
               placeholder="Blog content"
             />
             {errors.content && (
-              <p className="mt-1 text-sm text-destructive">{errors.content.message}</p>
+              <p className="mt-1 text-sm text-error-600">{errors.content.message}</p>
             )}
           </div>
 

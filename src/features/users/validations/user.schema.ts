@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+/* ----------------------------- Query Schema ----------------------------- */
+
 export const getUsersQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(10),
@@ -10,20 +12,60 @@ export const getUsersQuerySchema = z.object({
 
 export type GetUsersQueryInput = z.infer<typeof getUsersQuerySchema>;
 
+/* --------------------------- Mobile Validation -------------------------- */
+
+const phoneSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{10}$/, "Mobile number must be exactly 10 digits")
+  .regex(
+    /^[6-9]/,
+    "Mobile number must start with 6, 7, 8, or 9"
+  )
+  .refine(
+    (value) => !/(\d)\1{4,}/.test(value),
+    {
+      message:
+        "The same digit cannot be repeated more than 4 times consecutively",
+    }
+  );
+
+/* --------------------------- Create User Schema ------------------------- */
+
 export const createUserSchema = z.object({
-  name: z.string().min(1, "Name is required").max(255),
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  phone: z.string().max(20).optional(),
-  roleId: z.number().int().positive().optional(),
-  status: z.enum(["ACTIVE", "INACTIVE", "BLOCKED"]).optional(),
+  name: z
+    .string()
+    .trim()
+    .min(3, "Full name must contain at least 3 characters")
+    .max(255, "Full name must be less than 255 characters"),
+
+  email: z
+    .string()
+    .trim()
+    .email("Please enter a valid email address"),
+
+  phone: phoneSchema,
+
+  password: z
+    .string()
+    .min(8, "Password must contain at least 8 characters"),
+
+  roleId: z
+    .number()
+    .int()
+    .positive("Please select a valid role")
+    .optional(),
+
+  status: z.enum(["active", "inactive", "banned"]).optional(),
 });
 
 export type CreateUserSchemaInput = z.infer<typeof createUserSchema>;
 
-export const updateUserSchema = createUserSchema.omit({ password: true }).partial();
+/* --------------------------- Update User Schema ------------------------- */
 
-export type UpdateUserSchemaInput = z.infer<typeof updateUserSchema>;
+export const updateUserSchema = createUserSchema
+  .omit({ password: true })
+  .partial();
 
 export const resetPasswordSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
@@ -64,3 +106,4 @@ export const registerSchema = z
   });
 
 export type RegisterInput = z.infer<typeof registerSchema>;
+export type UpdateUserSchemaInput = z.infer<typeof updateUserSchema>;
