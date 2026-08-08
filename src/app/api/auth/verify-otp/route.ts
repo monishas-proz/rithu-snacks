@@ -9,7 +9,7 @@ export const POST = createApiHandler(
     POST: async (_request, context) => {
       const body = context.body as VerifyOtpInput;
       const result = await otpService.verifyOtp(body.email, body.otp);
-      return apiSuccess(null, result.message);
+      return apiSuccess({ resetToken: result.resetToken }, result.message);
     },
   },
   {

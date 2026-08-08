@@ -45,17 +45,9 @@ export type VerifyOtpInput = z.infer<typeof verifyOtpSchema>;
 export const resendOtpSchema = forgotPasswordSchema;
 export type ResendOtpInput = z.infer<typeof resendOtpSchema>;
 
-export const resetPasswordWithOtpSchema = z
+export const resetPasswordSchema = z
   .object({
-    email: z
-      .string()
-      .min(1, "Email is required")
-      .email("Please enter a valid email address"),
-    otp: z
-      .string()
-      .min(6, "OTP must be 6 digits")
-      .max(6, "OTP must be 6 digits")
-      .regex(/^\d{6}$/, "OTP must contain only numbers"),
+    resetToken: z.string().min(1, "Reset token is required"),
     password: z
       .string()
       .min(1, "Password is required")
@@ -71,4 +63,4 @@ export const resetPasswordWithOtpSchema = z
     path: ["confirmPassword"],
   });
 
-export type ResetPasswordWithOtpInput = z.infer<typeof resetPasswordWithOtpSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;

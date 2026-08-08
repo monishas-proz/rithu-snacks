@@ -4,13 +4,13 @@ export {
   forgotPasswordSchema,
   verifyOtpSchema,
   resendOtpSchema,
-  resetPasswordWithOtpSchema,
+  resetPasswordSchema,
   type LoginInput,
   type RefreshTokenInput,
   type ForgotPasswordInput,
   type VerifyOtpInput,
   type ResendOtpInput,
-  type ResetPasswordWithOtpInput,
+  type ResetPasswordInput,
 } from "@/features/auth/validations/auth.schema";
 
 export {

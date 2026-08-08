@@ -4,7 +4,8 @@ import { ApiError } from "@/lib/api/api-error";
 import { userRepository } from "@/features/users/repositories/user.repository";
 import { otpRepository } from "../repositories/otp.repository";
 import { emailService } from "@/lib/email/email.service";
-import type { ResetPasswordWithOtpInput } from "@/lib/validations/auth";
+import { generateResetPasswordToken, verifyResetPasswordToken } from "@/lib/auth/jwt";
+import type { ResetPasswordInput } from "@/lib/validations/auth";
 
 export const otpService = {
   generateNumericOtp(): string {
@@ -20,7 +21,7 @@ export const otpService = {
       throw ApiError.notFound("No account found with this email address");
     }
 
-    if (user.status !== "ACTIVE") {
+    if (user.status !== "active") {
       throw ApiError.forbidden("Your account is inactive or blocked. Please contact support.");
     }
 
@@ -36,11 +37,10 @@ export const otpService = {
     }
 
     const otp = this.generateNumericOtp();
-    const otpHash = await bcrypt.hash(otp, 10);
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
     await otpRepository.deleteByEmail(email);
-    await otpRepository.create({ email, otpHash, expiresAt });
+    await otpRepository.create({ email, otpCode: otp, expiresAt });
 
     await emailService.sendOtpEmail(email, otp);
 
@@ -55,7 +55,7 @@ export const otpService = {
       throw ApiError.notFound("No account found with this email address");
     }
 
-    if (user.status !== "ACTIVE") {
+    if (user.status !== "active") {
       throw ApiError.forbidden("Your account is inactive or blocked. Please contact support.");
     }
 
@@ -71,11 +71,10 @@ export const otpService = {
     }
 
     const otp = this.generateNumericOtp();
-    const otpHash = await bcrypt.hash(otp, 10);
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
     await otpRepository.deleteByEmail(email);
-    await otpRepository.create({ email, otpHash, expiresAt });
+    await otpRepository.create({ email, otpCode: otp, expiresAt });
 
     await emailService.sendOtpEmail(email, otp);
 
@@ -90,40 +89,38 @@ export const otpService = {
       throw ApiError.badRequest("Invalid or expired verification code.");
     }
 
-    if (record.attempts >= 5) {
-      await otpRepository.deleteByEmail(email);
-      throw ApiError.tooManyRequests("Maximum verification attempts exceeded. Please request a new code.");
-    }
-
     if (new Date() > new Date(record.expiresAt)) {
       await otpRepository.deleteByEmail(email);
       throw ApiError.badRequest("Verification code has expired. Please request a new one.");
     }
 
-    const isMatch = await bcrypt.compare(otp, record.otpHash);
-    if (!isMatch) {
-      await otpRepository.incrementAttempts(record.id);
-      const remainingAttempts = 5 - (record.attempts + 1);
-      throw ApiError.badRequest(
-        `Invalid verification code. ${remainingAttempts > 0 ? `${remainingAttempts} attempt(s) remaining.` : ""}`
-      );
+    if (record.otpCode !== otp) {
+      throw ApiError.badRequest("Invalid verification code.");
     }
 
-    return { message: "OTP verified successfully." };
+    // OTP is single-use: Delete/invalidate immediately after successful verification
+    await otpRepository.deleteByEmail(email);
+
+    // Generate 5-minute Reset Password Token
+    const resetToken = generateResetPasswordToken({ email });
+
+    return {
+      resetToken,
+      message: "OTP verified successfully",
+    };
   },
 
-  async resetPasswordWithOtp(data: ResetPasswordWithOtpInput) {
-    const user = await userRepository.findByEmail(data.email);
-    if (!user || user.status !== "ACTIVE") {
+  async resetPassword(data: ResetPasswordInput) {
+    // Verify reset password token (signature, 5m expiry, purpose)
+    const payload = verifyResetPasswordToken(data.resetToken);
+
+    const user = await userRepository.findByEmail(payload.email);
+    if (!user || user.status !== "active") {
       throw ApiError.forbidden("Account is inactive, blocked, or no longer exists.");
     }
 
-    await this.verifyOtp(data.email, data.otp);
-
     const hashedPassword = await bcrypt.hash(data.password, 12);
     await userRepository.resetPassword(user.id, hashedPassword);
-
-    await otpRepository.deleteByEmail(data.email);
 
     return { message: "Password reset successfully. You can now log in with your new password." };
   },

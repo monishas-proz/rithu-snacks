@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import { ApiError } from "@/lib/api/api-error";
 
 function getAccessSecret(): string {
   const secret = process.env.JWT_ACCESS_SECRET;
@@ -16,6 +17,14 @@ function getRefreshSecret(): string {
   return secret;
 }
 
+function getResetPasswordSecret(): string {
+  const secret = process.env.JWT_RESET_PASSWORD_SECRET || process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error("JWT_RESET_PASSWORD_SECRET environment variable is not defined");
+  }
+  return secret;
+}
+
 export interface AccessTokenPayload {
   userId: number;
   email: string;
@@ -24,6 +33,11 @@ export interface AccessTokenPayload {
 
 export interface RefreshTokenPayload {
   userId: number;
+}
+
+export interface ResetPasswordTokenPayload {
+  email: string;
+  purpose: "reset_password";
 }
 
 export function generateAccessToken(payload: AccessTokenPayload): string {
@@ -48,6 +62,17 @@ export function generateRefreshToken(payload: RefreshTokenPayload): string {
   );
 }
 
+export function generateResetPasswordToken(payload: { email: string }): string {
+  return jwt.sign(
+    {
+      email: payload.email,
+      purpose: "reset_password",
+    },
+    getResetPasswordSecret(),
+    { expiresIn: "5m" }
+  );
+}
+
 export function verifyAccessToken(token: string): AccessTokenPayload {
   const decoded = jwt.verify(token, getAccessSecret()) as jwt.JwtPayload & AccessTokenPayload;
   return {
@@ -62,4 +87,27 @@ export function verifyRefreshToken(token: string): RefreshTokenPayload {
   return {
     userId: Number(decoded.userId),
   };
+}
+
+export function verifyResetPasswordToken(token: string): ResetPasswordTokenPayload {
+  try {
+    const decoded = jwt.verify(token, getResetPasswordSecret()) as jwt.JwtPayload & ResetPasswordTokenPayload;
+
+    if (decoded.purpose !== "reset_password" || !decoded.email) {
+      throw ApiError.unauthorized("Invalid reset password token.");
+    }
+
+    return {
+      email: String(decoded.email),
+      purpose: "reset_password",
+    };
+  } catch (err: any) {
+    if (err instanceof ApiError) {
+      throw err;
+    }
+    if (err?.name === "TokenExpiredError") {
+      throw ApiError.unauthorized("Reset password token has expired. Please verify OTP again.");
+    }
+    throw ApiError.unauthorized("Invalid or tampered reset password token.");
+  }
 }

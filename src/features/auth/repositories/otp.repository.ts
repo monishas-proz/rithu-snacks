@@ -2,42 +2,59 @@ import { db } from "@/lib/db/prisma";
 
 export const otpRepository = {
   async deleteByEmail(email: string) {
-    return db.passwordResetOtp.deleteMany({
-      where: { email },
+    return db.otp_verifications.deleteMany({
+      where: {
+        identifier: email,
+        purpose: "reset_password",
+      },
     });
   },
 
   async deleteExpired() {
-    return db.passwordResetOtp.deleteMany({
+    return db.otp_verifications.deleteMany({
       where: {
-        expiresAt: {
+        expires_at: {
           lt: new Date(),
         },
       },
     });
   },
 
-  async create(data: { email: string; otpHash: string; expiresAt: Date }) {
-    return db.passwordResetOtp.create({
-      data,
+  async create(data: { email: string; otpCode: string; expiresAt: Date }) {
+    return db.otp_verifications.create({
+      data: {
+        identifier: data.email,
+        otp_code: data.otpCode,
+        purpose: "reset_password",
+        expires_at: data.expiresAt,
+        is_used: false,
+      },
     });
   },
 
   async findLatestByEmail(email: string) {
-    return db.passwordResetOtp.findFirst({
-      where: { email },
-      orderBy: { createdAt: "desc" },
+    const record = await db.otp_verifications.findFirst({
+      where: {
+        identifier: email,
+        purpose: "reset_password",
+        is_used: false,
+      },
+      orderBy: { created_at: "desc" },
     });
+
+    if (!record) return null;
+
+    return {
+      id: record.id,
+      email: record.identifier,
+      otpCode: record.otp_code,
+      expiresAt: record.expires_at,
+      createdAt: record.created_at,
+      attempts: 0,
+    };
   },
 
-  async incrementAttempts(id: number) {
-    return db.passwordResetOtp.update({
-      where: { id },
-      data: {
-        attempts: {
-          increment: 1,
-        },
-      },
-    });
+  async incrementAttempts(_id: bigint | number) {
+    return null;
   },
 };

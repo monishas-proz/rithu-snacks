@@ -4,7 +4,7 @@ export type {
   ForgotPasswordInput,
   VerifyOtpInput,
   ResendOtpInput,
-  ResetPasswordWithOtpInput,
+  ResetPasswordInput,
 } from "../validations/auth.schema";
 
 export interface AuthTokensResult {

@@ -9,37 +9,39 @@ import type { LoginInput, RegisterInput } from "@/lib/validations/auth";
 export const authService = {
   async authenticateUser(data: LoginInput) {
     const user = await userRepository.findByEmail(data.email);
-    if (!user || !user.password) {
+    if (!user || !user.password_hash) {
       throw ApiError.unauthorized("Invalid email or password");
     }
 
-    if (user.status !== "ACTIVE") {
+    if (user.status !== "active") {
       throw ApiError.forbidden("Your account is inactive or blocked");
     }
 
-    const isPasswordValid = await bcrypt.compare(data.password, user.password);
+    const isPasswordValid = await bcrypt.compare(data.password, user.password_hash);
     if (!isPasswordValid) {
       throw ApiError.unauthorized("Invalid email or password");
     }
 
-    await userRepository.update(user.id, { lastLogin: new Date() } as never);
+    const userIdNum = Number(user.id);
+
+    await userRepository.update(user.id, { last_login_at: new Date() } as never);
 
     const accessToken = generateAccessToken({
-      userId: user.id,
-      email: user.email,
+      userId: userIdNum,
+      email: user.email ?? "",
       phone: user.phone ?? null,
     });
 
     const refreshToken = generateRefreshToken({
-      userId: user.id,
+      userId: userIdNum,
     });
 
     return {
       user: {
-        id: user.id,
+        id: userIdNum,
         name: user.name,
-        email: user.email,
-        phone: user.phone,
+        email: user.email ?? "",
+        phone: user.phone ?? null,
       },
       accessToken,
       refreshToken,
@@ -55,13 +57,15 @@ export const authService = {
     }
 
     const user = await userRepository.findById(payload.userId);
-    if (!user || user.status !== "ACTIVE") {
+    if (!user || user.status !== "active") {
       throw ApiError.unauthorized("User account is inactive or no longer exists");
     }
 
+    const userIdNum = Number(user.id);
+
     const accessToken = generateAccessToken({
-      userId: user.id,
-      email: user.email,
+      userId: userIdNum,
+      email: user.email ?? "",
       phone: user.phone ?? null,
     });
 
