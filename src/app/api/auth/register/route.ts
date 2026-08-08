@@ -1,65 +1,33 @@
-import { db } from "@/lib/db/prisma";
-import { apiSuccess, apiError } from "@/lib/api/api-response";
-import { registerSchema } from "@/lib/validations/auth";
-import bcrypt from "bcryptjs";
+import { createApiHandler } from "@/lib/api/api-handler";
+import { apiCreated } from "@/lib/api/api-response";
+import { registerSchema, type RegisterInput } from "@/features/users/validations/user.schema";
+import { userService } from "@/features/users/services/user.service";
 
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
+export const POST = createApiHandler(
+  {
+    POST: async (_request, context) => {
+      const body = context.body as RegisterInput;
 
-    const validation = registerSchema.safeParse(body);
-    if (!validation.success) {
-      const errors = validation.error.issues.map(
-        (issue) => `${issue.path.join(".")}: ${issue.message}`
+      const user = await userService.createUser({
+        name: body.name,
+        email: body.email,
+        phone: body.phone,
+        password: body.password,
+      });
+
+      return apiCreated(
+        {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+        },
+        "Account created successfully. You can now sign in."
       );
-      return apiError("Validation failed", 400, errors);
-    }
-
-    const { name, email, phone, password } = validation.data;
-
-    const existingUser = await db.user.findFirst({
-      where: {
-        OR: [{ email }, { phone }],
-      },
-    });
-
-    if (existingUser) {
-      if (existingUser.email === email) {
-        return apiError("An account with this email already exists", 409);
-      }
-      return apiError("An account with this phone number already exists", 409);
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 12);
-
-    const defaultRole = await db.role.findUnique({
-      where: { name: "CUSTOMER" },
-    });
-
-    if (!defaultRole) {
-      return apiError("System configuration error. Please try again later.", 500);
-    }
-
-    const user = await db.user.create({
-      data: {
-        name,
-        email,
-        phone,
-        password: hashedPassword,
-        roleId: defaultRole.id,
-        status: "ACTIVE",
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phone: true,
-      },
-    });
-
-    return apiSuccess(user, "Account created successfully. You can now sign in.", 201);
-  } catch (error) {
-    console.error("Register error:", error);
-    return apiError("Failed to create account. Please try again.", 500);
+    },
+  },
+  {
+    method: "POST",
+    bodySchema: registerSchema,
   }
-}
+);

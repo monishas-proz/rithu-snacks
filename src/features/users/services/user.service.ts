@@ -22,6 +22,13 @@ export const userService = {
       throw ApiError.conflict("An account with this email already exists");
     }
 
+    if (data.phone) {
+      const existingPhone = await userRepository.findByPhone(data.phone);
+      if (existingPhone) {
+        throw ApiError.conflict("An account with this phone number already exists");
+      }
+    }
+
     const hashedPassword = await bcrypt.hash(data.password, 12);
 
     return userRepository.create({
@@ -44,6 +51,13 @@ export const userService = {
       const emailExists = await userRepository.findByEmail(data.email);
       if (emailExists) {
         throw ApiError.conflict("An account with this email already exists");
+      }
+    }
+
+    if (data.phone && data.phone !== existing.phone) {
+      const phoneExists = await userRepository.findByPhone(data.phone);
+      if (phoneExists && phoneExists.id !== id) {
+        throw ApiError.conflict("An account with this phone number already exists");
       }
     }
 

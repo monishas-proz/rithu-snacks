@@ -84,6 +84,12 @@ export const userRepository = {
     });
   },
 
+  async findByPhone(phone: string) {
+    return db.user.findFirst({
+      where: { phone },
+    });
+  },
+
   async create(data: Prisma.UserCreateInput) {
     return db.user.create({
       data,
