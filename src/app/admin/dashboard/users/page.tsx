@@ -19,10 +19,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FormModal } from "@/components/common/FormModal";
-import { Plus, Pencil, Trash2, KeyRound, ToggleLeft } from "lucide-react";
+import { Plus, Pencil, Trash2, KeyRound } from "lucide-react";
 import {
   createUserSchema,
-  updateUserSchema,
   resetPasswordSchema,
   type CreateUserSchemaInput,
 } from "@/features/users/validations/user.schema";
@@ -34,7 +33,7 @@ type ModalMode = "create" | "edit" | "resetPassword" | null;
 export default function AdminUsersPage() {
   const [modalMode, setModalMode] = useState<ModalMode>(null);
   const [selectedUser, setSelectedUser] = useState<UserListItem | null>(null);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [deleteId, setDeleteId] = useState<string | number | null>(null);
 
   const { data, isLoading, error, refetch } = useUsers();
   const createMutation = useCreateUser();
@@ -57,7 +56,7 @@ export default function AdminUsersPage() {
       password: "",
       phone: "",
       roleId: undefined,
-      status: "ACTIVE",
+      status: "active",
     },
   });
 
@@ -75,11 +74,11 @@ export default function AdminUsersPage() {
     if (modalMode === "edit" && selectedUser) {
       reset({
         name: selectedUser.name,
-        email: selectedUser.email,
+        email: selectedUser.email ?? "",
         password: "",
         phone: selectedUser.phone ?? "",
         roleId: selectedUser.roleId,
-        status: selectedUser.status as "ACTIVE" | "INACTIVE" | "BLOCKED",
+        status: (selectedUser.status as "active" | "inactive" | "banned") || "active",
       });
     } else if (modalMode === "create") {
       reset({
@@ -88,7 +87,7 @@ export default function AdminUsersPage() {
         password: "",
         phone: "",
         roleId: undefined,
-        status: "ACTIVE",
+        status: "active",
       });
     }
   }, [modalMode, selectedUser, reset]);
@@ -138,12 +137,13 @@ export default function AdminUsersPage() {
   };
 
   const statusBadgeVariant = (status: string) => {
-    switch (status) {
-      case "ACTIVE":
+    switch (status?.toLowerCase()) {
+      case "active":
         return "success";
-      case "INACTIVE":
+      case "inactive":
         return "secondary";
-      case "BLOCKED":
+      case "banned":
+      case "blocked":
         return "destructive";
       default:
         return "secondary";
@@ -363,9 +363,9 @@ export default function AdminUsersPage() {
                 {...register("status")}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
               >
-                <option value="ACTIVE">Active</option>
-                <option value="INACTIVE">Inactive</option>
-                <option value="BLOCKED">Blocked</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="banned">Banned</option>
               </select>
               {errors.status && (
                 <p className="mt-1 text-sm text-error-600">{errors.status.message}</p>

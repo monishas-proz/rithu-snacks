@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { ZodSchema } from "zod";
 import { apiError, apiValidationError, apiFromError } from "./api-response";
 import { ApiError } from "./api-error";
 import { handlePrismaError } from "./api-error";
 import { auth } from "@/lib/auth/config";
+import { verifyAccessToken } from "@/lib/auth/jwt";
 import type { Session } from "next-auth";
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
@@ -73,11 +75,41 @@ export function createApiHandler(
     }
 
     let session: Session | null = null;
+
     if (options.requireAuth) {
+      // 1. Try NextAuth session (Google OAuth & NextAuth Credentials)
       session = (await auth()) as Session | null;
+
+      // 2. Fallback: Try HttpOnly access_token cookie or Authorization header
+      if (!session?.user) {
+        const cookieStore = await cookies();
+        const token =
+          cookieStore.get("access_token")?.value ||
+          request.headers.get("authorization")?.replace("Bearer ", "");
+
+        if (token) {
+          try {
+            const payload = verifyAccessToken(token);
+            session = {
+              user: {
+                id: String(payload.userId),
+                email: payload.email,
+                phone: payload.phone,
+                role: "CUSTOMER",
+                status: "active",
+              },
+              expires: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+            } as unknown as Session;
+          } catch {
+            return apiError("Session expired. Please log in again.", 401);
+          }
+        }
+      }
+
       if (!session?.user) {
         return apiError("You must be logged in", 401);
       }
+
       if (options.requiredRole && options.requiredRole.length > 0) {
         const userRole = (session.user as { role?: string }).role;
         if (!userRole || !options.requiredRole.includes(userRole)) {

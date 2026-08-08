@@ -30,6 +30,49 @@ function useToast() {
   return context;
 }
 
+const APP_TOAST_EVENT = "app-toast-event";
+const recentToasts = new Map<string, number>();
+const DEDUPE_TIME_MS = 2000;
+
+export const toast = {
+  show: (toastData: Omit<Toast, "id">) => {
+    if (typeof window === "undefined") return;
+
+    const dedupeKey = `${toastData.variant}:${toastData.title}:${toastData.description || ""}`;
+    const now = Date.now();
+    const lastShown = recentToasts.get(dedupeKey);
+
+    if (lastShown && now - lastShown < DEDUPE_TIME_MS) {
+      return; // Skip duplicate toast within 2-second window
+    }
+
+    recentToasts.set(dedupeKey, now);
+    setTimeout(() => {
+      recentToasts.delete(dedupeKey);
+    }, DEDUPE_TIME_MS);
+
+    window.dispatchEvent(
+      new CustomEvent(APP_TOAST_EVENT, { detail: toastData })
+    );
+  },
+
+  success: (title: string, description?: string, duration?: number) => {
+    toast.show({ variant: "success", title, description, duration });
+  },
+
+  error: (title: string, description?: string, duration?: number) => {
+    toast.show({ variant: "error", title, description, duration });
+  },
+
+  warning: (title: string, description?: string, duration?: number) => {
+    toast.show({ variant: "warning", title, description, duration });
+  },
+
+  info: (title: string, description?: string, duration?: number) => {
+    toast.show({ variant: "info", title, description, duration });
+  },
+};
+
 function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = React.useState<Toast[]>([]);
 
@@ -46,6 +89,22 @@ function ToastProvider({ children }: { children: React.ReactNode }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleCustomToast = (event: Event) => {
+      const customEvent = event as CustomEvent<Omit<Toast, "id">>;
+      if (customEvent.detail) {
+        addToast(customEvent.detail);
+      }
+    };
+
+    window.addEventListener(APP_TOAST_EVENT, handleCustomToast);
+    return () => {
+      window.removeEventListener(APP_TOAST_EVENT, handleCustomToast);
+    };
+  }, [addToast]);
+
   return (
     <ToastContext.Provider value={{ toasts, addToast, removeToast }}>
       {children}
@@ -54,25 +113,21 @@ function ToastProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-const toastVariantStyles: Record<ToastVariant, { container: string; icon: string; iconColor: string }> = {
+const toastVariantStyles: Record<ToastVariant, { container: string; iconColor: string }> = {
   success: {
     container: "bg-white border-green-200",
-    icon: "text-green-500",
     iconColor: "text-green-500",
   },
   error: {
     container: "bg-white border-red-200",
-    icon: "text-red-500",
     iconColor: "text-red-500",
   },
   warning: {
     container: "bg-white border-yellow-200",
-    icon: "text-yellow-500",
     iconColor: "text-yellow-500",
   },
   info: {
     container: "bg-white border-blue-200",
-    icon: "text-blue-500",
     iconColor: "text-blue-500",
   },
 };
@@ -94,11 +149,11 @@ function ToastContainer({ toasts, removeToast }: ToastContainerProps) {
 
   return (
     <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none">
-      {toasts.map((toast) => {
-        const styles = toastVariantStyles[toast.variant];
+      {toasts.map((t) => {
+        const styles = toastVariantStyles[t.variant];
         return (
           <div
-            key={toast.id}
+            key={t.id}
             role="alert"
             className={cn(
               "pointer-events-auto flex items-start gap-3 rounded-lg border p-4 shadow-lg",
@@ -107,16 +162,16 @@ function ToastContainer({ toasts, removeToast }: ToastContainerProps) {
             )}
           >
             <div className={cn("mt-0.5 shrink-0", styles.iconColor)}>
-              {toastIcons[toast.variant]}
+              {toastIcons[t.variant]}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-900">{toast.title}</p>
-              {toast.description && (
-                <p className="mt-1 text-sm text-gray-600">{toast.description}</p>
+              <p className="text-sm font-semibold text-gray-900">{t.title}</p>
+              {t.description && (
+                <p className="mt-1 text-sm text-gray-600">{t.description}</p>
               )}
             </div>
             <button
-              onClick={() => removeToast(toast.id)}
+              onClick={() => removeToast(t.id)}
               className="shrink-0 rounded-md p-1 text-gray-400 hover:text-gray-600 transition-colors"
               aria-label="Close"
             >

@@ -2,26 +2,20 @@
 
 import { Suspense, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  forgotPasswordSchema,
-  type ForgotPasswordInput,
-} from "@/lib/validations/auth";
-import {
-  Mail,
-  ArrowLeft,
-  CheckCircle2,
-  AlertCircle,
-} from "lucide-react";
-
+import { forgotPasswordSchema, type ForgotPasswordInput } from "@/lib/validations/auth";
+import { useForgotPassword } from "@/features/auth";
+import { Mail, ArrowLeft, CheckCircle2, AlertCircle } from "lucide-react";
 import { FormInput } from "@/components/forms/form-input";
 import { FormSubmitButton } from "@/components/forms/form-submit-button";
 import { Spinner } from "@/components/ui/spinner";
-import { apiClient } from "@/lib/api/api-client";
 
 function ForgotPasswordForm() {
+  const router = useRouter();
   const [success, setSuccess] = useState("");
+  const forgotPasswordMutation = useForgotPassword();
 
   const methods = useForm<ForgotPasswordInput>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -32,31 +26,21 @@ function ForgotPasswordForm() {
     },
   });
 
-  const onSubmit = async (data: ForgotPasswordInput) => {
+  const onSubmit = (data: ForgotPasswordInput) => {
     setSuccess("");
+    const userEmail = data.email.trim();
 
-    try {
-      const result = await apiClient.post("/api/auth/forgot-password", {
-        email: data.email.trim(),
-      });
-
-      if (result.success) {
-        setSuccess("OTP has been sent to your email address.");
-        methods.reset();
-      } else {
-        methods.setError("root", {
-          type: "server",
-          message: result.message || "Failed to send OTP.",
-        });
+    forgotPasswordMutation.mutate(
+      { email: userEmail },
+      {
+        onSuccess: (res) => {
+          setSuccess(res.message || "OTP sent to your email.");
+          setTimeout(() => {
+            router.push(`/verify-otp?email=${encodeURIComponent(userEmail)}`);
+          }, 1200);
+        },
       }
-    } catch (err: any) {
-      methods.setError("root", {
-        type: "server",
-        message:
-          err?.response?.data?.message ||
-          "Something went wrong. Please try again.",
-      });
-    }
+    );
   };
 
   return (
@@ -110,9 +94,14 @@ function ForgotPasswordForm() {
 
             <FormSubmitButton
               size="xl"
-              className="h-12 w-full rounded-lg bg-secondary-600 text-sm font-semibold text-white hover:bg-secondary-700"
+              disabled={forgotPasswordMutation.isPending}
+              className="h-12 w-full rounded-lg bg-secondary-600 text-sm font-semibold text-white hover:bg-secondary-700 cursor-pointer disabled:opacity-50"
             >
-              Send OTP
+              {forgotPasswordMutation.isPending ? (
+                <Spinner size="sm" className="text-white" />
+              ) : (
+                "Send OTP"
+              )}
             </FormSubmitButton>
           </form>
         </FormProvider>

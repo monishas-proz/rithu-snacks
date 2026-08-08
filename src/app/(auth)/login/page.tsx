@@ -7,15 +7,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, type LoginInput } from "@/lib/validations/auth";
+import { useLogin } from "@/features/auth";
 import { FormInput } from "@/components/forms/form-input";
 import { FormPasswordInput } from "@/components/forms/FormPasswordInput";
 import { FormSubmitButton } from "@/components/forms/form-submit-button";
 import { Spinner } from "@/components/ui/spinner";
-import {
-  LockKeyhole,
-  Mail,
-  AlertCircle,
-} from "lucide-react";
+import { LockKeyhole, Mail, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -23,6 +20,7 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
+  const loginMutation = useLogin();
 
   const methods = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
@@ -34,29 +32,25 @@ function LoginForm() {
     },
   });
 
-  const onSubmit = async (data: LoginInput) => {
-    try {
-      const result = await signIn("credentials", {
+  const onSubmit = (data: LoginInput) => {
+    loginMutation.mutate(
+      {
         email: data.email.trim(),
         password: data.password,
-        redirect: false,
-      });
-
-      if (result?.error) {
-        methods.setError("root", {
-          type: "server",
-          message: "Invalid email or password. Please try again.",
-        });
-      } else if (result?.ok) {
-        router.push(callbackUrl);
-        router.refresh();
+      },
+      {
+        onSuccess: async () => {
+          // Sync NextAuth session and redirect
+          await signIn("credentials", {
+            email: data.email.trim(),
+            password: data.password,
+            redirect: false,
+          });
+          router.push(callbackUrl);
+          router.refresh();
+        },
       }
-    } catch {
-      methods.setError("root", {
-        type: "server",
-        message: "Something went wrong. Please try again later.",
-      });
-    }
+    );
   };
 
   return (
@@ -111,10 +105,7 @@ function LoginForm() {
           />
 
           <div className="flex items-center justify-between">
-            <Checkbox
-              label="Remember Me"
-              className="border-neutral-300"
-            />
+            <Checkbox label="Remember Me" className="border-neutral-300" />
 
             <Link
               href="/forgot-password"
@@ -126,9 +117,10 @@ function LoginForm() {
 
           <FormSubmitButton
             size="xl"
-            className="mt-2 h-12 md:h-14 w-full rounded-lg bg-secondary-600 text-sm text-white hover:bg-secondary-700 cursor-pointer"
+            disabled={loginMutation.isPending}
+            className="mt-2 h-12 md:h-14 w-full rounded-lg bg-secondary-600 text-sm text-white hover:bg-secondary-700 cursor-pointer disabled:opacity-50"
           >
-            Sign In
+            {loginMutation.isPending ? <Spinner size="sm" className="text-white" /> : "Sign In"}
           </FormSubmitButton>
         </form>
       </FormProvider>

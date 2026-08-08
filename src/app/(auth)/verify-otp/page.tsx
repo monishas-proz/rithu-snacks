@@ -3,14 +3,24 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ArrowRight, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import { useVerifyOtp, useResendOtp } from "@/features/auth";
 
 function VerifyOtpForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const email = searchParams.get("email") || "";
+
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [timeLeft, setTimeLeft] = useState(59);
+  const [infoMessage, setInfoMessage] = useState("");
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
+
+  const verifyOtpMutation = useVerifyOtp();
+  const resendOtpMutation = useResendOtp();
 
   useEffect(() => {
     if (timeLeft === 0) return;
@@ -81,14 +91,39 @@ function VerifyOtpForm() {
 
   const handleVerify = () => {
     const code = otp.join("");
-    console.log("OTP:", code);
+    if (!email || code.length !== 6) return;
+
+    verifyOtpMutation.mutate(
+      { email, otp: code },
+      {
+        onSuccess: (res) => {
+          setInfoMessage("OTP verified successfully. Redirecting...");
+          setTimeout(() => {
+            const resetToken = res.data?.resetToken || "";
+            router.push(`/reset-password?token=${encodeURIComponent(resetToken)}`);
+          }, 1000);
+        },
+      }
+    );
   };
 
   const handleResend = () => {
-    setTimeLeft(59);
-    setOtp(["", "", "", "", "", ""]);
-    inputRefs.current[0]?.focus();
+    if (!email) return;
+
+    resendOtpMutation.mutate(
+      { email },
+      {
+        onSuccess: (res) => {
+          setInfoMessage(res.message || "A new code has been sent.");
+          setTimeLeft(59);
+          setOtp(["", "", "", "", "", ""]);
+          inputRefs.current[0]?.focus();
+        },
+      }
+    );
   };
+
+  const isLoading = verifyOtpMutation.isPending || resendOtpMutation.isPending;
 
   return (
     <div className="mx-auto w-full max-w-[300px] xs:max-w-[320px] sm:max-w-[360px] lg:max-w-[500px]">
@@ -115,10 +150,19 @@ function VerifyOtpForm() {
           </h1>
 
           <p className="mt-3 text-[15px] leading-7 text-neutral-600 sm:text-base">
-            We&apos;ve sent a 6-digit code to your email.
+            We&apos;ve sent a 6-digit code to{" "}
+            <span className="font-semibold text-neutral-900">{email || "your email"}</span>.
           </p>
         </div>
-        
+
+        {/* Info Message */}
+        {infoMessage && (
+          <div className="mt-6 flex items-center gap-2 rounded-lg border border-success-200 bg-success-50 p-3 text-sm text-success-600">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            {infoMessage}
+          </div>
+        )}
+
         {/* OTP Inputs */}
         <div className="mt-8 sm:mt-10">
           <div className="grid grid-cols-6 gap-2 sm:gap-3 md:gap-4">
@@ -134,6 +178,7 @@ function VerifyOtpForm() {
                 onPaste={handlePaste}
                 inputMode="numeric"
                 maxLength={1}
+                disabled={isLoading}
                 className="
                   aspect-square
                   w-full
@@ -152,6 +197,7 @@ function VerifyOtpForm() {
                   focus:border-secondary-600
                   focus:ring-2
                   focus:ring-secondary-600/20
+                  disabled:bg-neutral-100
                 "
               />
             ))}
@@ -170,10 +216,10 @@ function VerifyOtpForm() {
           <button
             type="button"
             onClick={handleResend}
-            disabled={timeLeft !== 0}
+            disabled={timeLeft !== 0 || isLoading}
             className={`font-medium transition-colors ${
               timeLeft === 0
-                ? "text-secondary-600 hover:underline"
+                ? "text-secondary-600 hover:underline cursor-pointer"
                 : "cursor-not-allowed text-neutral-400"
             }`}
           >
@@ -184,10 +230,17 @@ function VerifyOtpForm() {
         {/* Verify Button */}
         <Button
           onClick={handleVerify}
-          className="mt-8 h-14 w-full rounded-xl bg-secondary-600 text-white hover:bg-secondary-700"
+          disabled={isLoading || otp.join("").length !== 6}
+          className="mt-8 h-14 w-full rounded-xl bg-secondary-600 text-white hover:bg-secondary-700 cursor-pointer disabled:opacity-50"
         >
-          Verify
-          <ArrowRight className="ml-2 h-4 w-4" />
+          {isLoading ? (
+            <Spinner size="sm" className="text-white" />
+          ) : (
+            <>
+              Verify
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </>
+          )}
         </Button>
 
         {/* Change Email */}

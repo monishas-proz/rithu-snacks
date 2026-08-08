@@ -5,34 +5,24 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-
 import AuthFormLayout from "@/components/auth/AuthFormLayout";
 import { registerSchema, type RegisterInput } from "@/lib/validations/auth";
-import { apiClient } from "@/lib/api/api-client";
-
+import { useRegister } from "@/features/auth";
 import { FormInput } from "@/components/forms/form-input";
 import { FormPasswordInput } from "@/components/forms/FormPasswordInput";
 import { FormSubmitButton } from "@/components/forms/form-submit-button";
 import { Spinner } from "@/components/ui/spinner";
 import { Checkbox } from "@/components/ui/checkbox";
-
-import {
-  Mail,
-  LockKeyhole,
-  User,
-  Phone,
-  AlertCircle,
-  CheckCircle2,
-} from "lucide-react";
+import { Mail, LockKeyhole, User, Phone, AlertCircle, CheckCircle2 } from "lucide-react";
 
 function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-
   const callbackUrl = searchParams.get("callbackUrl") || "/";
 
   const [success, setSuccess] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const registerMutation = useRegister();
 
   const methods = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
@@ -44,11 +34,10 @@ function RegisterForm() {
       phone: "",
       password: "",
       confirmPassword: "",
-      status: "ACTIVE",
     },
   });
 
-  const onSubmit = async (data: RegisterInput) => {
+  const onSubmit = (data: RegisterInput) => {
     setSuccess("");
 
     if (!acceptTerms) {
@@ -59,48 +48,35 @@ function RegisterForm() {
       return;
     }
 
-    try {
-      const result = await apiClient.post("/api/auth/register", {
+    registerMutation.mutate(
+      {
         name: data.name.trim(),
         email: data.email.trim(),
         phone: data.phone.trim(),
         password: data.password,
-      });
+        confirmPassword: data.confirmPassword,
+      },
+      {
+        onSuccess: (res) => {
+          setSuccess(res.message || "Account created successfully.");
+          methods.reset({
+            name: "",
+            email: "",
+            phone: "",
+            password: "",
+            confirmPassword: "",
+          });
 
-      if (result.success) {
-        setSuccess("Account created successfully.");
-
-        methods.reset({
-          name: "",
-          email: "",
-          phone: "",
-          password: "",
-          confirmPassword: "",
-          status: "ACTIVE",
-        });
-
-        setTimeout(() => {
-          const loginUrl =
-            callbackUrl !== "/"
-              ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}`
-              : "/login";
-
-          router.push(loginUrl);
-        }, 1500);
-      } else {
-        methods.setError("root", {
-          type: "server",
-          message: result.message || "Registration failed.",
-        });
+          setTimeout(() => {
+            const loginUrl =
+              callbackUrl !== "/"
+                ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}`
+                : "/login";
+            router.push(loginUrl);
+          }, 1500);
+        },
       }
-    } catch (err: any) {
-      methods.setError("root", {
-        type: "server",
-        message:
-          err?.response?.data?.message ||
-          "Something went wrong. Please try again.",
-      });
-    }
+    );
   };
 
   return (
@@ -195,6 +171,7 @@ function RegisterForm() {
                   I agree to the{" "}
                   <Link
                     href="/terms-and-conditions"
+                    onClick={(e) => e.stopPropagation()}
                     className="font-medium text-secondary-600 hover:underline"
                   >
                     Terms & Conditions
@@ -206,9 +183,10 @@ function RegisterForm() {
 
           <FormSubmitButton
             size="xl"
-            className="mt-2 h-10 w-full rounded-lg bg-secondary-600 text-sm text-white transition-all hover:bg-secondary-700 cursor-pointer"
+            disabled={registerMutation.isPending}
+            className="mt-2 h-10 w-full rounded-lg bg-secondary-600 text-sm text-white transition-all hover:bg-secondary-700 cursor-pointer disabled:opacity-50"
           >
-            Create Account
+            {registerMutation.isPending ? <Spinner size="sm" className="text-white" /> : "Create Account"}
           </FormSubmitButton>
         </form>
       </FormProvider>

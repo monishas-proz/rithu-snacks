@@ -2,33 +2,29 @@
 
 import { Suspense, useState, useMemo } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import {
-  ArrowLeft,
-  LockKeyhole,
-  AlertCircle,
-  CheckCircle2,
-} from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ArrowLeft, LockKeyhole, AlertCircle, CheckCircle2 } from "lucide-react";
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FormSubmitButton } from "@/components/forms/form-submit-button";
 import { FormPasswordInput } from "@/components/forms/FormPasswordInput";
 import { Spinner } from "@/components/ui/spinner";
-import { apiClient } from "@/lib/api/api-client";
-import {
-  resetPasswordSchema,
-  type ResetPasswordInput,
-} from "@/lib/validations/auth";
+import { resetPasswordSchema, type ResetPasswordInput } from "@/lib/validations/auth";
+import { useResetPassword } from "@/features/auth";
 
 function ResetPasswordForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const tokenFromUrl = searchParams.get("token") || "";
   const [success, setSuccess] = useState("");
+  const resetPasswordMutation = useResetPassword();
 
   const methods = useForm<ResetPasswordInput>({
     resolver: zodResolver(resetPasswordSchema),
     mode: "onChange",
     reValidateMode: "onChange",
     defaultValues: {
+      resetToken: tokenFromUrl || "http_only_cookie",
       password: "",
       confirmPassword: "",
     },
@@ -36,7 +32,7 @@ function ResetPasswordForm() {
 
   const password = methods.watch("password") || "";
 
-    const strength = useMemo(() => {
+  const strength = useMemo(() => {
     if (!password) return null;
 
     let score = 0;
@@ -85,36 +81,26 @@ function ResetPasswordForm() {
     };
   }, [password]);
 
-  const onSubmit = async (data: ResetPasswordInput) => {
+  const onSubmit = (data: ResetPasswordInput) => {
     setSuccess("");
+    const activeToken = data.resetToken || tokenFromUrl || "http_only_cookie";
 
-    try {
-      const result = await apiClient.post("/api/auth/reset-password", {
+    resetPasswordMutation.mutate(
+      {
+        resetToken: activeToken,
         password: data.password.trim(),
-      });
-
-      if (result.success) {
-        setSuccess("Password reset successfully. Redirecting to login...");
-
-        methods.reset();
-
-        setTimeout(() => {
-          router.push("/login");
-        }, 1500);
-      } else {
-        methods.setError("root", {
-          type: "server",
-          message: result.message || "Failed to reset password.",
-        });
+        confirmPassword: data.confirmPassword.trim(),
+      },
+      {
+        onSuccess: (res) => {
+          setSuccess(res.message || "Password reset successfully. Redirecting to login...");
+          methods.reset();
+          setTimeout(() => {
+            router.push("/login");
+          }, 1500);
+        },
       }
-    } catch (err: any) {
-      methods.setError("root", {
-        type: "server",
-        message:
-          err?.response?.data?.message ||
-          "Something went wrong. Please try again.",
-      });
-    }
+    );
   };
 
   return (
@@ -159,44 +145,47 @@ function ResetPasswordForm() {
             <FormPasswordInput
               name="password"
               label="New Password"
-              placeholder="Enter your new password" 
+              placeholder="Enter your new password"
               leftIcon={<LockKeyhole size={18} />}
             />
 
-            
-              {password.length > 0 && strength && (
-                <div className="mt-3">
-                  <div className="mb-2 flex items-center justify-between text-[11px] font-medium uppercase tracking-wide text-neutral-500">
-                    <span>Password Strength</span>
-                    <span>{strength.label}</span>
-                  </div>
-
-                  <div className="h-[4px] w-full rounded-full bg-neutral-200">
-                    <div
-                      className={`h-[4px] rounded-full transition-all duration-300 ${strength.color}`}
-                      style={{ width: strength.width }}
-                    />
-                  </div>
-
-                  <p className="mt-2 text-xs text-neutral-500">
-                    {strength.suggestion}
-                  </p>
+            {password.length > 0 && strength && (
+              <div className="mt-3">
+                <div className="mb-2 flex items-center justify-between text-[11px] font-medium uppercase tracking-wide text-neutral-500">
+                  <span>Password Strength</span>
+                  <span>{strength.label}</span>
                 </div>
-              )}
+
+                <div className="h-[4px] w-full rounded-full bg-neutral-200">
+                  <div
+                    className={`h-[4px] rounded-full transition-all duration-300 ${strength.color}`}
+                    style={{ width: strength.width }}
+                  />
+                </div>
+
+                <p className="mt-2 text-xs text-neutral-500">
+                  {strength.suggestion}
+                </p>
+              </div>
+            )}
 
             <FormPasswordInput
               name="confirmPassword"
               label="Confirm Password"
-            
               placeholder="Confirm your password"
               leftIcon={<LockKeyhole size={18} />}
             />
 
             <FormSubmitButton
               size="xl"
-              className="mt-2 h-12 w-full rounded-lg bg-secondary-600 text-sm font-semibold text-white hover:bg-secondary-700"
+              disabled={resetPasswordMutation.isPending}
+              className="mt-2 h-12 w-full rounded-lg bg-secondary-600 text-sm font-semibold text-white hover:bg-secondary-700 cursor-pointer disabled:opacity-50"
             >
-              Reset Password
+              {resetPasswordMutation.isPending ? (
+                <Spinner size="sm" className="text-white" />
+              ) : (
+                "Reset Password"
+              )}
             </FormSubmitButton>
           </form>
         </FormProvider>

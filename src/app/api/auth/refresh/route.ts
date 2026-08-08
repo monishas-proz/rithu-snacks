@@ -1,21 +1,46 @@
+import { cookies } from "next/headers";
 import { createApiHandler } from "@/lib/api/api-handler";
 import { apiSuccess } from "@/lib/api/api-response";
-import { refreshTokenSchema } from "@/features/auth/validations/auth.schema";
+import { ApiError } from "@/lib/api/api-error";
 import { authService } from "@/features/auth/services/auth.service";
-import type { RefreshTokenInput } from "@/features/auth/types";
+
+const IS_PROD = process.env.NODE_ENV === "production";
 
 export const POST = createApiHandler(
   {
-    POST: async (_request, context) => {
-      const body = context.body as RefreshTokenInput;
+    POST: async (request) => {
+      const cookieStore = await cookies();
+      let refreshToken = cookieStore.get("refresh_token")?.value;
 
-      const result = await authService.refreshAccessToken(body.refreshToken);
+      if (!refreshToken) {
+        try {
+          const body = await request.json();
+          refreshToken = body?.refreshToken;
+        } catch {
+          // ignore json parse error if empty body
+        }
+      }
 
-      return apiSuccess(result, "Access token refreshed successfully");
+      if (!refreshToken) {
+        throw ApiError.unauthorized("Refresh token is required");
+      }
+
+      const result = await authService.refreshAccessToken(refreshToken);
+
+      if (result.accessToken) {
+        cookieStore.set("access_token", result.accessToken, {
+          httpOnly: true,
+          secure: IS_PROD,
+          sameSite: "lax",
+          path: "/",
+          maxAge: 15 * 60, // 15 minutes
+        });
+      }
+
+      return apiSuccess(null, "Access token refreshed successfully");
     },
   },
   {
     method: "POST",
-    bodySchema: refreshTokenSchema,
   }
 );

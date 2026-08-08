@@ -42,6 +42,7 @@ async function fetchApi<T>(
   try {
     response = await fetch(url, {
       ...fetchOptions,
+      credentials: "include", // Transmits Server-Side HttpOnly Cookies automatically
       headers: {
         "Content-Type": "application/json",
         ...fetchOptions.headers,

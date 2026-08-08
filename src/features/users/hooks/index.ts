@@ -26,9 +26,9 @@ export function useUsers(params?: GetUserParams) {
   });
 }
 
-export function useUser(id: number | null) {
+export function useUser(id: string | number | null) {
   return useQuery({
-    queryKey: userKeys.detail(id ?? 0),
+    queryKey: userKeys.detail(id ?? ""),
     queryFn: () => getUser(id!),
     enabled: !!id,
   });
@@ -49,7 +49,7 @@ export function useUpdateUser() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Record<string, unknown> }) =>
+    mutationFn: ({ id, data }: { id: string | number; data: Record<string, unknown> }) =>
       updateUser(id, data),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: userKeys.all });
@@ -62,7 +62,7 @@ export function useDeleteUser() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number) => deleteUser(id),
+    mutationFn: (id: string | number) => deleteUser(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: userKeys.all });
     },
@@ -73,7 +73,7 @@ export function useResetUserPassword() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, password }: { id: number; password: string }) =>
+    mutationFn: ({ id, password }: { id: string | number; password: string }) =>
       resetPassword(id, { password }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: userKeys.all });
