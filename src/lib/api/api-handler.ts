@@ -92,10 +92,9 @@ export function createApiHandler(
             const payload = verifyAccessToken(token);
             session = {
               user: {
-                id: String(payload.userId),
+                id: payload.userId, // UUID string
                 email: payload.email,
-                phone: payload.phone,
-                role: "CUSTOMER",
+                role: payload.role || "CUSTOMER",
                 status: "active",
               },
               expires: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
@@ -135,7 +134,7 @@ export function createApiHandler(
 
     if (
       options.bodySchema &&
-      (method === "POST" || method === "PUT" || method === "PATCH")
+      (method === "POST" || method === "PATCH" || method === "PUT")
     ) {
       try {
         const body = await request.json();

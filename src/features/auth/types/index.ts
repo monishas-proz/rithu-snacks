@@ -13,6 +13,7 @@ export interface AuthTokensResult {
     name: string;
     email: string;
     phone: string | null;
+    role: string;
   };
   accessToken: string;
   refreshToken: string;

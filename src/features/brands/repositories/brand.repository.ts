@@ -1,6 +1,6 @@
 import { db } from "@/lib/db/prisma";
 import { Prisma } from "@/generated/prisma";
-import type { GetBrandsParams } from "../types";
+import type { GetBrandsParams, GetAdminBrandsParams } from "../types";
 
 const brandListInclude = Prisma.validator<Prisma.ProductBrandInclude>()({
   _count: { select: { products: true } },
@@ -8,6 +8,7 @@ const brandListInclude = Prisma.validator<Prisma.ProductBrandInclude>()({
 
 const brandDetailInclude = Prisma.validator<Prisma.ProductBrandInclude>()({
   products: {
+    where: { isActive: true },
     select: {
       id: true,
       name: true,
@@ -20,11 +21,7 @@ const brandDetailInclude = Prisma.validator<Prisma.ProductBrandInclude>()({
 });
 
 function buildBrandWhere(params: GetBrandsParams): Prisma.ProductBrandWhereInput {
-  const where: Prisma.ProductBrandWhereInput = {};
-
-  if (params.isActive !== undefined) {
-    where.isActive = params.isActive;
-  }
+  const where: Prisma.ProductBrandWhereInput = { isActive: true, deleted_at: null };
 
   if (params.search) {
     where.OR = [
@@ -58,6 +55,7 @@ export const brandRepository = {
       meta: {
         page,
         limit,
+        pageSize: limit,
         total,
         totalPages: Math.ceil(total / limit),
       },
@@ -68,8 +66,11 @@ export const brandRepository = {
     const numericId = parseInt(slugOrId);
     return db.productBrand.findFirst({
       where: {
+        isActive: true,
+        deleted_at: null,
         OR: [
           { slug: slugOrId },
+          { uuid: slugOrId },
           ...(numericId ? [{ id: numericId }] : []),
         ],
       },
@@ -77,36 +78,120 @@ export const brandRepository = {
     });
   },
 
-  async findById(id: number) {
-    return db.productBrand.findUnique({
-      where: { id },
+  async findById(id: number | bigint) {
+    return db.productBrand.findFirst({
+      where: { id: BigInt(id), isActive: true, deleted_at: null },
       include: brandDetailInclude,
     });
   },
 
-  async findBySlug(slug: string) {
-    return db.productBrand.findUnique({
-      where: { slug },
+  async findByUuid(uuid: string) {
+    return db.productBrand.findFirst({
+      where: { uuid, isActive: true, deleted_at: null },
     });
   },
 
-  async create(data: Prisma.ProductBrandCreateInput) {
+  async findBySlug(slug: string, excludeUuid?: string) {
+    return db.productBrand.findFirst({
+      where: {
+        slug,
+        isActive: true,
+        deleted_at: null,
+        ...(excludeUuid ? { uuid: { not: excludeUuid } } : {}),
+      },
+    });
+  },
+
+  async findByName(name: string, excludeUuid?: string) {
+    return db.productBrand.findFirst({
+      where: {
+        name,
+        isActive: true,
+        deleted_at: null,
+        ...(excludeUuid ? { uuid: { not: excludeUuid } } : {}),
+      },
+    });
+  },
+
+  async findAdminAll(params: GetAdminBrandsParams = {}) {
+    const page = params.page ?? 1;
+    const pageSize = params.pageSize ?? 10;
+
+    const where: Prisma.ProductBrandWhereInput = {
+      isActive: true,
+      deleted_at: null,
+    };
+
+    if (params.search) {
+      where.OR = [
+        { name: { contains: params.search } },
+        { description: { contains: params.search } },
+        { slug: { contains: params.search } },
+      ];
+    }
+
+    const [data, total] = await Promise.all([
+      db.productBrand.findMany({
+        where,
+        orderBy: [{ name: "asc" }, { createdAt: "desc" }],
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      db.productBrand.count({ where }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        page,
+        limit: pageSize,
+        pageSize,
+        total,
+        totalPages: Math.ceil(total / pageSize),
+      },
+    };
+  },
+
+  async create(data: Prisma.ProductBrandUncheckedCreateInput) {
     return db.productBrand.create({
       data,
-      include: brandDetailInclude,
     });
   },
 
-  async update(id: number, data: Prisma.ProductBrandUpdateInput) {
+  async updateByUuid(uuid: string, data: Prisma.ProductBrandUncheckedUpdateInput) {
+    const existing = await this.findByUuid(uuid);
+    if (!existing) return null;
+
     return db.productBrand.update({
-      where: { id },
+      where: { id: existing.id },
+      data,
+    });
+  },
+
+  async softDeleteByUuid(uuid: string, adminId?: bigint | null) {
+    const existing = await this.findByUuid(uuid);
+    if (!existing) return null;
+
+    return db.productBrand.update({
+      where: { id: existing.id },
+      data: {
+        isActive: false,
+        deleted_at: new Date(),
+        ...(adminId ? { updated_by: adminId } : {}),
+      },
+    });
+  },
+
+  async update(id: number | bigint, data: Prisma.ProductBrandUncheckedUpdateInput) {
+    return db.productBrand.update({
+      where: { id: BigInt(id) },
       data,
       include: brandDetailInclude,
     });
   },
 
-  async delete(id: number) {
-    return db.productBrand.delete({ where: { id } });
+  async delete(id: number | bigint) {
+    return db.productBrand.delete({ where: { id: BigInt(id) } });
   },
 
   async count(where?: Prisma.ProductBrandWhereInput) {

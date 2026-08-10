@@ -1,28 +1,28 @@
 import { db } from "@/lib/db/prisma";
 import { Prisma } from "@/generated/prisma";
-import type { GetCategoriesParams, CreateCategoryInput, UpdateCategoryInput } from "../types";
+import type { GetCategoriesParams, GetAdminCategoriesParams } from "../types";
 
 const categoryListInclude = Prisma.validator<Prisma.ProductCategoryInclude>()({
-  _count: { select: { products: true, children: true } },
+  _count: { select: { children: true } },
 });
 
 const categoryDetailInclude = Prisma.validator<Prisma.ProductCategoryInclude>()({
   parent: { select: { id: true, name: true, slug: true } },
   children: {
-    where: { isActive: true },
+    where: { isActive: true, deleted_at: null },
     select: {
       id: true,
       name: true,
       slug: true,
-      image: true,
-      _count: { select: { products: true } },
+      icon: true,
+      _count: { select: { children: true } },
     },
   },
-  _count: { select: { products: true, children: true } },
+  _count: { select: { children: true } },
 });
 
 function buildCategoryWhere(params: GetCategoriesParams): Prisma.ProductCategoryWhereInput {
-  const where: Prisma.ProductCategoryWhereInput = { isActive: true };
+  const where: Prisma.ProductCategoryWhereInput = { isActive: true, deleted_at: null };
 
   if (params.search) {
     where.OR = [
@@ -52,8 +52,11 @@ export const categoryRepository = {
     const numericId = parseInt(slugOrId);
     return db.productCategory.findFirst({
       where: {
+        isActive: true,
+        deleted_at: null,
         OR: [
           { slug: slugOrId },
+          { uuid: slugOrId },
           ...(numericId ? [{ id: numericId }] : []),
         ],
       },
@@ -61,37 +64,120 @@ export const categoryRepository = {
     });
   },
 
-  async findById(id: number) {
-    return db.productCategory.findUnique({
-      where: { id },
+  async findById(id: number | bigint) {
+    return db.productCategory.findFirst({
+      where: { id: BigInt(id), isActive: true, deleted_at: null },
       include: categoryDetailInclude,
     });
   },
 
-  async findBySlug(slug: string) {
-    return db.productCategory.findUnique({
-      where: { slug },
-      include: categoryDetailInclude,
+  async findByUuid(uuid: string) {
+    return db.productCategory.findFirst({
+      where: { uuid, isActive: true, deleted_at: null },
     });
   },
 
-  async create(data: Prisma.ProductCategoryCreateInput) {
+  async findBySlug(slug: string, excludeUuid?: string) {
+    return db.productCategory.findFirst({
+      where: {
+        slug,
+        isActive: true,
+        deleted_at: null,
+        ...(excludeUuid ? { uuid: { not: excludeUuid } } : {}),
+      },
+    });
+  },
+
+  async findByName(name: string, excludeUuid?: string) {
+    return db.productCategory.findFirst({
+      where: {
+        name,
+        isActive: true,
+        deleted_at: null,
+        ...(excludeUuid ? { uuid: { not: excludeUuid } } : {}),
+      },
+    });
+  },
+
+  async findAdminAll(params: GetAdminCategoriesParams = {}) {
+    const page = params.page ?? 1;
+    const pageSize = params.pageSize ?? 10;
+
+    const where: Prisma.ProductCategoryWhereInput = {
+      isActive: true,
+      deleted_at: null,
+    };
+
+    if (params.search) {
+      where.OR = [
+        { name: { contains: params.search } },
+        { description: { contains: params.search } },
+        { slug: { contains: params.search } },
+      ];
+    }
+
+    const [data, total] = await Promise.all([
+      db.productCategory.findMany({
+        where,
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      db.productCategory.count({ where }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        page,
+        limit: pageSize,
+        pageSize,
+        total,
+        totalPages: Math.ceil(total / pageSize),
+      },
+    };
+  },
+
+  async create(data: Prisma.ProductCategoryUncheckedCreateInput) {
     return db.productCategory.create({
       data,
-      include: categoryDetailInclude,
     });
   },
 
-  async update(id: number, data: Prisma.ProductCategoryUpdateInput) {
+  async updateByUuid(uuid: string, data: Prisma.ProductCategoryUncheckedUpdateInput) {
+    const existing = await this.findByUuid(uuid);
+    if (!existing) return null;
+
     return db.productCategory.update({
-      where: { id },
+      where: { id: existing.id },
+      data,
+    });
+  },
+
+  async softDeleteByUuid(uuid: string, adminId?: bigint | null) {
+    const existing = await this.findByUuid(uuid);
+    if (!existing) return null;
+
+    return db.productCategory.update({
+      where: { id: existing.id },
+      data: {
+        isActive: false,
+        deleted_at: new Date(),
+        ...(adminId ? { updated_by: adminId } : {}),
+      },
+    });
+  },
+
+  async update(id: number | bigint, data: Prisma.ProductCategoryUncheckedUpdateInput) {
+    return db.productCategory.update({
+      where: { id: BigInt(id) },
       data,
       include: categoryDetailInclude,
     });
   },
 
-  async delete(id: number) {
-    return db.productCategory.delete({ where: { id } });
+  async delete(id: number | bigint) {
+    return db.productCategory.delete({ where: { id: BigInt(id) } });
   },
 
   async count(where?: Prisma.ProductCategoryWhereInput) {

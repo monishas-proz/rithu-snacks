@@ -103,15 +103,31 @@ export const userRepository = {
   },
 
   async findByEmail(email: string) {
-    return db.user.findUnique({
+    const user = await db.user.findUnique({
       where: { email },
+      include: {
+        role: {
+          select: {
+            name: true,
+          },
+        },
+      },
     });
+    return user ? formatUser(user) : null;
   },
 
   async findByPhone(phone: string) {
-    return db.user.findFirst({
+    const user = await db.user.findFirst({
       where: { phone },
+      include: {
+        role: {
+          select: {
+            name: true,
+          },
+        },
+      },
     });
+    return user ? formatUser(user) : null;
   },
 
   async create(data: Prisma.UserCreateInput) {

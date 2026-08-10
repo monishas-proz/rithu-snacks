@@ -22,19 +22,19 @@ export const authService = {
       throw ApiError.unauthorized("Invalid email or password");
     }
 
-    const userIdNum = Number(user.id);
     const userUuid = user.uuid || user.id.toString();
+    const userRole = user.roleName || user.role?.name || "CUSTOMER";
 
     await userRepository.update(user.id, { last_login_at: new Date() } as never);
 
     const accessToken = generateAccessToken({
-      userId: userIdNum,
+      userId: userUuid, // Pass UUID string into JWT
       email: user.email ?? "",
-      phone: user.phone ?? null,
+      role: userRole,
     });
 
     const refreshToken = generateRefreshToken({
-      userId: userIdNum,
+      userId: userUuid,
     });
 
     return {
@@ -43,6 +43,7 @@ export const authService = {
         name: user.name,
         email: user.email ?? "",
         phone: user.phone ?? null,
+        role: userRole,
       },
       accessToken,
       refreshToken,
@@ -62,12 +63,13 @@ export const authService = {
       throw ApiError.unauthorized("User account is inactive or no longer exists");
     }
 
-    const userIdNum = Number(user.internalId || user.id);
+    const userUuid = user.uuid || user.id.toString();
+    const userRole = user.roleName || user.role?.name || "CUSTOMER";
 
     const accessToken = generateAccessToken({
-      userId: userIdNum,
+      userId: userUuid,
       email: user.email ?? "",
-      phone: user.phone ?? null,
+      role: userRole,
     });
 
     return { accessToken };

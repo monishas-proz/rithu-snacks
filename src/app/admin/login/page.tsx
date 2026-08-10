@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Mail, LockKeyhole, AlertCircle } from "lucide-react";
@@ -10,15 +11,18 @@ import { Mail, LockKeyhole, AlertCircle } from "lucide-react";
 import AuthBanner from "@/components/auth/AuthBanner";
 import AuthFormLayout from "@/components/auth/AuthFormLayout";
 import { FormInput } from "@/components/forms/form-input";
+import { FormPasswordInput } from "@/components/forms/FormPasswordInput";
 import { FormSubmitButton } from "@/components/forms/form-submit-button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Spinner } from "@/components/ui/spinner";
 
 import { loginSchema, type LoginInput } from "@/lib/validations/auth";
-// import { loginUser } from "@/features/auth/services/auth.service";
+import { useLogin } from "@/features/auth";
 
 function AdminLoginForm() {
   const router = useRouter();
   const [rememberMe, setRememberMe] = useState(false);
+  const loginMutation = useLogin();
 
   const methods = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
@@ -30,28 +34,44 @@ function AdminLoginForm() {
     },
   });
 
-  // const onSubmit = async (data: LoginInput) => {
-  //   try {
-  //     const result = await loginUser(data);
+  const onSubmit = (data: LoginInput) => {
+    loginMutation.mutate(
+      {
+        email: data.email.trim(),
+        password: data.password,
+      },
+      {
+        onSuccess: async (response) => {
+          const userRole = response.data?.user?.role;
+          if (userRole !== "ADMIN" && userRole !== "STAFF") {
+            methods.setError("root", {
+              type: "manual",
+              message: "Access denied. You are not authorized to access the Admin portal.",
+            });
+            return;
+          }
 
-  //     if (result.success) {
-  //       router.push("/admin/dashboard");
-  //       router.refresh();
-  //     } else {
-  //       methods.setError("root", {
-  //         type: "server",
-  //         message: result.message || "Invalid email or password.",
-  //       });
-  //     }
-  //   } catch (err: any) {
-  //     methods.setError("root", {
-  //       type: "server",
-  //       message:
-  //         err?.response?.data?.message ||
-  //         "Something went wrong. Please try again later.",
-  //     });
-  //   }
-  // };
+          // Sync credentials with NextAuth session
+          await signIn("credentials", {
+            email: data.email.trim(),
+            password: data.password,
+            redirect: false,
+          });
+
+          router.push("/admin/dashboard");
+          router.refresh();
+        },
+        onError: (err: any) => {
+          methods.setError("root", {
+            type: "server",
+            message:
+              err?.message ||
+              "Invalid email or password. Please check your credentials.",
+          });
+        },
+      }
+    );
+  };
 
   return (
     <AuthFormLayout
@@ -62,7 +82,7 @@ function AdminLoginForm() {
     >
       <FormProvider {...methods}>
         <form
-          // onSubmit={methods.handleSubmit(onSubmit)}
+          onSubmit={methods.handleSubmit(onSubmit)}
           className="space-y-5 md:space-y-6"
         >
           {/* Server Error */}
@@ -82,10 +102,9 @@ function AdminLoginForm() {
             leftIcon={<Mail size={18} />}
           />
 
-          <FormInput
+          <FormPasswordInput
             name="password"
             label="Password"
-            type="password"
             placeholder="Enter your password"
             autoComplete="current-password"
             leftIcon={<LockKeyhole size={18} />}
@@ -100,7 +119,7 @@ function AdminLoginForm() {
             />
 
             <Link
-              href="/admin/forgot-password"
+              href="/forgot-password"
               className="text-sm font-medium text-secondary-600 hover:underline"
             >
               Forgot password?
@@ -109,9 +128,14 @@ function AdminLoginForm() {
 
           <FormSubmitButton
             size="xl"
-            className="mt-2 h-10 w-full rounded-lg bg-secondary-600 text-sm text-white transition-all hover:bg-secondary-700 cursor-pointer"
+            disabled={loginMutation.isPending}
+            className="mt-2 h-10 w-full rounded-lg bg-secondary-600 text-sm text-white transition-all hover:bg-secondary-700 cursor-pointer disabled:opacity-50"
           >
-            Sign In to Admin
+            {loginMutation.isPending ? (
+              <Spinner size="sm" className="text-white" />
+            ) : (
+              "Sign In to Admin"
+            )}
           </FormSubmitButton>
         </form>
       </FormProvider>
@@ -128,7 +152,15 @@ export default function AdminLoginPage() {
 
         {/* Right Form */}
         <div className="flex items-center justify-center px-6 py-12 sm:px-8 lg:px-16">
-          <AdminLoginForm />
+          <Suspense
+            fallback={
+              <div className="flex items-center justify-center">
+                <Spinner size="lg" />
+              </div>
+            }
+          >
+            <AdminLoginForm />
+          </Suspense>
         </div>
       </div>
     </div>

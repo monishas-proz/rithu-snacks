@@ -12,6 +12,7 @@ export interface ApiResponse<T = unknown> {
 export interface PaginationMeta {
   page: number;
   limit: number;
+  pageSize?: number;
   total: number;
   totalPages: number;
 }

@@ -34,3 +34,20 @@ export interface CreateBrandInput {
 }
 
 export interface UpdateBrandInput extends Partial<CreateBrandInput> {}
+
+export interface AdminBrandResponse {
+  id: string; // Public UUID
+  name: string;
+  slug: string;
+  description: string | null;
+  status: boolean;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface GetAdminBrandsParams {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+}

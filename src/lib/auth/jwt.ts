@@ -26,13 +26,13 @@ function getResetPasswordSecret(): string {
 }
 
 export interface AccessTokenPayload {
-  userId: number;
+  userId: string; // User UUID
   email: string;
-  phone: string | null;
+  role: string;
 }
 
 export interface RefreshTokenPayload {
-  userId: number;
+  userId: string; // User UUID or numeric ID string
 }
 
 export interface ResetPasswordTokenPayload {
@@ -43,9 +43,9 @@ export interface ResetPasswordTokenPayload {
 export function generateAccessToken(payload: AccessTokenPayload): string {
   return jwt.sign(
     {
-      userId: payload.userId,
+      userId: payload.userId, // Expose string UUID, never numeric DB integer ID
       email: payload.email,
-      phone: payload.phone ?? null,
+      role: payload.role || "CUSTOMER",
     },
     getAccessSecret(),
     { expiresIn: "15d" }
@@ -76,16 +76,16 @@ export function generateResetPasswordToken(payload: { email: string }): string {
 export function verifyAccessToken(token: string): AccessTokenPayload {
   const decoded = jwt.verify(token, getAccessSecret()) as jwt.JwtPayload & AccessTokenPayload;
   return {
-    userId: Number(decoded.userId),
+    userId: String(decoded.userId),
     email: String(decoded.email),
-    phone: decoded.phone ? String(decoded.phone) : null,
+    role: decoded.role ? String(decoded.role) : "CUSTOMER",
   };
 }
 
 export function verifyRefreshToken(token: string): RefreshTokenPayload {
   const decoded = jwt.verify(token, getRefreshSecret()) as jwt.JwtPayload & RefreshTokenPayload;
   return {
-    userId: Number(decoded.userId),
+    userId: String(decoded.userId),
   };
 }
 
