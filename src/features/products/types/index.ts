@@ -1,3 +1,5 @@
+import type { VegType } from "../validations/admin-product.schema";
+
 export interface ProductListItem {
   id: number;
   name: string;
@@ -87,3 +89,26 @@ export interface CreateProductInput {
 }
 
 export interface UpdateProductInput extends Partial<CreateProductInput> {}
+
+export interface AdminProductResponse {
+  id: string; // Public Product UUID
+  categoryId: string | null; // Public Category UUID
+  brandId: string | null; // Public Brand UUID
+  hsnCodeId: string | null; // Public HSN Code UUID
+  name: string;
+  slug: string;
+  shortDescription: string | null;
+  description: string | null;
+  vegType: VegType;
+  isFeatured: boolean;
+  status: boolean;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface GetAdminProductsParams {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+}
