@@ -2,13 +2,12 @@
 
 import type { LucideIcon } from "lucide-react";
 import { TrendingUp, TrendingDown } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 interface StatsCardProps {
   title: string;
   value: string | number;
-  icon: LucideIcon;
+  icon?: LucideIcon;
   description?: string;
   trend?: {
     value: number;
@@ -17,41 +16,67 @@ interface StatsCardProps {
   className?: string;
 }
 
-function StatsCard({ title, value, icon: Icon, description, trend, className }: StatsCardProps) {
+function StatsCard({
+  title,
+  value,
+  icon: Icon,
+  description,
+  trend,
+  className,
+}: StatsCardProps) {
   return (
-    <Card className={cn("transition-shadow hover:shadow-md", className)}>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
+    <div
+      className={cn(
+        className="rounded-2xl border border-[var(--color-neutral-200)] bg-white px-4 py-3",
+        className
+      )}
+    >
+      <div className="flex items-start justify-between">
+        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-neutral-500)]">
           {title}
-        </CardTitle>
-        <div className="rounded-md bg-muted p-2">
-          <Icon className="h-4 w-4 text-muted-foreground" />
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        <div className="mt-1 flex items-center gap-2">
-          {description && (
-            <p className="text-xs text-muted-foreground">{description}</p>
-          )}
-          {trend && (
-            <span
-              className={cn(
-                "inline-flex items-center text-xs font-medium",
-                trend.isPositive ? "text-emerald-600" : "text-red-600"
-              )}
-            >
-              {trend.isPositive ? (
-                <TrendingUp className="mr-1 h-3 w-3" />
-              ) : (
-                <TrendingDown className="mr-1 h-3 w-3" />
-              )}
-              {trend.value}%
-            </span>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+        </p>
+
+        {Icon && (
+          <div className="rounded-xl bg-[var(--color-neutral-100)] p-3">
+            <Icon className="h-5 w-5 text-[var(--color-neutral-600)]" />
+          </div>
+        )}
+      </div>
+
+      <div className="mt-5">
+        <h3 className="text-3xl font-bold text-[var(--color-neutral-900)]">
+          {value}
+        </h3>
+
+        {(description || trend) && (
+          <div className="mt-3 flex items-center gap-2">
+            {description && (
+              <p className="text-sm text-[var(--color-neutral-500)]">
+                {description}
+              </p>
+            )}
+
+            {trend && (
+              <span
+                className={cn(
+                  "inline-flex items-center text-sm font-medium",
+                  trend.isPositive
+                    ? "text-[var(--color-success-700)]"
+                    : "text-[var(--color-error-700)]"
+                )}
+              >
+                {trend.isPositive ? (
+                  <TrendingUp className="mr-1 h-4 w-4" />
+                ) : (
+                  <TrendingDown className="mr-1 h-4 w-4" />
+                )}
+                {trend.value}%
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 

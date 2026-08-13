@@ -1,5 +1,6 @@
 export interface BrandListItem {
-  id: number;
+  id: string;
+  uuid:string;
   name: string;
   slug: string;
   description: string | null;

@@ -7,7 +7,7 @@ export type { FormRadioProps } from "./FormRadio";
 export { FormSwitch } from "./FormSwitch";
 export type { FormSwitchProps } from "./FormSwitch";
 export { FormPasswordInput } from "./FormPasswordInput";
-export type { FormPasswordInputProps } from "./FormPasswordInput";
+// export type { FormPasswordInput } from "./FormPasswordInput";
 export { FormError } from "./FormError";
 export type { FormErrorProps } from "./FormError";
 export { FormSubmitButton } from "./form-submit-button";

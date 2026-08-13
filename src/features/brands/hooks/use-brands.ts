@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { brandKeys } from "@/lib/api/query-keys";
 import { getBrands, getBrand } from "../api/get-brands";
 import type { GetBrandsParams } from "../types";
@@ -15,6 +15,7 @@ export function useBrands(params?: GetBrandsParams) {
   return useQuery({
     queryKey: brandKeys.list(queryParams),
     queryFn: () => getBrands(queryParams),
+    placeholderData: keepPreviousData,
   });
 }
 
