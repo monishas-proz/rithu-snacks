@@ -39,17 +39,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           include: { role: true },
         });
 
-        if (!user || !user.password) {
+        if (!user || !user.password_hash) {
           return null;
         }
 
-        if (user.status !== "ACTIVE") {
+        if (user.status !== "active") {
           return null;
         }
 
         const isPasswordValid = await bcrypt.compare(
           validation.data.password,
-          user.password
+          user.password_hash
         );
 
         if (!isPasswordValid) {
@@ -58,16 +58,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         await db.user.update({
           where: { id: user.id },
-          data: { lastLogin: new Date() },
+          data: { last_login_at: new Date() },
         });
 
         return {
           id: user.id.toString(),
           name: user.name,
-          email: user.email,
-          image: user.image,
+          email: user.email ?? "",
+          image: user.avatar ?? null,
           role: user.role.name,
-          phone: user.phone,
+          phone: user.phone ?? null,
           status: user.status,
         };
       },

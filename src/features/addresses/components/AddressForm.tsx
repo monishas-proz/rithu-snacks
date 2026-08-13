@@ -17,7 +17,7 @@ interface AddressFormProps {
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
-  return <p className="mt-1 text-sm text-destructive">{message}</p>;
+  return <p className="mt-1 text-sm text-error-600">{message}</p>;
 }
 
 const inputClass =
@@ -53,7 +53,7 @@ export function AddressForm({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            First Name <span className="text-destructive">*</span>
+            First Name <span className="text-error-600">*</span>
           </label>
           <input {...register("firstName")} className={inputClass} placeholder="First name" />
           <FieldError message={errors.firstName?.message} />
@@ -69,7 +69,7 @@ export function AddressForm({
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          Mobile <span className="text-destructive">*</span>
+          Mobile <span className="text-error-600">*</span>
         </label>
         <input {...register("phone")} className={inputClass} placeholder="Mobile number" />
         <FieldError message={errors.phone?.message} />
@@ -77,7 +77,7 @@ export function AddressForm({
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          Address Line 1 <span className="text-destructive">*</span>
+          Address Line 1 <span className="text-error-600">*</span>
         </label>
         <input {...register("addressLine1")} className={inputClass} placeholder="House no, street, area" />
         <FieldError message={errors.addressLine1?.message} />
@@ -94,14 +94,14 @@ export function AddressForm({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            City <span className="text-destructive">*</span>
+            City <span className="text-error-600">*</span>
           </label>
           <input {...register("city")} className={inputClass} placeholder="City" />
           <FieldError message={errors.city?.message} />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            State <span className="text-destructive">*</span>
+            State <span className="text-error-600">*</span>
           </label>
           <input {...register("state")} className={inputClass} placeholder="State" />
           <FieldError message={errors.state?.message} />
@@ -111,7 +111,7 @@ export function AddressForm({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Pincode <span className="text-destructive">*</span>
+            Pincode <span className="text-error-600">*</span>
           </label>
           <input {...register("postalCode")} className={inputClass} placeholder="Pincode" />
           <FieldError message={errors.postalCode?.message} />

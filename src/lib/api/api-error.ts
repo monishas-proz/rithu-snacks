@@ -40,6 +40,10 @@ export class ApiError extends Error {
     return new ApiError(message, HTTP_STATUS.CONFLICT);
   }
 
+  static tooManyRequests(message = "Too many requests. Please try again later.") {
+    return new ApiError(message, HTTP_STATUS.TOO_MANY_REQUESTS);
+  }
+
   static validation(errors: string[], message = "Validation failed") {
     return new ApiError(message, HTTP_STATUS.UNPROCESSABLE_ENTITY, errors);
   }

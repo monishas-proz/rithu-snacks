@@ -1,33 +1,33 @@
 "use client";
 
 import { Suspense, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import AuthFormLayout from "@/components/auth/AuthFormLayout";
 import { registerSchema, type RegisterInput } from "@/lib/validations/auth";
-import { apiClient } from "@/lib/api/api-client";
+import { useRegister } from "@/features/auth";
 import { FormInput } from "@/components/forms/form-input";
+import { FormPasswordInput } from "@/components/forms/FormPasswordInput";
 import { FormSubmitButton } from "@/components/forms/form-submit-button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
-import { AlertCircle, CheckCircle2, ArrowLeft } from "lucide-react";
-import Link from "next/link";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Mail, LockKeyhole, User, Phone, AlertCircle, CheckCircle2 } from "lucide-react";
 
 function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
-  const [error, setError] = useState("");
+
   const [success, setSuccess] = useState("");
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const registerMutation = useRegister();
 
   const methods = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
+    mode: "onChange",
+    reValidateMode: "onChange",
     defaultValues: {
       name: "",
       email: "",
@@ -37,115 +37,55 @@ function RegisterForm() {
     },
   });
 
-  const onSubmit = async (data: RegisterInput) => {
-    setError("");
+  const onSubmit = (data: RegisterInput) => {
     setSuccess("");
 
-    try {
-      const result = await apiClient.post("/api/auth/register", {
-        name: data.name,
-        email: data.email,
-        phone: data.phone,
-        password: data.password,
+    if (!acceptTerms) {
+      methods.setError("root", {
+        type: "manual",
+        message: "Please accept Terms & Conditions.",
       });
-
-      if (result.success) {
-        setSuccess("Account created successfully! Redirecting to sign in...");
-        setTimeout(() => {
-          const loginUrl = callbackUrl !== "/"
-            ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}`
-            : "/login";
-          router.push(loginUrl);
-        }, 1500);
-      } else {
-        setError(result.message || "Registration failed. Please try again.");
-      }
-    } catch {
-      setError("Something went wrong. Please try again later.");
+      return;
     }
+
+    registerMutation.mutate(
+      {
+        name: data.name.trim(),
+        email: data.email.trim(),
+        phone: data.phone.trim(),
+        password: data.password,
+        confirmPassword: data.confirmPassword,
+      },
+      {
+        onSuccess: (res) => {
+          setSuccess(res.message || "Account created successfully.");
+          methods.reset({
+            name: "",
+            email: "",
+            phone: "",
+            password: "",
+            confirmPassword: "",
+          });
+
+          setTimeout(() => {
+            const loginUrl =
+              callbackUrl !== "/"
+                ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}`
+                : "/login";
+            router.push(loginUrl);
+          }, 1500);
+        },
+      }
+    );
   };
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader className="text-center">
-        <Link
-          href="/"
-          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-2 self-start"
-        >
-          <ArrowLeft className="mr-1 h-4 w-4" />
-          Back to home
-        </Link>
-        <CardTitle className="text-2xl">Create Account</CardTitle>
-        <CardDescription>
-          Join RithuSnacks and start shopping premium snacks
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <FormProvider {...methods}>
-          <form
-            onSubmit={methods.handleSubmit(onSubmit)}
-            className="space-y-4"
-          >
-            {error && (
-              <div className="flex items-center gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                <AlertCircle className="h-4 w-4 shrink-0" />
-                {error}
-              </div>
-            )}
-
-            {success && (
-              <div className="flex items-center gap-2 rounded-md bg-green-50 border border-green-200 p-3 text-sm text-green-700">
-                <CheckCircle2 className="h-4 w-4 shrink-0" />
-                {success}
-              </div>
-            )}
-
-            <FormInput
-              name="name"
-              label="Full Name"
-              placeholder="John Doe"
-              autoComplete="name"
-            />
-
-            <FormInput
-              name="email"
-              label="Email Address"
-              type="email"
-              placeholder="you@example.com"
-              autoComplete="email"
-            />
-
-            <FormInput
-              name="phone"
-              label="Phone Number"
-              type="tel"
-              placeholder="+91 98765 43210"
-              autoComplete="tel"
-            />
-
-            <FormInput
-              name="password"
-              label="Password"
-              type="password"
-              placeholder="Min. 8 characters"
-              autoComplete="new-password"
-            />
-
-            <FormInput
-              name="confirmPassword"
-              label="Confirm Password"
-              type="password"
-              placeholder="Re-enter password"
-              autoComplete="new-password"
-            />
-
-            <FormSubmitButton className="w-full" isLoading={!!success}>
-              Create Account
-            </FormSubmitButton>
-          </form>
-        </FormProvider>
-
-        <div className="mt-6 text-center text-sm text-muted-foreground">
+    <AuthFormLayout
+      showLogo
+      title="Create Account"
+      subtitle="Welcome to Rithu&apos;s Snacks"
+      bottomContent={
+        <div className="text-sm text-neutral-600">
           Already have an account?{" "}
           <Link
             href={
@@ -153,28 +93,117 @@ function RegisterForm() {
                 ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}`
                 : "/login"
             }
-            className="font-medium text-primary hover:underline"
+            className="font-medium text-secondary-600 hover:underline"
           >
             Sign In
           </Link>
         </div>
-      </CardContent>
-    </Card>
+      }
+    >
+      <FormProvider {...methods}>
+        <form
+          onSubmit={methods.handleSubmit(onSubmit)}
+          className="space-y-5 md:space-y-6"
+        >
+          {/* Server Error */}
+          {methods.formState.errors.root?.message && (
+            <div className="flex items-center gap-2 rounded-lg border border-error-200 bg-error-50 p-3 text-sm text-error-600">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              {methods.formState.errors.root.message}
+            </div>
+          )}
+
+          {/* Success Message */}
+          {success && (
+            <div className="flex items-center gap-2 rounded-lg border border-success-200 bg-success-50 p-3 text-sm text-success-600">
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
+              {success}
+            </div>
+          )}
+
+          <FormInput
+            name="name"
+            label="Full Name"
+            placeholder="Enter your full name"
+            autoComplete="name"
+            leftIcon={<User size={18} />}
+          />
+
+          <FormInput
+            name="email"
+            label="Email Address"
+            type="email"
+            placeholder="Enter your email"
+            autoComplete="email"
+            leftIcon={<Mail size={18} />}
+          />
+
+          <FormInput
+            name="phone"
+            label="Mobile Number"
+            type="tel"
+            placeholder="Enter 10-digit mobile number"
+            autoComplete="tel"
+            maxLength={10}
+            leftIcon={<Phone size={18} />}
+          />
+
+          <FormPasswordInput
+            name="password"
+            label="Password"
+            placeholder="Enter your password"
+            leftIcon={<LockKeyhole size={18} />}
+          />
+
+          <FormPasswordInput
+            name="confirmPassword"
+            label="Confirm Password"
+            placeholder="Confirm your password"
+            leftIcon={<LockKeyhole size={18} />}
+          />
+
+          <div className="pt-1">
+            <Checkbox
+              checked={acceptTerms}
+              onChange={(e) => setAcceptTerms(e.target.checked)}
+              label={
+                <>
+                  I agree to the{" "}
+                  <Link
+                    href="/terms-and-conditions"
+                    onClick={(e) => e.stopPropagation()}
+                    className="font-medium text-secondary-600 hover:underline"
+                  >
+                    Terms & Conditions
+                  </Link>
+                </>
+              }
+            />
+          </div>
+
+          <FormSubmitButton
+            size="xl"
+            disabled={registerMutation.isPending}
+            className="mt-2 h-10 w-full rounded-lg bg-secondary-600 text-sm text-white transition-all hover:bg-secondary-700 cursor-pointer disabled:opacity-50"
+          >
+            {registerMutation.isPending ? <Spinner size="sm" className="text-white" /> : "Create Account"}
+          </FormSubmitButton>
+        </form>
+      </FormProvider>
+    </AuthFormLayout>
   );
 }
 
 export default function RegisterPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/50 px-4 py-8">
-      <Suspense
-        fallback={
-          <div className="flex items-center justify-center py-12">
-            <Spinner size="lg" />
-          </div>
-        }
-      >
-        <RegisterForm />
-      </Suspense>
-    </div>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center">
+          <Spinner size="lg" />
+        </div>
+      }
+    >
+      <RegisterForm />
+    </Suspense>
   );
 }

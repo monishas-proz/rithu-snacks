@@ -9,6 +9,8 @@ interface FormInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   name: string;
   label?: string;
   description?: string;
+  leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
 }
 
 function FormInput({
@@ -16,6 +18,8 @@ function FormInput({
   label,
   description,
   className,
+  leftIcon,
+  rightIcon,
   ...props
 }: FormInputProps) {
   const { control } = useFormContext();
@@ -25,12 +29,15 @@ function FormInput({
       name={name}
       control={control}
       render={({ field, fieldState }) => (
-        <div className="space-y-2">
+        <div className="pt-0 mb-3">
           {label && <Label htmlFor={name}>{label}</Label>}
           <Input
             id={name}
             {...field}
             {...props}
+            className={className}
+            leftIcon={leftIcon}
+            rightIcon={rightIcon}
             error={fieldState.error?.message}
           />
           {description && !fieldState.error && (

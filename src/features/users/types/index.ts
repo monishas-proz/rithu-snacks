@@ -1,12 +1,15 @@
 export interface UserListItem {
-  id: number;
+  id: string; // Exposed UUID identifier
+  uuid?: string | null;
+  custId?: string | null;
   name: string;
-  email: string;
+  email: string | null;
   phone: string | null;
   roleId: number;
-  status: string;
-  image: string | null;
+  status: "active" | "inactive" | "banned" | string;
+  avatar: string | null;
   createdAt: Date;
+  updatedAt?: Date;
   roleName?: string;
 }
 
@@ -24,12 +27,13 @@ export interface GetUserResult {
 }
 
 export interface CreateUserInput {
+  uuid?: string;
   name: string;
   email: string;
   password: string;
   phone?: string;
   roleId?: number;
-  status?: string;
+  status?: "active" | "inactive" | "banned" | string;
 }
 
 export interface UpdateUserInput extends Partial<Omit<CreateUserInput, "password">> {}

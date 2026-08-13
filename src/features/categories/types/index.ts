@@ -61,3 +61,22 @@ export interface CreateCategoryInput {
 }
 
 export interface UpdateCategoryInput extends Partial<CreateCategoryInput> {}
+
+export interface AdminCategoryResponse {
+  id: string; // Public UUID
+  name: string;
+  slug: string;
+  description: string | null;
+  icon: string | null;
+  status: boolean;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface GetAdminCategoriesParams {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+}

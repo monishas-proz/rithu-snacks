@@ -1,109 +1,171 @@
 "use client";
 
-import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { useState, Suspense } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { loginSchema, type LoginInput } from "@/lib/validations/auth";
-import { FormInput } from "@/components/forms/form-input";
-import { FormSubmitButton } from "@/components/forms/form-submit-button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import { AlertCircle, Shield, ArrowLeft } from "lucide-react";
-import Link from "next/link";
+import { Mail, LockKeyhole, AlertCircle } from "lucide-react";
 
-export default function AdminLoginPage() {
+import AuthBanner from "@/components/auth/AuthBanner";
+import AuthFormLayout from "@/components/auth/AuthFormLayout";
+import { FormInput } from "@/components/forms/form-input";
+import { FormPasswordInput } from "@/components/forms/FormPasswordInput";
+import { FormSubmitButton } from "@/components/forms/form-submit-button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Spinner } from "@/components/ui/spinner";
+
+import { loginSchema, type LoginInput } from "@/lib/validations/auth";
+import { useLogin } from "@/features/auth";
+
+function AdminLoginForm() {
   const router = useRouter();
-  const [error, setError] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
+  const loginMutation = useLogin();
 
   const methods = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
+    mode: "onChange",
+    reValidateMode: "onChange",
     defaultValues: {
       email: "",
       password: "",
     },
   });
 
-  const onSubmit = async (data: LoginInput) => {
-    setError("");
-
-    try {
-      const result = await signIn("credentials", {
-        email: data.email,
+  const onSubmit = (data: LoginInput) => {
+    loginMutation.mutate(
+      {
+        email: data.email.trim(),
         password: data.password,
-        redirect: false,
-      });
+      },
+      {
+        onSuccess: async (response) => {
+          const userRole = response.data?.user?.role;
+          if (userRole !== "ADMIN" && userRole !== "STAFF") {
+            methods.setError("root", {
+              type: "manual",
+              message: "Access denied. You are not authorized to access the Admin portal.",
+            });
+            return;
+          }
 
-      if (result?.error) {
-        setError("Invalid email or password. Please try again.");
-      } else if (result?.ok) {
-        router.push("/admin/dashboard");
-        router.refresh();
+          try {
+            await signIn("credentials", {
+              email: data.email.trim(),
+              password: data.password,
+              redirect: false,
+            });
+          } catch {
+            // Cookie auth is primary
+          }
+
+          router.push("/admin/dashboard");
+          router.refresh();
+        },
+        onError: (err: any) => {
+          methods.setError("root", {
+            type: "server",
+            message:
+              err?.message ||
+              "Invalid email or password. Please check your credentials.",
+          });
+        },
       }
-    } catch {
-      setError("Something went wrong. Please try again later.");
-    }
+    );
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/50 px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <Link
-            href="/"
-            className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-2 self-start"
-          >
-            <ArrowLeft className="mr-1 h-4 w-4" />
-            Back to home
-          </Link>
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-            <Shield className="h-6 w-6 text-primary" />
-          </div>
-          <CardTitle className="text-2xl">Admin Portal</CardTitle>
-          <CardDescription>
-            Sign in to access the admin dashboard
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <FormProvider {...methods}>
-            <form
-              onSubmit={methods.handleSubmit(onSubmit)}
-              className="space-y-4"
+    <AuthFormLayout
+      showLogo
+      showFooter
+      title="Welcome back"
+      subtitle="Enter your credentials to access the RithuSnacks admin portal."
+    >
+      <FormProvider {...methods}>
+        <form
+          onSubmit={methods.handleSubmit(onSubmit)}
+          className="space-y-5 md:space-y-6"
+        >
+          {/* Server Error */}
+          {methods.formState.errors.root?.message && (
+            <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              {methods.formState.errors.root.message}
+            </div>
+          )}
+
+          <FormInput
+            name="email"
+            label="Email Address"
+            type="email"
+            placeholder="admin@rithusnacks.com"
+            autoComplete="email"
+            leftIcon={<Mail size={18} />}
+          />
+
+          <FormPasswordInput
+            name="password"
+            label="Password"
+            placeholder="Enter your password"
+            autoComplete="current-password"
+            leftIcon={<LockKeyhole size={18} />}
+          />
+
+          <div className="flex items-center justify-between">
+            <Checkbox
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              label="Remember me"
+              className="border-neutral-300"
+            />
+
+            <Link
+              href="/forgot-password"
+              className="text-sm font-medium text-secondary-600 hover:underline"
             >
-              {error && (
-                <div className="flex items-center gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                  <AlertCircle className="h-4 w-4 shrink-0" />
-                  {error}
-                </div>
-              )}
+              Forgot password?
+            </Link>
+          </div>
 
-              <FormInput
-                name="email"
-                label="Email Address"
-                type="email"
-                placeholder="admin@rithusnacks.com"
-                autoComplete="email"
-              />
+          <FormSubmitButton
+            size="xl"
+            disabled={loginMutation.isPending}
+            className="mt-2 h-10 w-full rounded-lg bg-secondary-600 text-sm text-white transition-all hover:bg-secondary-700 cursor-pointer disabled:opacity-50"
+          >
+            {loginMutation.isPending ? (
+              <Spinner size="sm" className="text-white" />
+            ) : (
+              "Sign In to Admin"
+            )}
+          </FormSubmitButton>
+        </form>
+      </FormProvider>
+    </AuthFormLayout>
+  );
+}
 
-              <FormInput
-                name="password"
-                label="Password"
-                type="password"
-                placeholder="Enter your password"
-                autoComplete="current-password"
-              />
+export default function AdminLoginPage() {
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="grid min-h-screen lg:grid-cols-2">
+        {/* Left Banner */}
+        <AuthBanner />
 
-              <FormSubmitButton className="w-full">Sign In</FormSubmitButton>
-            </form>
-          </FormProvider>
-        </CardContent>
-      </Card>
+        {/* Right Form */}
+        <div className="flex items-center justify-center px-6 py-12 sm:px-8 lg:px-16">
+          <Suspense
+            fallback={
+              <div className="flex items-center justify-center">
+                <Spinner size="lg" />
+              </div>
+            }
+          >
+            <AdminLoginForm />
+          </Suspense>
+        </div>
+      </div>
     </div>
   );
 }

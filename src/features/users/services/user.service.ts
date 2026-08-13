@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { ApiError } from "@/lib/api/api-error";
 import { userRepository } from "../repositories/user.repository";
@@ -8,7 +9,7 @@ export const userService = {
     return userRepository.findAll(params);
   },
 
-  async getUser(id: number) {
+  async getUser(id: string | number | bigint) {
     const user = await userRepository.findById(id);
     if (!user) {
       throw ApiError.notFound("User not found");
@@ -22,19 +23,28 @@ export const userService = {
       throw ApiError.conflict("An account with this email already exists");
     }
 
+    if (data.phone) {
+      const existingPhone = await userRepository.findByPhone(data.phone);
+      if (existingPhone) {
+        throw ApiError.conflict("An account with this phone number already exists");
+      }
+    }
+
     const hashedPassword = await bcrypt.hash(data.password, 12);
 
+    // Registration ALWAYS assigns role_id = 3 (CUSTOMER) and generates a UUID for FE identification
     return userRepository.create({
+      uuid: crypto.randomUUID(),
       name: data.name,
       email: data.email,
-      password: hashedPassword,
+      password_hash: hashedPassword,
       phone: data.phone ?? undefined,
-      role: { connect: { id: data.roleId ?? 1 } },
-      status: (data.status as "ACTIVE" | "INACTIVE" | "BLOCKED") ?? "ACTIVE",
+      role: { connect: { id: BigInt(3) } },
+      status: (data.status as "active" | "inactive" | "banned") ?? "active",
     });
   },
 
-  async updateUser(id: number, data: UpdateUserInput) {
+  async updateUser(id: string | number | bigint, data: UpdateUserInput) {
     const existing = await userRepository.findById(id);
     if (!existing) {
       throw ApiError.notFound("User not found");
@@ -47,17 +57,23 @@ export const userService = {
       }
     }
 
+    if (data.phone && data.phone !== existing.phone) {
+      const phoneExists = await userRepository.findByPhone(data.phone);
+      if (phoneExists && phoneExists.uuid !== existing.uuid && Number(phoneExists.id) !== Number(existing.internalId)) {
+        throw ApiError.conflict("An account with this phone number already exists");
+      }
+    }
+
     const updateData: Record<string, unknown> = {};
     if (data.name !== undefined) updateData.name = data.name;
     if (data.email !== undefined) updateData.email = data.email;
     if (data.phone !== undefined) updateData.phone = data.phone;
-    if (data.roleId !== undefined) updateData.roleId = data.roleId;
     if (data.status !== undefined) updateData.status = data.status;
 
     return userRepository.update(id, updateData as never);
   },
 
-  async deleteUser(id: number) {
+  async deleteUser(id: string | number | bigint) {
     const existing = await userRepository.findById(id);
     if (!existing) {
       throw ApiError.notFound("User not found");
@@ -66,7 +82,7 @@ export const userService = {
     return userRepository.delete(id);
   },
 
-  async resetPassword(id: number, password: string) {
+  async resetPassword(id: string | number | bigint, password: string) {
     const existing = await userRepository.findById(id);
     if (!existing) {
       throw ApiError.notFound("User not found");
@@ -76,13 +92,13 @@ export const userService = {
     return userRepository.resetPassword(id, hashedPassword);
   },
 
-  async toggleStatus(id: number) {
+  async toggleStatus(id: string | number | bigint) {
     const existing = await userRepository.findById(id);
     if (!existing) {
       throw ApiError.notFound("User not found");
     }
 
-    const newStatus = existing.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+    const newStatus = existing.status === "active" ? "inactive" : "active";
     return userRepository.update(id, { status: newStatus } as never);
   },
 };
