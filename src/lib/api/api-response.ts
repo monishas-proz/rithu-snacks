@@ -31,8 +31,14 @@ export function apiSuccess<T>(
   status = 200,
   meta?: PaginationMeta
 ): NextResponse<ApiResponse<T>> {
+  const serializedData = JSON.parse(
+    JSON.stringify(data, (_, value) =>
+      typeof value === "bigint" ? value.toString() : value
+    )
+  );
+
   return NextResponse.json(
-    { success: true, data, message, meta },
+    { success: true, data: serializedData, message, meta },
     { status }
   );
 }

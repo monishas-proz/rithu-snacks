@@ -9,22 +9,22 @@ export async function getBrands(params?: Record<string, string | number | boolea
   } satisfies GetBrandsResult;
 }
 
-export async function getBrand(slugOrId: string) {
-  const response = await apiClient.get<BrandDetail>(`/api/brands/${slugOrId}`);
+export async function getBrand(uuid: string) {
+  const response = await apiClient.get<BrandDetail>(`/api/admin/brands/${uuid}`);
   return response;
 }
 
 export async function createBrand(data: Record<string, unknown>) {
-  const response = await apiClient.post<BrandDetail>("/api/brands", data);
+  const response = await apiClient.post<BrandDetail>("/api/admin/brands", data);
   return response;
 }
 
-export async function updateBrand(id: number, data: Record<string, unknown>) {
-  const response = await apiClient.put<BrandDetail>(`/api/brands/${id}`, data);
+export async function updateBrand(uuid: string, data: Record<string, unknown>) {
+  const response = await apiClient.put<BrandDetail>(`/api/admin/brands/${uuid}`, data);
   return response;
 }
 
-export async function deleteBrand(id: number) {
-  const response = await apiClient.delete<null>(`/api/brands/${id}`);
+export async function deleteBrand(uuid: string) {
+  const response = await apiClient.delete<null>(`/api/admin/brands/${uuid}`);
   return response;
 }

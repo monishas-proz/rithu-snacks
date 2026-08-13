@@ -19,11 +19,11 @@ export function useUpdateBrand() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Record<string, unknown> }) =>
-      updateBrand(id, data),
+    mutationFn: ({ uuid, data }: { uuid: string; data: Record<string, unknown> }) =>
+      updateBrand(uuid, data),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: brandKeys.all });
-      queryClient.invalidateQueries({ queryKey: brandKeys.detail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: brandKeys.detail(variables.uuid) });
     },
   });
 }
@@ -32,7 +32,7 @@ export function useDeleteBrand() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number) => deleteBrand(id),
+    mutationFn: (uuid: string) => deleteBrand(uuid),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: brandKeys.all });
     },

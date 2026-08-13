@@ -11,13 +11,14 @@ function createClient() {
   }
   const url = new URL(databaseUrl);
   const adapter = new PrismaMariaDb({
-    host: url.hostname,
-    port: parseInt(url.port || "3306"),
-    user: url.username,
-    password: url.password,
-    database: url.pathname.replace("/", ""),
-    connectionLimit: 5,
-  });
+  host: url.hostname,
+  port: Number(url.port || 3306),
+  user: decodeURIComponent(url.username),
+  password: decodeURIComponent(url.password),
+  database: url.pathname.slice(1),
+  connectionLimit: 5,
+  allowPublicKeyRetrieval: true,
+});
   return new PrismaClient({ adapter });
 }
 

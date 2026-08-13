@@ -33,13 +33,13 @@ function Modal({ open, onClose, children, title, description, className }: Modal
       <div className="fixed inset-0 flex items-center justify-center p-4">
         <div
           className={cn(
-            "relative w-full max-w-lg rounded-lg border bg-background p-6 shadow-lg animate-in fade-in-0 zoom-in-95",
+            "relative w-full max-w-lg rounded-lg border bg-background p-6 shadow-lg animate-in zoom-in-95",
             className
           )}
         >
           <button
             onClick={onClose}
-            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 cursor-pointer"
           >
             <X className="h-4 w-4" />
           </button>

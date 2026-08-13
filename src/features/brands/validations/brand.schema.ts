@@ -11,7 +11,10 @@ export type GetBrandsQueryInput = z.infer<typeof getBrandsQuerySchema>;
 
 export const createBrandSchema = z.object({
   name: z.string().min(1, "Brand name is required").max(255),
-  slug: z.string().max(255).optional(),
+  slug: z.string().min(1, "Slug is required").max(255).regex(
+    /^[A-Z0-9_-]+$/,
+    "Brand slug must be uppercase letters, numbers, hyphens, or underscores (e.g. RITHANYA_SNACKS)"
+  ),
   description: z.string().max(1000).optional(),
   logo: z.string().max(500).optional(),
   isActive: z.boolean().optional(),
