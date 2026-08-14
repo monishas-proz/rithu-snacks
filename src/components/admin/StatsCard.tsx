@@ -16,23 +16,16 @@ interface StatsCardProps {
   className?: string;
 }
 
-function StatsCard({
-  title,
-  value,
-  icon: Icon,
-  description,
-  trend,
-  className,
-}: StatsCardProps) {
+function StatsCard({ title, value, icon: Icon, description, trend, className }: StatsCardProps) {
   return (
     <div
       className={cn(
-        className="rounded-2xl border border-[var(--color-neutral-200)] bg-white px-4 py-3",
+        "h-full min-h-36 rounded-2xl border border-[var(--color-neutral-200)] bg-white px-4 py-3",
         className
       )}
     >
       <div className="flex items-start justify-between">
-        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-neutral-500)]">
+        <p className="text-xs font-semibold tracking-wider text-[var(--color-neutral-500)] uppercase">
           {title}
         </p>
 
@@ -44,16 +37,12 @@ function StatsCard({
       </div>
 
       <div className="mt-5">
-        <h3 className="text-3xl font-bold text-[var(--color-neutral-900)]">
-          {value}
-        </h3>
+        <h3 className="text-3xl font-bold text-[var(--color-neutral-900)]">{value}</h3>
 
         {(description || trend) && (
           <div className="mt-3 flex items-center gap-2">
             {description && (
-              <p className="text-sm text-[var(--color-neutral-500)]">
-                {description}
-              </p>
+              <p className="text-sm text-[var(--color-neutral-500)]">{description}</p>
             )}
 
             {trend && (

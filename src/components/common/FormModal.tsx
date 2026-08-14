@@ -87,7 +87,7 @@ function FormModal({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-lg p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+          className="rounded-lg p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
         >
           <X className="h-5 w-5" />
         </button>

@@ -4,7 +4,7 @@ export interface BrandListItem {
   name: string;
   slug: string;
   description: string | null;
-  logo: string | null;
+  icon: string | null;
   isActive: boolean;
   createdAt: Date;
   _count?: { products?: number };

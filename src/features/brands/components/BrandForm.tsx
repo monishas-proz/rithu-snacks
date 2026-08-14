@@ -67,13 +67,14 @@ function BrandForm({
         <FormImageUpload
           name="logo"
           label="Brand Logo"
+          folder = "brands"
         />
 
-        <FormCheckbox
+        {/* <FormCheckbox
           name="isActive"
           label="Active"
           description="Brand is visible and available for use"
-        />
+        /> */}
 
         <div className="flex justify-end pt-4">
           <FormSubmitButton

@@ -49,19 +49,13 @@ export default function AdminBrandsPage() {
     header: "Logo",
     cell: ({ row }) => (
       <div className="h-12 w-12 overflow-hidden rounded-xl bg-[var(--color-neutral-100)]">
-        {row.original.logo ? (
-          <Image
-            src={row.original.logo}
-            alt={row.original.name}
-            width={48}
-            height={48}
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-[10px] font-medium text-[var(--color-neutral-500)]">
-            LOGO
-          </div>
-        )}
+        <Image
+          src={row.original.icon || "/images/category_img.png"}
+          alt={row.original.name}
+          width={48}
+          height={48}
+          className="h-full w-full object-cover"
+        />
       </div>
     ),
   },
@@ -112,7 +106,7 @@ export default function AdminBrandsPage() {
     id: "actions",
     header: "Actions",
     cell: ({ row }) => (
-      <div className="flex justify-end gap-2">
+      <div className="flex gap-2">
         <Button
           variant="ghost"
           size="icon"
@@ -175,7 +169,7 @@ export default function AdminBrandsPage() {
         />
       </div>
 
-      <div className="flex gap-3">
+      {/* <div className="flex gap-3">
         <Button
           variant="outline"
           className="rounded-xl border-[var(--color-neutral-300)] bg-white text-[var(--color-neutral-700)] hover:bg-[var(--color-neutral-50)]"
@@ -190,7 +184,7 @@ export default function AdminBrandsPage() {
           <Filter className="mr-2 h-4 w-4" />
           Filter
         </Button>
-      </div>
+      </div> */}
     </div>
 
     {/* Table */}
@@ -219,6 +213,7 @@ export default function AdminBrandsPage() {
         name: data.name,
         slug: data.slug,
         description: data.description || null,
+        icon: data.logo || null,
       };
 
       await createMutation.mutateAsync(payload);
@@ -243,7 +238,7 @@ export default function AdminBrandsPage() {
         name: selectedBrand.name,
         slug: selectedBrand.slug,
         description: selectedBrand.description,
-        logo: selectedBrand.logo,
+        logo: selectedBrand.icon,
         isActive: selectedBrand.isActive,
       }}
       isEditing
@@ -254,6 +249,7 @@ export default function AdminBrandsPage() {
           name: data.name,
           slug: data.slug,
           description: data.description || null,
+          icon: data.logo || null,
         };
 
         await updateMutation.mutateAsync({
