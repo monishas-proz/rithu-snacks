@@ -397,12 +397,12 @@ model ProductVariant {
   id                                       BigInt                   @id @default(autoincrement()) @db.UnsignedBigInt
   uuid                                     String                   @default("UUID()") @db.VarChar(255)
   productId                                BigInt                   @map("product_id") @db.UnsignedBigInt
+  variant_name                             String                   @default("") @map("variant_name") @db.VarChar(100)
   sku                                      String                   @unique(map: "sku") @db.VarChar(100)
   unit_value                               Decimal                  @db.Decimal(10, 2)
   unit_id                                  BigInt                   @db.UnsignedBigInt
-  price                                    Decimal                  @db.Decimal(10, 2)
-  compare_at_price                         Decimal?                 @db.Decimal(10, 2)
-  cost_price                               Decimal?                 @db.Decimal(10, 2)
+  base_price                               Decimal                  @default(0.00) @db.Decimal(10, 2)
+  sale_price                               Decimal                  @default(0.00) @db.Decimal(10, 2)
   barcode                                  String?                  @db.VarChar(100)
   weight_grams                             Decimal?                 @db.Decimal(10, 2)
   is_default                               Boolean                  @default(false)
@@ -1451,6 +1451,9 @@ model otp_verifications {
   purpose                                   otp_verifications_purpose
   is_used                                   Boolean                   @default(false)
   expires_at                                DateTime                  @db.Timestamp(0)
+  verification_token_hash                   String?                   @db.VarChar(255)
+  token_expires_at                          DateTime?                 @db.Timestamp(0)
+  is_token_used                             Boolean                   @default(false)
   created_at                                DateTime                  @default(now()) @db.Timestamp(0)
   updated_at                                DateTime                  @default(now()) @db.Timestamp(0)
   is_active                                 Boolean                   @default(true)
@@ -1745,6 +1748,7 @@ model product_variant_images {
   variant_id                                     BigInt         @db.UnsignedBigInt
   image_url                                      String         @db.VarChar(500)
   sort_order                                     Int            @default(0)
+  is_primary                                     Boolean        @default(false) @map("is_primary")
   created_at                                     DateTime       @default(now()) @db.Timestamp(0)
   updated_at                                     DateTime       @default(now()) @db.Timestamp(0)
   status                                         Boolean?       @default(true)

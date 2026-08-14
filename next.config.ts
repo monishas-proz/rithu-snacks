@@ -1,10 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-     typescript: {
-    // Type errors won't block the production build
-    ignoreBuildErrors: true,
-  },
+    //  typescript: {
+    // // Type errors won't block the production build
+    //     ignoreBuildErrors: true,
+    //   },
   images: {
     remotePatterns: [
       {

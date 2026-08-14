@@ -1,5 +1,36 @@
 import { z } from "zod";
 
+export const sendEmailOtpSchema = z
+  .object({
+    email: z
+      .string({ message: "Email is required" })
+      .trim()
+      .min(1, "Email is required")
+      .email("Please enter a valid email address")
+      .transform((val) => val.toLowerCase()),
+  })
+  .strict();
+
+export type SendEmailOtpInput = z.infer<typeof sendEmailOtpSchema>;
+
+export const verifyEmailOtpSchema = z
+  .object({
+    email: z
+      .string({ message: "Email is required" })
+      .trim()
+      .min(1, "Email is required")
+      .email("Please enter a valid email address")
+      .transform((val) => val.toLowerCase()),
+    otp: z
+      .string({ message: "OTP is required" })
+      .trim()
+      .length(6, "OTP must be exactly 6 digits")
+      .regex(/^\d{6}$/, "OTP must contain only numbers"),
+  })
+  .strict();
+
+export type VerifyEmailOtpInput = z.infer<typeof verifyEmailOtpSchema>;
+
 export const loginSchema = z.object({
   email: z
     .string()

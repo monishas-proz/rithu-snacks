@@ -18,10 +18,7 @@ function getRefreshSecret(): string {
 }
 
 function getResetPasswordSecret(): string {
-  const secret = process.env.JWT_RESET_PASSWORD_SECRET || process.env.JWT_SECRET;
-  if (!secret) {
-    throw new Error("JWT_RESET_PASSWORD_SECRET environment variable is not defined");
-  }
+  const secret = process.env.JWT_RESET_PASSWORD_SECRET || process.env.JWT_SECRET || "default_secret_key";
   return secret;
 }
 
@@ -40,6 +37,12 @@ export interface ResetPasswordTokenPayload {
   purpose: "reset_password";
 }
 
+export interface EmailVerificationTokenPayload {
+  email: string;
+  purpose: "EMAIL_VERIFICATION";
+  jti: string;
+}
+
 export function generateAccessToken(payload: AccessTokenPayload): string {
   return jwt.sign(
     {
@@ -48,7 +51,7 @@ export function generateAccessToken(payload: AccessTokenPayload): string {
       role: payload.role || "CUSTOMER",
     },
     getAccessSecret(),
-    { expiresIn: "15d" }
+    { expiresIn: "15m" }
   );
 }
 
@@ -70,6 +73,18 @@ export function generateResetPasswordToken(payload: { email: string }): string {
     },
     getResetPasswordSecret(),
     { expiresIn: "5m" }
+  );
+}
+
+export function generateEmailVerificationToken(payload: { email: string; jti: string }): string {
+  return jwt.sign(
+    {
+      email: payload.email.toLowerCase().trim(),
+      purpose: "EMAIL_VERIFICATION",
+      jti: payload.jti,
+    },
+    getResetPasswordSecret(),
+    { expiresIn: "30m" }
   );
 }
 
@@ -101,13 +116,37 @@ export function verifyResetPasswordToken(token: string): ResetPasswordTokenPaylo
       email: String(decoded.email),
       purpose: "reset_password",
     };
-  } catch (err: any) {
+  } catch (err: unknown) {
     if (err instanceof ApiError) {
       throw err;
     }
-    if (err?.name === "TokenExpiredError") {
+    if (typeof err === "object" && err !== null && "name" in err && err.name === "TokenExpiredError") {
       throw ApiError.unauthorized("Reset password token has expired. Please verify OTP again.");
     }
     throw ApiError.unauthorized("Invalid or tampered reset password token.");
+  }
+}
+
+export function verifyEmailVerificationToken(token: string): EmailVerificationTokenPayload {
+  try {
+    const decoded = jwt.verify(token, getResetPasswordSecret()) as jwt.JwtPayload & EmailVerificationTokenPayload;
+
+    if (decoded.purpose !== "EMAIL_VERIFICATION" || !decoded.email || !decoded.jti) {
+      throw ApiError.unauthorized("Invalid verification token.");
+    }
+
+    return {
+      email: String(decoded.email).toLowerCase().trim(),
+      purpose: "EMAIL_VERIFICATION",
+      jti: String(decoded.jti),
+    };
+  } catch (err: unknown) {
+    if (err instanceof ApiError) {
+      throw err;
+    }
+    if (typeof err === "object" && err !== null && "name" in err && err.name === "TokenExpiredError") {
+      throw ApiError.unauthorized("Verification token has expired. Please verify OTP again.");
+    }
+    throw ApiError.unauthorized("Invalid or tampered verification token.");
   }
 }
