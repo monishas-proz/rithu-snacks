@@ -44,21 +44,21 @@ export default function AdminBrandsPage() {
   const brands = data?.data ?? [];
 
   const columns: ColumnDef<BrandListItem, unknown>[] = [
-  {
-    id: "logo",
-    header: "Logo",
-    cell: ({ row }) => (
-      <div className="h-12 w-12 overflow-hidden rounded-xl bg-[var(--color-neutral-100)]">
-        <Image
-          src={row.original.icon || "/images/category_img.png"}
-          alt={row.original.name}
-          width={48}
-          height={48}
-          className="h-full w-full object-cover"
-        />
-      </div>
-    ),
-  },
+  // {
+  //   id: "logo",
+  //   header: "Logo",
+  //   cell: ({ row }) => (
+  //     <div className="h-12 w-12 overflow-hidden rounded-xl bg-[var(--color-neutral-100)]">
+  //       <Image
+  //         src={row.original.icon || "/images/category_img.png"}
+  //         alt={row.original.name}
+  //         width={48}
+  //         height={48}
+  //         className="h-full w-full object-cover"
+  //       />
+  //     </div>
+  //   ),
+  // },
   {
     accessorKey: "name",
     header: "Brand Name",
@@ -213,7 +213,6 @@ export default function AdminBrandsPage() {
         name: data.name,
         slug: data.slug,
         description: data.description || null,
-        icon: data.logo || null,
       };
 
       await createMutation.mutateAsync(payload);
@@ -238,8 +237,7 @@ export default function AdminBrandsPage() {
         name: selectedBrand.name,
         slug: selectedBrand.slug,
         description: selectedBrand.description,
-        logo: selectedBrand.icon,
-        isActive: selectedBrand.isActive,
+        
       }}
       isEditing
       isLoading={updateMutation.isPending}
@@ -249,7 +247,7 @@ export default function AdminBrandsPage() {
           name: data.name,
           slug: data.slug,
           description: data.description || null,
-          icon: data.logo || null,
+         
         };
 
         await updateMutation.mutateAsync({

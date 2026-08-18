@@ -4,7 +4,6 @@ export interface BrandListItem {
   name: string;
   slug: string;
   description: string | null;
-  icon: string | null;
   isActive: boolean;
   createdAt: Date;
   _count?: { products?: number };
@@ -30,8 +29,6 @@ export interface CreateBrandInput {
   name: string;
   slug?: string;
   description?: string;
-  logo?: string;
-  isActive?: boolean;
 }
 
 export interface UpdateBrandInput extends Partial<CreateBrandInput> {}

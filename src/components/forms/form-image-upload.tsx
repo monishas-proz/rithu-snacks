@@ -27,40 +27,40 @@ function FormImageUpload({ name, label, folder = "uploads" }: FormImageUploadPro
 
   const imageUrl = field.value as string;
 
-    const handleFileChange = async (
-        e: React.ChangeEvent<HTMLInputElement>
-        ) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+  const handleFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-        try {
-            setIsUploading(true);
+    try {
+      setIsUploading(true);
 
-            const formData = new FormData();
-            formData.append("file", file);
-            formData.append("folder", folder);
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("folder", "categories");
 
-            const response = await fetch("/api/admin/uploads", {
-            method: "POST",
-            body: formData,
-            credentials: "include",
-            });
+      const response = await fetch("/api/admin/upload", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
 
-            const result = await response.json();
+      const result = await response.json();
 
-            if (!response.ok || !result.success) {
-            throw new Error(result.message || "Image upload failed");
-            }
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Image upload failed");
+      }
 
-            // Save uploaded image path in the form
-            field.onChange(result.data.path);
+      // Save uploaded image path in the form
+      field.onChange(result.data.path);
 
-        } catch (error) {
-            console.error("Image upload error:", error);
-        } finally {
-            setIsUploading(false);
-        }
-        };
+    } catch (error) {
+      console.error("Image upload error:", error);
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   return (
     <div className="space-y-2">
@@ -76,48 +76,48 @@ function FormImageUpload({ name, label, folder = "uploads" }: FormImageUploadPro
         )}
       >
         {imageUrl ? (
-            <>
-                <Image
-                src={imageUrl}
-                alt="Preview"
-                fill
-                className="rounded-xl object-cover"
-                />
+          <>
+            <Image
+              src={imageUrl}
+              alt="Preview"
+              fill
+              className="rounded-xl object-cover"
+            />
 
-                <button
-                type="button"
-                onClick={(e) => {
-                    e.stopPropagation();
-                    field.onChange("");
-                }}
-                className="absolute right-3 top-3 rounded-full bg-white p-2 shadow-md"
-                >
-                <X className="h-4 w-4 text-[var(--color-neutral-700)]" />
-                </button>
-            </>
-            ) : isUploading ? (
-            <div className="flex flex-col items-center gap-3 text-center">
-                <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--color-primary-500)] border-t-transparent" />
-                <p className="text-sm text-[var(--color-neutral-500)]">
-                Uploading image...
-                </p>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                field.onChange("");
+              }}
+              className="absolute right-3 top-3 rounded-full bg-white p-2 shadow-md"
+            >
+              <X className="h-4 w-4 text-[var(--color-neutral-700)]" />
+            </button>
+          </>
+        ) : isUploading ? (
+          <div className="flex flex-col items-center gap-3 text-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--color-primary-500)] border-t-transparent" />
+            <p className="text-sm text-[var(--color-neutral-500)]">
+              Uploading image...
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-3 text-center">
+            <div className="rounded-full bg-white p-3 shadow-sm">
+              <Upload className="h-6 w-6 text-[var(--color-neutral-500)]" />
             </div>
-            ) : (
-            <div className="flex flex-col items-center gap-3 text-center">
-                <div className="rounded-full bg-white p-3 shadow-sm">
-                <Upload className="h-6 w-6 text-[var(--color-neutral-500)]" />
-                </div>
 
-                <div>
-                <p className="font-medium text-[var(--color-neutral-700)]">
-                    Upload Category Image
-                </p>
-                <p className="text-sm text-[var(--color-neutral-500)]">
-                    Click to browse (JPG, PNG, WEBP)
-                </p>
-                </div>
+            <div>
+              <p className="font-medium text-[var(--color-neutral-700)]">
+                Upload Category Image
+              </p>
+              <p className="text-sm text-[var(--color-neutral-500)]">
+                Click to browse (JPG, PNG, WEBP)
+              </p>
             </div>
-            )}
+          </div>
+        )}
 
         <input
           ref={fileInputRef}

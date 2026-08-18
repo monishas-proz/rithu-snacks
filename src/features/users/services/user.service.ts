@@ -1,8 +1,12 @@
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
+import { db } from "@/lib/db/prisma";
 import { ApiError } from "@/lib/api/api-error";
 import { userRepository } from "../repositories/user.repository";
+import { otpRepository } from "@/features/auth/repositories/otp.repository";
+import { verifyEmailVerificationToken } from "@/lib/auth/jwt";
 import type { GetUserParams, CreateUserInput, UpdateUserInput } from "../types";
+import type { RegisterInput } from "../validations/user.schema";
 
 export const userService = {
   async getUsers(params: GetUserParams = {}) {
@@ -41,6 +45,85 @@ export const userService = {
       phone: data.phone ?? undefined,
       role: { connect: { id: BigInt(3) } },
       status: (data.status as "active" | "inactive" | "banned") ?? "active",
+    });
+  },
+
+  async registerUserWithToken(data: RegisterInput) {
+    const registrationEmail = data.email.toLowerCase().trim();
+    const name = (data.fullName || data.name || "").trim();
+    const phone = (data.mobileNumber || data.phone || "").trim();
+
+    if (!data.emailVerificationToken) {
+      throw ApiError.badRequest("Email verification is required");
+    }
+
+    // 1. Verify token signature, purpose (EMAIL_VERIFICATION), and expiry
+    const tokenPayload = verifyEmailVerificationToken(data.emailVerificationToken);
+
+    // 2. Verify token email matches registration email
+    if (tokenPayload.email !== registrationEmail) {
+      throw ApiError.badRequest("Email verification token does not match registration email");
+    }
+
+    // 3. Perform atomic registration & single-use token consumption in a transaction
+    return db.$transaction(async (tx) => {
+      // Check token record in DB for single-use state
+      const tokenRecord = await otpRepository.findValidUnusedVerificationTokenRecord(
+        registrationEmail,
+        tokenPayload.jti,
+        tx
+      );
+
+      if (!tokenRecord || tokenRecord.is_token_used) {
+        throw ApiError.badRequest(
+          "Invalid, expired, or already used verification token. Please verify email again."
+        );
+      }
+
+      // Check duplicate email
+      const existingUser = await tx.user.findFirst({
+        where: { email: registrationEmail },
+      });
+      if (existingUser) {
+        throw ApiError.conflict("An account with this email address already exists");
+      }
+
+      // Check duplicate phone
+      if (phone) {
+        const existingPhone = await tx.user.findFirst({
+          where: { phone },
+        });
+        if (existingPhone) {
+          throw ApiError.conflict("An account with this phone number already exists");
+        }
+      }
+
+      const hashedPassword = await bcrypt.hash(data.password, 12);
+      const userUuid = crypto.randomUUID();
+
+      // Create user
+      const newUser = await tx.user.create({
+        data: {
+          uuid: userUuid,
+          name,
+          email: registrationEmail,
+          phone: phone || null,
+          password_hash: hashedPassword,
+          role: { connect: { id: BigInt(3) } }, // CUSTOMER
+          status: "active",
+          email_verified_at: new Date(),
+        },
+      });
+
+      // Atomically mark verification token as used inside transaction
+      await otpRepository.markVerificationTokenUsed(tokenRecord.id, tx);
+
+      return {
+        id: userUuid,
+        name: newUser.name,
+        email: newUser.email,
+        phone: newUser.phone,
+      };
     });
   },
 

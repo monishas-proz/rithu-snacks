@@ -25,6 +25,6 @@ export const AUTH_COOKIE_KEYS = {
 
 export const AUTH_COOKIE_MAX_AGE = {
   ACCESS_TOKEN: 15 * 60, // 15 minutes
-  REFRESH_TOKEN: 7 * 24 * 60 * 60, // 7 days
+  REFRESH_TOKEN: 30 * 24 * 60 * 60, // 30 days
   RESET_TOKEN: 5 * 60, // 5 minutes
 } as const;

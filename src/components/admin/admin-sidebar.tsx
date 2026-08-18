@@ -25,6 +25,7 @@ import {
   Receipt,
   Hash,
   type LucideIcon,
+  Ruler,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
@@ -50,6 +51,7 @@ const sidebarItems: SidebarItem[] = [
       { label: "Brands", href: "/admin/dashboard/brands", icon: Crown },
       { label: "GST Rates", href: "/admin/dashboard/gst-rates", icon:Receipt},
       { label: "HSN Codes", href: "/admin/dashboard/hsn-codes", icon: Hash },
+      { label: "Units", href: "/admin/dashboard/units", icon: Ruler },
       { label: "Attributes", href: "/admin/dashboard/attributes", icon: Tag },
     ],
   },

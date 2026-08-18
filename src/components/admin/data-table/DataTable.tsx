@@ -63,7 +63,7 @@ function DataTable<TData, TValue>({
     },
   });
   return (
-    <div className={cn("space-y-4", className)}>
+    <div className={cn("space-y-4 h-full flex flex-col justify-between rounded-2xl", className)}>
       {/* {searchKey && (
         <div className="flex items-center gap-2">
           <div className="relative flex-1 max-w-sm">
@@ -84,8 +84,8 @@ function DataTable<TData, TValue>({
         </div>
       )} */}
 
-      <div className="rounded-2xl">
-        <div className="max-h-[calc(100vh-420px)] overflow-x-auto overflow-y-auto overscroll-x-contain">
+      <div className="rounded-2xl overflow-y-auto">
+        <div className="overflow-x-auto overflow-y-auto overscroll-x-contain">
           <table className="w-full min-w-[720px] table-auto caption-bottom text-sm">
             <thead className="sticky top-0 z-10 bg-[var(--color-neutral-50)]">
               {table.getHeaderGroups().map((headerGroup) => (

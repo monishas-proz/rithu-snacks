@@ -14,19 +14,19 @@ export type GetUsersQueryInput = z.infer<typeof getUsersQuerySchema>;
 
 /* --------------------------- Mobile Validation -------------------------- */
 
-const phoneSchema = z
-  .string()
+const indiaPhoneSchema = z
+  .string({ message: "Mobile number is required" })
   .trim()
-  .regex(/^\d{10}$/, "Mobile number must be exactly 10 digits")
-  .regex(
-    /^[6-9]/,
-    "Mobile number must start with 6, 7, 8, or 9"
-  )
+  .transform((val) => {
+    if (/^[6-9]\d{9}$/.test(val)) {
+      return `+91${val}`;
+    }
+    return val;
+  })
   .refine(
-    (value) => !/(\d)\1{4,}/.test(value),
+    (val) => /^\+91[6-9]\d{9}$/.test(val),
     {
-      message:
-        "The same digit cannot be repeated more than 4 times consecutively",
+      message: "Mobile number must be a valid 10-digit Indian number starting with +91 (e.g. +919876543210)",
     }
   );
 
@@ -42,9 +42,10 @@ export const createUserSchema = z.object({
   email: z
     .string()
     .trim()
-    .email("Please enter a valid email address"),
+    .email("Please enter a valid email address")
+    .transform((val) => val.toLowerCase()),
 
-  phone: phoneSchema,
+  phone: indiaPhoneSchema,
 
   password: z
     .string()
@@ -75,35 +76,60 @@ export type ResetPasswordSchemaInput = z.infer<typeof resetPasswordSchema>;
 
 export const registerSchema = z
   .object({
+    fullName: z
+      .string()
+      .trim()
+      .min(2, "Full name must be at least 2 characters")
+      .max(100, "Full name must be less than 100 characters")
+      .optional(),
     name: z
       .string()
-      .min(1, "Name is required")
+      .trim()
       .min(2, "Name must be at least 2 characters")
-      .max(100, "Name must be less than 100 characters"),
+      .max(100, "Name must be less than 100 characters")
+      .optional(),
     email: z
-      .string()
+      .string({ message: "Email is required" })
+      .trim()
       .min(1, "Email is required")
-      .email("Please enter a valid email address"),
-    phone: z
-      .string()
-      .min(1, "Phone number is required")
-      .min(10, "Phone number must be at least 10 digits")
-      .max(15, "Phone number must be less than 15 digits")
-      .regex(/^\+?[\d\s-]+$/, "Please enter a valid phone number"),
+      .email("Please enter a valid email address")
+      .transform((val) => val.toLowerCase()),
+    mobileNumber: indiaPhoneSchema.optional(),
+    phone: indiaPhoneSchema.optional(),
     password: z
-      .string()
-      .min(1, "Password is required")
+      .string({ message: "Password is required" })
       .min(8, "Password must be at least 8 characters")
       .regex(
         /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
         "Password must contain at least one uppercase letter, one lowercase letter, and one number"
       ),
-    confirmPassword: z.string().min(1, "Please confirm your password"),
+    confirmPassword: z.string().optional(),
+    emailVerificationToken: z
+      .string({ message: "Email verification token is required" })
+      .trim()
+      .min(1, "Email verification token is required"),
   })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ["confirmPassword"],
-  });
+  .refine(
+    (data) => Boolean(data.fullName || data.name),
+    {
+      message: "Full name is required",
+      path: ["fullName"],
+    }
+  )
+  .refine(
+    (data) => Boolean(data.mobileNumber || data.phone),
+    {
+      message: "Mobile number is required",
+      path: ["mobileNumber"],
+    }
+  )
+  .refine(
+    (data) => !data.confirmPassword || data.password === data.confirmPassword,
+    {
+      message: "Passwords don't match",
+      path: ["confirmPassword"],
+    }
+  );
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type UpdateUserSchemaInput = z.infer<typeof updateUserSchema>;
