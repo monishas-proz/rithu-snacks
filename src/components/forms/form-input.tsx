@@ -33,8 +33,21 @@ function FormInput({
           {label && <Label htmlFor={name}>{label}</Label>}
           <Input
             id={name}
-            {...field}
             {...props}
+            value={field.value ?? ""}
+            onChange={(e) => {
+              const value =
+                props.type === "number"
+                  ? e.target.value === ""
+                    ? ""
+                    : Number(e.target.value)
+                  : e.target.value;
+
+              field.onChange(value);
+            }}
+            onBlur={field.onBlur}
+            name={field.name}
+            ref={field.ref}
             className={className}
             leftIcon={leftIcon}
             rightIcon={rightIcon}

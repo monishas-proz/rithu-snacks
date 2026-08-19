@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -21,11 +22,15 @@ import {
   Truck,
   Star,
   Crown,
+  Receipt,
+  Hash,
   type LucideIcon,
+  Ruler,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
 import { signOut } from "next-auth/react";
+import { Drawer } from "@/components/common/drawer";
 
 interface SidebarItem {
   label: string;
@@ -44,6 +49,9 @@ const sidebarItems: SidebarItem[] = [
       { label: "Products", href: "/admin/dashboard/products", icon: Package },
       { label: "Categories", href: "/admin/dashboard/categories", icon: FolderTree },
       { label: "Brands", href: "/admin/dashboard/brands", icon: Crown },
+      { label: "GST Rates", href: "/admin/dashboard/gst-rates", icon:Receipt},
+      { label: "HSN Codes", href: "/admin/dashboard/hsn-codes", icon: Hash },
+      { label: "Units", href: "/admin/dashboard/units", icon: Ruler },
       { label: "Attributes", href: "/admin/dashboard/attributes", icon: Tag },
     ],
   },
@@ -79,9 +87,7 @@ const sidebarItems: SidebarItem[] = [
     label: "CMS",
     href: "/admin/dashboard/cms",
     icon: BookOpen,
-    children: [
-      { label: "Blogs", href: "/admin/dashboard/blogs", icon: BookOpen },
-    ],
+    children: [{ label: "Blogs", href: "/admin/dashboard/blogs", icon: BookOpen }],
   },
   {
     label: "Users",
@@ -97,7 +103,15 @@ const sidebarItems: SidebarItem[] = [
   { label: "Settings", href: "/admin/dashboard/settings", icon: Settings },
 ];
 
-function SidebarItemComponent({ item, pathname }: { item: SidebarItem; pathname: string }) {
+function SidebarItemComponent({
+  item,
+  pathname,
+  onNavigate,
+}: {
+  item: SidebarItem;
+  pathname: string;
+  onNavigate?: () => void;
+}) {
   const [isOpen, setIsOpen] = useState(() => {
     if (item.children) {
       return item.children.some(
@@ -108,8 +122,7 @@ function SidebarItemComponent({ item, pathname }: { item: SidebarItem; pathname:
   });
 
   const isActive =
-    pathname === item.href ||
-    (item.href !== "/admin/dashboard" && pathname.startsWith(item.href));
+    pathname === item.href || (item.href !== "/admin/dashboard" && pathname.startsWith(item.href));
   const hasChildren = item.children && item.children.length > 0;
 
   if (hasChildren) {
@@ -118,10 +131,10 @@ function SidebarItemComponent({ item, pathname }: { item: SidebarItem; pathname:
         <button
           onClick={() => setIsOpen(!isOpen)}
           className={cn(
-            "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+            "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
             isActive
-              ? "bg-primary/10 text-primary"
-              : "text-muted-foreground hover:bg-accent hover:text-foreground"
+              ? "bg-secondary-100 text-secondary-600"
+              : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900"
           )}
         >
           <item.icon className="h-4 w-4 flex-shrink-0" />
@@ -133,22 +146,24 @@ function SidebarItemComponent({ item, pathname }: { item: SidebarItem; pathname:
           )}
         </button>
         {isOpen && (
-          <div className="ml-4 mt-1 space-y-1">
-            {item.children && item.children.map((child) => (
-              <Link
-                key={child.href}
-                href={child.href}
-                className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-1.5 text-sm transition-colors",
-                  pathname === child.href
-                    ? "bg-primary/10 text-primary font-medium"
-                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                )}
-              >
-                <child.icon className="h-3.5 w-3.5" />
-                {child.label}
-              </Link>
-            ))}
+          <div className="mt-1.5 ml-4 space-y-1">
+            {item.children &&
+              item.children.map((child) => (
+                <Link
+                  key={child.href}
+                  href={child.href}
+                  onClick={onNavigate}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                    pathname === child.href
+                      ? "bg-secondary-100 text-secondary-600 font-medium"
+                      : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900"
+                  )}
+                >
+                  <child.icon className="h-3.5 w-3.5" />
+                  {child.label}
+                </Link>
+              ))}
           </div>
         )}
       </div>
@@ -158,11 +173,12 @@ function SidebarItemComponent({ item, pathname }: { item: SidebarItem; pathname:
   return (
     <Link
       href={item.href}
+      onClick={onNavigate}
       className={cn(
-        "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
         isActive
-          ? "bg-primary/10 text-primary"
-          : "text-muted-foreground hover:bg-accent hover:text-foreground"
+          ? "bg-[--color-primary-500] text-secondary-600"
+          : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900"
       )}
     >
       <item.icon className="h-4 w-4" />
@@ -171,31 +187,91 @@ function SidebarItemComponent({ item, pathname }: { item: SidebarItem; pathname:
   );
 }
 
-function AdminSidebar() {
+function SidebarBrand() {
+  return (
+    <div className="flex items-center gap-3">
+      <Image
+        src="/logo.svg"
+        alt=""
+        width={32}
+        height={32}
+        className="h-8 w-8 rounded-lg object-cover"
+      />
+      <span className="flex flex-col">
+        <span className="font-hanken text-secondary-600 text-base font-bold">{APP_NAME} Admin</span>
+        <span className="text-xs text-neutral-500">Enterprise management</span>
+      </span>
+    </div>
+  );
+}
+
+function SidebarNavigation({
+  pathname,
+  onNavigate,
+}: {
+  pathname: string;
+  onNavigate?: () => void;
+}) {
+  return (
+    <nav className="flex-1 space-y-1.5 overflow-y-auto scrollbar-hide px-3 pb-4">
+      {sidebarItems.map((item) => (
+        <SidebarItemComponent
+          key={item.href}
+          item={item}
+          pathname={pathname}
+          onNavigate={onNavigate}
+        />
+      ))}
+    </nav>
+  );
+}
+
+function SidebarLogout() {
+  return (
+    <div className="border-t border-neutral-200 p-3">
+      <button
+        onClick={() => signOut({ callbackUrl: "/admin/login" })}
+        className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
+      >
+        <LogOut className="h-4 w-4" />
+        Logout
+      </button>
+    </div>
+  );
+}
+
+interface AdminSidebarProps {
+  mobileOpen: boolean;
+  onMobileClose: () => void;
+}
+
+function AdminSidebar({ mobileOpen, onMobileClose }: AdminSidebarProps) {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden lg:flex w-64 flex-col border-r bg-background">
-      <div className="border-b p-4">
-        <Link href="/admin/dashboard">
-          <span className="text-lg font-bold text-primary">{APP_NAME} Admin</span>
-        </Link>
-      </div>
-      <nav className="flex-1 overflow-y-auto p-4 space-y-1">
-        {sidebarItems.map((item) => (
-          <SidebarItemComponent key={item.href} item={item} pathname={pathname} />
-        ))}
-      </nav>
-      <div className="border-t p-4">
-        <button
-          onClick={() => signOut({ callbackUrl: "/admin/login" })}
-          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-        >
-          <LogOut className="h-4 w-4" />
-          Logout
-        </button>
-      </div>
-    </aside>
+    <>
+      <Drawer
+        open={mobileOpen}
+        onClose={onMobileClose}
+        side="left"
+        title={<SidebarBrand />}
+        className="w-[280px] max-w-[calc(100vw-2rem)] bg-neutral-50"
+      >
+        <div className="flex h-full flex-col">
+          <SidebarNavigation pathname={pathname} onNavigate={onMobileClose} />
+          <SidebarLogout />
+        </div>
+      </Drawer>
+      <aside className="hidden h-screen w-60 flex-col border-r border-neutral-300 bg-secondary-100 lg:flex">
+        <div className="p-5 pb-4">
+          <Link href="/admin/dashboard" className="rounded-lg">
+            <SidebarBrand />
+          </Link>
+        </div>
+        <SidebarNavigation pathname={pathname} />
+        <SidebarLogout />
+      </aside>
+    </>
   );
 }
 

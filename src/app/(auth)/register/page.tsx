@@ -1,9 +1,9 @@
 "use client";
-
+import { useMemo } from "react";
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FormProvider, useForm } from "react-hook-form";
+import { FormProvider, useForm,  } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import AuthFormLayout from "@/components/auth/AuthFormLayout";
 import { registerSchema, type RegisterInput } from "@/lib/validations/auth";
@@ -36,6 +36,57 @@ function RegisterForm() {
       confirmPassword: "",
     },
   });
+
+  const password = methods.watch("password") || "";
+
+  const strength = useMemo(() => {
+      if (!password) return null;
+  
+      let score = 0;
+  
+      if (password.length >= 8) score++;
+      if (/[A-Z]/.test(password)) score++;
+      if (/[a-z]/.test(password)) score++;
+      if (/\d/.test(password)) score++;
+      if (/[^A-Za-z0-9]/.test(password)) score++;
+  
+      if (score <= 2) {
+        return {
+          width: "25%",
+          label: "Weak",
+          color: "bg-error-600",
+          suggestion:
+            "Use at least 8 characters with uppercase, lowercase, a number, and a special character.",
+        };
+      }
+  
+      if (score === 3) {
+        return {
+          width: "50%",
+          label: "Fair",
+          color: "bg-primary-400",
+          suggestion:
+            "Add an uppercase letter, number, or special character.",
+        };
+      }
+  
+      if (score === 4) {
+        return {
+          width: "75%",
+          label: "Good",
+          color: "bg-success-500",
+          suggestion:
+            "Add a special character to make it stronger.",
+        };
+      }
+  
+      return {
+        width: "100%",
+        label: "Strong",
+        color: "bg-success-600",
+        suggestion: "Your password is strong.",
+      };
+    }, [password]);
 
   const onSubmit = (data: RegisterInput) => {
     setSuccess("");
@@ -154,6 +205,26 @@ function RegisterForm() {
             placeholder="Enter your password"
             leftIcon={<LockKeyhole size={18} />}
           />
+
+          {password.length > 0 && strength && (
+              <div className="mt-3">
+                <div className="mb-2 flex items-center justify-between text-[11px] font-medium uppercase tracking-wide text-neutral-500">
+                  <span>Password Strength</span>
+                  <span>{strength.label}</span>
+                </div>
+
+                <div className="h-[4px] w-full rounded-full bg-neutral-200">
+                  <div
+                    className={`h-[4px] rounded-full transition-all duration-300 ${strength.color}`}
+                    style={{ width: strength.width }}
+                  />
+                </div>
+
+                <p className="mt-2 text-xs text-neutral-500">
+                  {strength.suggestion}
+                </p>
+              </div>
+            )}
 
           <FormPasswordInput
             name="confirmPassword"

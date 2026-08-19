@@ -62,10 +62,8 @@ function DataTable<TData, TValue>({
       globalFilter,
     },
   });
-  table.getHeaderGroups().map((headerGroup) => (console.log(headerGroup)))
-
   return (
-    <div className={cn("space-y-4", className)}>
+    <div className={cn("space-y-4 h-full flex flex-col justify-between rounded-2xl", className)}>
       {/* {searchKey && (
         <div className="flex items-center gap-2">
           <div className="relative flex-1 max-w-sm">
@@ -86,9 +84,9 @@ function DataTable<TData, TValue>({
         </div>
       )} */}
 
-        <div className="rounded-2xl">
-          <div className="max-h-[calc(100vh-420px)] overflow-y-auto overflow-x-auto">
-          <table className="min-w-full table-fixed caption-bottom text-sm">
+      <div className="rounded-2xl overflow-y-auto">
+        <div className="overflow-x-auto overflow-y-auto overscroll-x-contain">
+          <table className="w-full min-w-[720px] table-auto caption-bottom text-sm">
             <thead className="sticky top-0 z-10 bg-[var(--color-neutral-50)]">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id} className="border-b border-gray-200 transition-colors">
@@ -96,12 +94,19 @@ function DataTable<TData, TValue>({
                     <th
                       key={header.id}
                       className={cn(
-                        "h-14 px-6 text-left align-middle text-xs font-semibold uppercase tracking-wider text-[var(--color-neutral-500)]",
-                        header.column.getCanSort() && "cursor-pointer select-none hover:text-[var(--color-neutral-700)]"
+                        "h-14 px-4 text-left align-middle text-xs font-semibold tracking-wider whitespace-nowrap text-[var(--color-neutral-500)] uppercase sm:px-5",
+                        header.column.id === "actions" && "text-right",
+                        header.column.getCanSort() &&
+                          "cursor-pointer select-none hover:text-[var(--color-neutral-700)]"
                       )}
                       onClick={header.column.getToggleSortingHandler()}
                     >
-                      <div className="flex items-center gap-1">
+                      <div
+                        className={cn(
+                          "flex items-center gap-1",
+                          header.column.id === "actions" && "justify-end"
+                        )}
+                      >
                         {header.isPlaceholder
                           ? null
                           : flexRender(header.column.columnDef.header, header.getContext())}
@@ -131,7 +136,13 @@ function DataTable<TData, TValue>({
                     className="transition-colors hover:bg-[var(--color-neutral-50)]"
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-5 py-5 align-middle">
+                      <td
+                        key={cell.id}
+                        className={cn(
+                          "px-4 py-4 align-middle whitespace-nowrap sm:px-5",
+                          cell.column.id === "actions" && "text-right [&>div]:justify-end"
+                        )}
+                      >
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
                     ))}
@@ -149,17 +160,17 @@ function DataTable<TData, TValue>({
         </div>
       </div>
 
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-[var(--color-neutral-500)] pl-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-5">
+        <p className="text-sm text-[var(--color-neutral-500)]">
           Showing {table.getRowModel().rows.length} of {data.length} entries
         </p>
-        <div className="flex items-center gap-2 pr-4">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
             className={cn(
-              "inline-flex items-center justify-center h-9 w-9 rounded-lg border border-[var(--color-neutral-300)]",
-              "bg-white text-[var(--color-neutral-700)] hover:bg-[var(--color-neutral-50)] transition-colors",
+              "inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--color-neutral-300)]",
+              "bg-white text-[var(--color-neutral-700)] transition-colors hover:bg-[var(--color-neutral-50)]",
               "disabled:cursor-not-allowed disabled:opacity-50"
             )}
           >
@@ -172,8 +183,8 @@ function DataTable<TData, TValue>({
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
             className={cn(
-              "inline-flex items-center justify-center h-9 w-9 rounded-lg border border-[var(--color-neutral-300)]",
-              "bg-white text-[var(--color-neutral-700)] hover:bg-[var(--color-neutral-50)] transition-colors",
+              "inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--color-neutral-300)]",
+              "bg-white text-[var(--color-neutral-700)] transition-colors hover:bg-[var(--color-neutral-50)]",
               "disabled:cursor-not-allowed disabled:opacity-50"
             )}
           >

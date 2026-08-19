@@ -81,7 +81,7 @@ function AdminLoginForm() {
       showLogo
       showFooter
       title="Welcome back"
-      subtitle="Enter your credentials to access the RithuSnacks admin portal."
+      subtitle="Enter your credentials to access the Rithu's Snacks admin portal."
     >
       <FormProvider {...methods}>
         <form

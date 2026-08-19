@@ -1,0 +1,257 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import {
+  useHsnCodes,
+  useCreateHsnCode,
+  useUpdateHsnCode,
+  useDeleteHsnCode,
+} from "@/features/hsn-codes/hooks";
+import { useGstRates } from "@/features/gst-rates/hooks/use-gst-rates";
+import { DataTable } from "@/components/admin/data-table/DataTable";
+import {
+  AdminPageHeader,
+  AdminContent,
+} from "@/components/admin/AdminPageHeader";
+import { LoadingState } from "@/components/ui/loading-state";
+import { ErrorState } from "@/components/ui/error-state";
+import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { FormModal } from "@/components/common/FormModal";
+import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import type { ColumnDef } from "@tanstack/react-table";
+import type { AdminHsnCodeResponse } from "@/features/hsn-codes/types";
+import { HsnCodeForm } from "@/features/hsn-codes/components/HsnCodeForm";
+
+export default function AdminHsnCodesPage() {
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [selectedHsn, setSelectedHsn] =
+    useState<AdminHsnCodeResponse | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchInput);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  const { data, isLoading, error, refetch } = useHsnCodes({
+    search: search || undefined,
+  });
+
+  const { data: gstData } = useGstRates({ pageSize: 100 });
+
+  const createMutation = useCreateHsnCode();
+  const updateMutation = useUpdateHsnCode();
+  const deleteMutation = useDeleteHsnCode();
+
+  const hsnCodes = data?.data ?? [];
+
+  const gstMap = new Map(
+    (gstData?.data ?? []).map((gst) => [gst.id, gst])
+  );
+
+  const columns: ColumnDef<AdminHsnCodeResponse>[] = [
+    {
+      accessorKey: "code",
+      header: "HSN Code",
+      cell: ({ row }) => (
+        <p className="font-semibold text-[var(--color-neutral-900)]">
+          {row.original.code}
+        </p>
+      ),
+    },
+    {
+      accessorKey: "description",
+      header: "Description",
+      cell: ({ row }) => (
+        <span className="text-[var(--color-neutral-700)]">
+          {row.original.description || "-"}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "gstRateId",
+      header: "GST Rate",
+      cell: ({ row }) => {
+        const gst = gstMap.get(row.original.gstRateId || "");
+        return (
+          <span className="text-[var(--color-neutral-700)]">
+            {gst ? `${gst.name} (${gst.igstPercent}%)` : "-"}
+          </span>
+        );
+      },
+    },
+    // {
+    //   accessorKey: "createdAt",
+    //   header: "Created Date",
+    //   cell: ({ row }) => (
+    //     <span className="text-[var(--color-neutral-700)]">
+    //       {new Date(row.original.createdAt).toLocaleDateString("en-IN")}
+    //     </span>
+    //   ),
+    // },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => (
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              setSelectedHsn(row.original);
+              setIsEditOpen(true);
+            }}
+          >
+            <Pencil className="h-4 w-4 text-[var(--color-neutral-500)]" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setDeleteId(row.original.id)}
+          >
+            <Trash2 className="h-4 w-4 text-[var(--color-error-600)]" />
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
+  if (isLoading && !data) {
+    return <LoadingState text="Loading HSN codes..." />;
+  }
+
+  if (error) {
+    return (
+      <ErrorState
+        message="Failed to load HSN codes"
+        onRetry={() => refetch()}
+      />
+    );
+  }
+
+  return (
+    <div>
+      <AdminPageHeader
+        title="HSN Code Management"
+        description="Manage HSN codes and GST mappings."
+        actions={
+          <Button
+            onClick={() => setIsCreateOpen(true)}
+            className="h-11 rounded-xl bg-[var(--color-secondary-600)] px-5 text-sm font-semibold text-white hover:bg-[var(--color-secondary-700)]"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add HSN Code
+          </Button>
+        }
+      />
+
+      <AdminContent className="h-[calc(100vh-80px)] overflow-hidden">
+        <div className="flex h-full flex-col overflow-hidden bg-[var(--color-background)] px-6 py-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="relative w-full max-w-md">
+              <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-neutral-400)]" />
+              <input
+                type="text"
+                placeholder="Search HSN codes..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="h-11 w-full rounded-xl border border-[var(--color-neutral-300)] bg-white pl-11 pr-4 text-sm text-[var(--color-neutral-900)] outline-none transition-all focus:border-[var(--color-primary-500)] focus:ring-2 focus:ring-[var(--color-primary-100)]"
+              />
+            </div>
+          </div>
+
+          <div className="mt-6 flex-1 min-h-0 overflow-hidden">
+            <DataTable
+              columns={columns}
+              data={hsnCodes}
+              pageSize={10}
+              className="bg-white"
+            />
+          </div>
+        </div>
+      </AdminContent>
+
+      <FormModal
+        open={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        title="Add HSN Code"
+        description="Create a new HSN code"
+      >
+        <HsnCodeForm
+          isLoading={createMutation.isPending}
+          submitLabel="Create HSN Code"
+          onSubmit={async (formData) => {
+            await createMutation.mutateAsync({
+              code: formData.code,
+              description: formData.description || null,
+              gstRateId: formData.gstRateId,
+            });
+            setIsCreateOpen(false);
+          }}
+        />
+      </FormModal>
+
+      <FormModal
+        open={isEditOpen}
+        onClose={() => {
+          setIsEditOpen(false);
+          setSelectedHsn(null);
+        }}
+        title="Update HSN Code"
+        description="Update the selected HSN code"
+      >
+        {selectedHsn && (
+          <HsnCodeForm
+            initialData={{
+              code: selectedHsn.code,
+              description: selectedHsn.description ?? "",
+              gstRateId: selectedHsn.gstRateId ?? "",
+            }}
+            isEditing
+            isLoading={updateMutation.isPending}
+            submitLabel="Update HSN Code"
+            onSubmit={async (formData) => {
+              await updateMutation.mutateAsync({
+                uuid: selectedHsn.id,
+                data: {
+                  code: formData.code,
+                  description: formData.description || null,
+                  gstRateId: formData.gstRateId,
+                },
+              });
+
+              setIsEditOpen(false);
+              setSelectedHsn(null);
+              refetch();
+            }}
+          />
+        )}
+      </FormModal>
+
+      <ConfirmDialog
+        open={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={() => {
+          if (deleteId) {
+            deleteMutation.mutate(deleteId, {
+              onSuccess: () => setDeleteId(null),
+            });
+          }
+        }}
+        title="Delete HSN Code"
+        description="Are you sure you want to delete this HSN code? This action cannot be undone."
+        confirmText="Delete"
+        variant="destructive"
+        isLoading={deleteMutation.isPending}
+      />
+    </div>
+  );
+}

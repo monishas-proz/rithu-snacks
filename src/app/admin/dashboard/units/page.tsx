@@ -1,0 +1,291 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import {
+  useUnits,
+  useCreateUnit,
+  useUpdateUnit,
+  useDeleteUnit,
+} from "@/features/units/hooks";
+
+import { DataTable } from "@/components/admin/data-table/DataTable";
+import {
+  AdminPageHeader,
+  AdminContent,
+} from "@/components/admin/AdminPageHeader";
+import { LoadingState } from "@/components/ui/loading-state";
+import { ErrorState } from "@/components/ui/error-state";
+import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { FormModal } from "@/components/common/FormModal";
+import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import type { ColumnDef } from "@tanstack/react-table";
+import type { AdminUnitResponse } from "@/features/units/types";
+import { UnitForm } from "@/features/units/components/UnitForm";
+
+export default function AdminUnitsPage() {
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+
+  const [selectedUnit, setSelectedUnit] =
+    useState<AdminUnitResponse | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchInput);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  const { data, isLoading, error, refetch } = useUnits({
+    search: search || undefined,
+  });
+
+  const { data: baseUnitsData } = useUnits({
+    page: 1,
+    pageSize: 100,
+  });
+
+  const createMutation = useCreateUnit();
+  const updateMutation = useUpdateUnit();
+  const deleteMutation = useDeleteUnit();
+
+  const units = data?.data ?? [];
+  const baseUnits = baseUnitsData?.data ?? [];
+
+  const columns: ColumnDef<AdminUnitResponse>[] = [
+    {
+      accessorKey: "name",
+      header: "Unit Name",
+      cell: ({ row }) => (
+        <p className="font-semibold text-[var(--color-neutral-900)]">
+          {row.original.name}
+        </p>
+      ),
+    },
+
+    {
+      accessorKey: "code",
+      header: "Code",
+      cell: ({ row }) => (
+        <span className="font-medium text-[var(--color-neutral-700)]">
+          {row.original.code}
+        </span>
+      ),
+    },
+
+    {
+      accessorKey: "type",
+      header: "Type",
+      cell: ({ row }) => (
+        <span className="capitalize text-[var(--color-neutral-700)]">
+          {row.original.type}
+        </span>
+      ),
+    },
+
+    {
+      accessorKey: "baseUnitId",
+      header: "Base Unit",
+      cell: ({ row }) => {
+        const baseUnit = units.find(
+          (unit) => unit.id === row.original.baseUnitId
+        );
+
+        return (
+          <span className="text-[var(--color-neutral-700)]">
+            {baseUnit
+              ? `${baseUnit.name} (${baseUnit.code})`
+              : "—"}
+          </span>
+        );
+      },
+    },
+
+    {
+      accessorKey: "conversionFactor",
+      header: "Conversion",
+      cell: ({ row }) => (
+        <span className="text-[var(--color-neutral-700)]">
+          {row.original.conversionFactor}
+        </span>
+      ),
+    },
+
+    {
+      accessorKey: "sortOrder",
+      header: "Order",
+      cell: ({ row }) => (
+        <span className="text-[var(--color-neutral-700)]">
+          {row.original.sortOrder}
+        </span>
+      ),
+    },
+
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => (
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              setSelectedUnit(row.original);
+              setIsEditOpen(true);
+            }}
+          >
+            <Pencil className="h-4 w-4 text-[var(--color-neutral-500)]" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setDeleteId(row.original.id)}
+          >
+            <Trash2 className="h-4 w-4 text-[var(--color-error-600)]" />
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
+  if (isLoading && !data) {
+    return <LoadingState text="Loading units..." />;
+  }
+
+  if (error) {
+    return (
+      <ErrorState
+        message="Failed to load units"
+        onRetry={() => refetch()}
+      />
+    );
+  }
+
+  return (
+    <div>
+      <AdminPageHeader
+        title="Unit Management"
+        description="Manage product units and their conversion settings."
+        actions={
+          <Button
+            onClick={() => setIsCreateOpen(true)}
+            className="h-11 rounded-xl bg-[var(--color-secondary-600)] px-5 text-sm font-semibold text-white hover:bg-[var(--color-secondary-700)]"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add Unit
+          </Button>
+        }
+      />
+
+      <AdminContent className="h-[calc(100vh-80px)] overflow-hidden">
+        <div className="flex h-full flex-col overflow-hidden bg-[var(--color-background)] px-6 py-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="relative w-full max-w-md">
+              <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-neutral-400)]" />
+
+              <input
+                type="text"
+                placeholder="Search units..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="h-11 w-full rounded-xl border border-[var(--color-neutral-300)] bg-white pl-11 pr-4 text-sm text-[var(--color-neutral-900)] outline-none transition-all focus:border-[var(--color-primary-500)] focus:ring-2 focus:ring-[var(--color-primary-100)]"
+              />
+            </div>
+          </div>
+
+          <div className="mt-6 flex-1 min-h-0 overflow-hidden">
+            <DataTable
+              columns={columns}
+              data={units}
+              pageSize={10}
+              className="bg-white"
+            />
+          </div>
+        </div>
+      </AdminContent>
+
+      {/* CREATE */}
+      <FormModal
+        open={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        title="Add Unit"
+        description="Create a new product unit"
+      >
+        <UnitForm
+          baseUnits={baseUnits}
+          isLoading={createMutation.isPending}
+          submitLabel="Create Unit"
+          onSubmit={async (formData) => {
+            await createMutation.mutateAsync(formData);
+
+            setIsCreateOpen(false);
+          }}
+        />
+      </FormModal>
+
+      {/* EDIT */}
+      <FormModal
+        open={isEditOpen}
+        onClose={() => {
+          setIsEditOpen(false);
+          setSelectedUnit(null);
+        }}
+        title="Update Unit"
+        description="Update the selected product unit"
+      >
+        {selectedUnit && (
+          <UnitForm
+            initialData={{
+              name: selectedUnit.name,
+              code: selectedUnit.code,
+              type: selectedUnit.type,
+              baseUnitId: selectedUnit.baseUnitId,
+              conversionFactor: selectedUnit.conversionFactor,
+              sortOrder: selectedUnit.sortOrder,
+            }}
+            baseUnits={baseUnits}
+            isEditing
+            isLoading={updateMutation.isPending}
+            submitLabel="Update Unit"
+            onSubmit={async (formData) => {
+              await updateMutation.mutateAsync({
+                uuid: selectedUnit.id,
+                data: formData,
+              });
+
+              setIsEditOpen(false);
+              setSelectedUnit(null);
+              refetch();
+            }}
+          />
+        )}
+      </FormModal>
+
+      {/* DELETE */}
+      <ConfirmDialog
+        open={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={() => {
+          if (deleteId) {
+            deleteMutation.mutate(deleteId, {
+              onSuccess: () => setDeleteId(null),
+            });
+          }
+        }}
+        title="Delete Unit"
+        description="Are you sure you want to delete this unit? This action cannot be undone."
+        confirmText="Delete"
+        variant="destructive"
+        isLoading={deleteMutation.isPending}
+      />
+    </div>
+  );
+}

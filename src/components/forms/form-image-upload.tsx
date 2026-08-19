@@ -9,9 +9,10 @@ import { cn } from "@/lib/utils";
 interface FormImageUploadProps {
   name: string;
   label: string;
+  folder? : string;
 }
 
-function FormImageUpload({ name, label }: FormImageUploadProps) {
+function FormImageUpload({ name, label, folder = "uploads" }: FormImageUploadProps) {
   const { control } = useFormContext();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = React.useState(false);
