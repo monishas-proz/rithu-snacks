@@ -8,6 +8,7 @@ export const ALLOWED_FOLDERS = [
   "brands",
   "products",
   "variants",
+  "customers",
 ] as const;
 
 export type AllowedFolder = (typeof ALLOWED_FOLDERS)[number];
@@ -207,6 +208,56 @@ export const uploadService = {
       );
 
       throw error;
+    }
+  },
+
+  /**
+   * Safe physical file deletion helper.
+   * Only deletes files inside public/uploads/<allowedFolder>/
+   * Prevents path traversal and handles non-existent files gracefully.
+   */
+  async deleteUploadedFile(
+    webPath: string | null | undefined,
+    allowedFolder: AllowedFolder = "customers"
+  ) {
+    if (!webPath || typeof webPath !== "string") return;
+
+    const normalizedFolder = validateFolder(allowedFolder);
+    const normalizedWebPath = webPath.replace(/\\/g, "/");
+
+    const expectedPrefix = `/uploads/${normalizedFolder}/`;
+    if (!normalizedWebPath.startsWith(expectedPrefix)) {
+      return;
+    }
+
+    const filename = normalizedWebPath.slice(expectedPrefix.length);
+
+    if (
+      !filename ||
+      filename.includes("..") ||
+      filename.includes("/") ||
+      filename.includes("\\")
+    ) {
+      return;
+    }
+
+    const folderDir = path.join(
+      process.cwd(),
+      "public",
+      "uploads",
+      normalizedFolder
+    );
+    const targetFilePath = path.join(folderDir, filename);
+
+    const relative = path.relative(folderDir, targetFilePath);
+    if (relative.startsWith("..") || path.isAbsolute(relative)) {
+      return;
+    }
+
+    try {
+      await fs.unlink(targetFilePath);
+    } catch {
+      // Ignore ENOENT (file not found) or filesystem errors safely
     }
   },
 };

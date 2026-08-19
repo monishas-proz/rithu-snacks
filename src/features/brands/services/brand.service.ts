@@ -74,7 +74,7 @@ export const brandService = {
       slug,
       description: data.description,
       status: true,
-      isActive: data.isActive ?? true,
+      // isActive: data.isActive ?? true,
     });
   },
 
@@ -97,7 +97,7 @@ export const brandService = {
     if (data.name !== undefined) updateData.name = data.name;
     updateData.slug = slug;
     if (data.description !== undefined) updateData.description = data.description;
-    if (data.isActive !== undefined) updateData.isActive = data.isActive;
+    // if (data.isActive !== undefined) updateData.isActive = data.isActive;
 
     return brandRepository.update(id, updateData);
   },

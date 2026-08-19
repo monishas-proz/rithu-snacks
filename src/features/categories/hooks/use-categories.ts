@@ -8,8 +8,19 @@ import type { GetCategoriesParams } from "../types";
 export function useCategories(params?: GetCategoriesParams) {
   const queryParams: Record<string, string | number | boolean | undefined> = {};
 
-  if (params?.search) queryParams.search = params.search;
-  if (params?.parentId !== undefined && params.parentId !== null) {
+  if (params?.page !== undefined) {
+    queryParams.page = params.page;
+  }
+
+  if (params?.pageSize !== undefined) {
+    queryParams.pageSize = params.pageSize;
+  }
+
+  if (params?.search) {
+    queryParams.search = params.search;
+  }
+
+  if (params?.parentId !== undefined && params?.parentId !== null) {
     queryParams.parentId = params.parentId;
   }
 

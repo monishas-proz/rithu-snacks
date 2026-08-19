@@ -26,6 +26,10 @@ import { HsnCodeForm } from "@/features/hsn-codes/components/HsnCodeForm";
 export default function AdminHsnCodesPage() {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -40,9 +44,15 @@ export default function AdminHsnCodesPage() {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
+  useEffect(() => {
+  setPage(1);
+}, [search]);
+
   const { data, isLoading, error, refetch } = useHsnCodes({
-    search: search || undefined,
-  });
+  page,
+  pageSize,
+  search: search || undefined,
+});
 
   const { data: gstData } = useGstRates({ pageSize: 100 });
 
@@ -142,15 +152,6 @@ export default function AdminHsnCodesPage() {
       <AdminPageHeader
         title="HSN Code Management"
         description="Manage HSN codes and GST mappings."
-        actions={
-          <Button
-            onClick={() => setIsCreateOpen(true)}
-            className="h-11 rounded-xl bg-[var(--color-secondary-600)] px-5 text-sm font-semibold text-white hover:bg-[var(--color-secondary-700)]"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Add HSN Code
-          </Button>
-        }
       />
 
       <AdminContent className="h-[calc(100vh-80px)] overflow-hidden">
@@ -166,13 +167,26 @@ export default function AdminHsnCodesPage() {
                 className="h-11 w-full rounded-xl border border-[var(--color-neutral-300)] bg-white pl-11 pr-4 text-sm text-[var(--color-neutral-900)] outline-none transition-all focus:border-[var(--color-primary-500)] focus:ring-2 focus:ring-[var(--color-primary-100)]"
               />
             </div>
+
+            <Button
+            onClick={() => setIsCreateOpen(true)}
+            className="h-11 rounded-xl bg-[var(--color-secondary-600)] px-5 text-sm font-semibold text-white hover:bg-[var(--color-secondary-700)]"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add HSN Code
+          </Button>
+          
           </div>
 
           <div className="mt-6 flex-1 min-h-0 overflow-hidden">
             <DataTable
               columns={columns}
               data={hsnCodes}
-              pageSize={10}
+              pageSize={pageSize}
+              page={data?.meta?.page ?? page}
+              totalPages={data?.meta?.totalPages ?? 1}
+              totalItems={data?.meta?.total ?? 0}
+              onPageChange={setPage}
               className="bg-white"
             />
           </div>

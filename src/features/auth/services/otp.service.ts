@@ -16,6 +16,10 @@ export const otpService = {
     return crypto.randomInt(100000, 1000000).toString();
   },
 
+  hashOtp(otp: string): string {
+    return crypto.createHash("sha256").update(otp).digest("hex");
+  },
+
   async sendRegistrationEmailOtp(email: string) {
     const normalizedEmail = email.toLowerCase().trim();
 
@@ -45,11 +49,15 @@ export const otpService = {
 
     await otpRepository.createEmailOtp({
       email: normalizedEmail,
-      otpCode: otp,
+      otpCode: this.hashOtp(otp),
       expiresAt,
     });
 
-    await emailService.sendOtpEmail(normalizedEmail, otp);
+    const sent = await emailService.sendOtpEmail(normalizedEmail, otp);
+    if (!sent) {
+      await otpRepository.deleteByEmail(normalizedEmail, "register");
+      throw ApiError.internal("Unable to send verification email. Please try again later.");
+    }
 
     return {
       success: true,
@@ -72,7 +80,11 @@ export const otpService = {
       throw ApiError.badRequest("Verification code has expired. Please request a new one.");
     }
 
-    if (record.otpCode !== otp) {
+    const hashedOtp = this.hashOtp(otp);
+    if (
+      record.otpCode.length !== hashedOtp.length ||
+      !crypto.timingSafeEqual(Buffer.from(record.otpCode), Buffer.from(hashedOtp))
+    ) {
       throw ApiError.badRequest("Invalid verification code.");
     }
 

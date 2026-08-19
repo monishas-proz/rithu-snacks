@@ -9,6 +9,7 @@ export interface InputProps
   error?: string;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
+  inputPrefix?: React.ReactNode;
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
@@ -19,6 +20,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       error,
       leftIcon,
       rightIcon,
+      inputPrefix,
       ...props
     },
     ref
@@ -32,8 +34,15 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       <div className="w-full space-y-1">
         <div className="relative">
           {leftIcon && (
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
               {leftIcon}
+            </div>
+          )}
+
+          {inputPrefix && (
+            <div className="absolute left-11 top-1/2 flex -translate-y-1/2 items-center gap-2 text-sm text-neutral-500">
+              <span>{inputPrefix}</span>
+              <span className="h-5 w-px bg-neutral-200" />
             </div>
           )}
 
@@ -43,7 +52,8 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             className={cn(
               "h-10 w-full rounded-lg border border-neutral-200 bg-white px-4 text-sm text-neutral-900 placeholder:text-neutral-400 transition-all outline-none",
               "focus:border-secondary-600",
-              leftIcon && "pl-13",
+              leftIcon && "pl-10",
+              inputPrefix && "pl-22",
               (rightIcon || isPassword) && "pr-11",
               error && "border-error-600",
               className

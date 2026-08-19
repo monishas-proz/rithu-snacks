@@ -30,8 +30,8 @@ export const emailService = {
     const transporter = this.getTransporter();
 
     if (!transporter) {
-      console.log(`[EMAIL SERVICE] (DEV MODE - No SMTP configured) OTP for ${to}: ${otp}`);
-      return true;
+      console.warn("[EMAIL SERVICE] SMTP is not configured; OTP email was not sent.");
+      return false;
     }
 
     try {
@@ -46,7 +46,6 @@ export const emailService = {
       return true;
     } catch (error) {
       console.error("[EMAIL SERVICE] Error sending email:", error);
-      console.log(`[EMAIL SERVICE] (FALLBACK) OTP for ${to}: ${otp}`);
       return false;
     }
   },

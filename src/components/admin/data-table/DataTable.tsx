@@ -5,7 +5,6 @@ import {
   useReactTable,
   getCoreRowModel,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   flexRender,
   type ColumnDef,
@@ -22,6 +21,10 @@ interface DataTableProps<TData, TValue> {
   searchKey?: string;
   searchPlaceholder?: string;
   pageSize?: number;
+  page?: number;
+  totalPages?: number;
+  totalItems?: number;
+  onPageChange?: (page: number) => void;
   className?: string;
   emptyMessage?: string;
 }
@@ -32,6 +35,10 @@ function DataTable<TData, TValue>({
   searchKey,
   searchPlaceholder = "Search...",
   pageSize = 10,
+  page = 1,
+  totalPages,
+  totalItems,
+  onPageChange,
   className,
   emptyMessage = "No results found.",
 }: DataTableProps<TData, TValue>) {
@@ -45,7 +52,6 @@ function DataTable<TData, TValue>({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onSortingChange: setSorting,
@@ -53,7 +59,7 @@ function DataTable<TData, TValue>({
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     onGlobalFilterChange: setGlobalFilter,
-    initialState: { pagination: { pageSize } },
+    
     state: {
       sorting,
       columnFilters,
@@ -62,6 +68,18 @@ function DataTable<TData, TValue>({
       globalFilter,
     },
   });
+
+  const startEntry =
+    totalItems && totalItems > 0
+      ? (page - 1) * pageSize + 1
+      : 0;
+
+  const endEntry =
+    totalItems && totalItems > 0
+      ? Math.min(page * pageSize, totalItems)
+      : 0;
+
+    
   return (
     <div className={cn("space-y-4 h-full flex flex-col justify-between rounded-2xl", className)}>
       {/* {searchKey && (
@@ -84,8 +102,8 @@ function DataTable<TData, TValue>({
         </div>
       )} */}
 
-      <div className="rounded-2xl overflow-y-auto">
-        <div className="overflow-x-auto overflow-y-auto overscroll-x-contain">
+      <div className="min-h-0 flex-1 overflow-hidden rounded-2xl">
+        <div className="h-full overflow-x-auto overflow-y-auto overscroll-x-contain">
           <table className="w-full min-w-[720px] table-auto caption-bottom text-sm">
             <thead className="sticky top-0 z-10 bg-[var(--color-neutral-50)]">
               {table.getHeaderGroups().map((headerGroup) => (
@@ -162,12 +180,12 @@ function DataTable<TData, TValue>({
 
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-5">
         <p className="text-sm text-[var(--color-neutral-500)]">
-          Showing {table.getRowModel().rows.length} of {data.length} entries
+          Showing {startEntry}–{endEntry} of {totalItems ?? data.length} entries
         </p>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
+            onClick={() => onPageChange?.(page - 1)}
+            disabled={page <= 1}
             className={cn(
               "inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--color-neutral-300)]",
               "bg-white text-[var(--color-neutral-700)] transition-colors hover:bg-[var(--color-neutral-50)]",
@@ -177,11 +195,11 @@ function DataTable<TData, TValue>({
             <ChevronLeft className="h-4 w-4" />
           </button>
           <span className="text-sm text-[var(--color-neutral-700)]">
-            {table.getState().pagination.pageIndex + 1}
+            {page} / {totalPages ?? 1}
           </span>
           <button
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
+            onClick={() => onPageChange?.(page + 1)}
+            disabled={!totalPages || page >= totalPages}
             className={cn(
               "inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--color-neutral-300)]",
               "bg-white text-[var(--color-neutral-700)] transition-colors hover:bg-[var(--color-neutral-50)]",
