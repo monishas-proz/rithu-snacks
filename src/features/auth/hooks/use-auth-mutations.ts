@@ -10,6 +10,8 @@ import {
   resetPasswordApi,
   refreshTokenApi,
   logoutApi,
+  sendEmailOtpApi,
+  verifyEmailOtpApi,
 } from "../api/auth.api";
 import type {
   LoginInput,
@@ -17,6 +19,8 @@ import type {
   VerifyOtpInput,
   ResendOtpInput,
   ResetPasswordInput,
+  SendEmailOtpInput,
+  VerifyEmailOtpInput,
 } from "../types";
 import { RegisterInput } from "@/features/users";
 
@@ -34,6 +38,18 @@ export function useLogin() {
 export function useRegister() {
   return useMutation({
     mutationFn: (data: RegisterInput) => registerApi(data),
+  });
+}
+
+export function useSendEmailOtp() {
+  return useMutation({
+    mutationFn: (data: SendEmailOtpInput) => sendEmailOtpApi(data),
+  });
+}
+
+export function useVerifyEmailOtp() {
+  return useMutation({
+    mutationFn: (data: VerifyEmailOtpInput) => verifyEmailOtpApi(data),
   });
 }
 

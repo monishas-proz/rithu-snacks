@@ -11,6 +11,7 @@ interface FormInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   description?: string;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
+  inputPrefix?: React.ReactNode;
 }
 
 function FormInput({
@@ -20,6 +21,7 @@ function FormInput({
   className,
   leftIcon,
   rightIcon,
+  inputPrefix,
   ...props
 }: FormInputProps) {
   const { control } = useFormContext();
@@ -51,6 +53,7 @@ function FormInput({
             className={className}
             leftIcon={leftIcon}
             rightIcon={rightIcon}
+            inputPrefix={inputPrefix}
             error={fieldState.error?.message}
           />
           {description && !fieldState.error && (

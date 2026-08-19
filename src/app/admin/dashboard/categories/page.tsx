@@ -37,14 +37,25 @@ export default function AdminCategoriesPage() {
   const router = useRouter();
 
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<CategoryListItem | null>(null);
 
   const { data, isLoading, error, refetch } = useCategories({
+    page,
+    pageSize,
     search: search || undefined,
   });
+
+  useEffect(() => {
+  setPage(1);
+}, [search]);
+
+
+
   const createMutation = useCreateCategory();
 
   const updateMutation = useUpdateCategory();
@@ -56,6 +67,9 @@ export default function AdminCategoriesPage() {
   const deleteMutation = useDeleteCategory();
 
   const categories = data?.success && data.data ? data.data : [];
+
+  console.log("Category API response:", data);
+console.log("Categories received from API:", categories.length);
 
   const parentCategoryOptions = categories.map((category) => ({
     value: category.id.toString(),
@@ -98,15 +112,15 @@ export default function AdminCategoriesPage() {
       ),
     },
 
-    {
-      accessorKey: "_count.products",
-      header: "Products",
-      cell: ({ row }) => (
-        <span className="text-[var(--color-neutral-700)]">
-          {row.original._count?.products || 0} Items
-        </span>
-      ),
-    },
+    // {
+    //   accessorKey: "_count.products",
+    //   header: "Products",
+    //   cell: ({ row }) => (
+    //     <span className="text-[var(--color-neutral-700)]">
+    //       {row.original._count?.products || 0} Items
+    //     </span>
+    //   ),
+    // },
     // {
     //   accessorKey: "isActive",
     //   header: "Status",
@@ -179,19 +193,7 @@ export default function AdminCategoriesPage() {
       <AdminPageHeader
         title="Categories"
         description="Manage your product categories"
-        actions={
-          <Button
-            type="button"
-            onClick={() => {
-              console.log("Button clicked");
-              setIsCreateOpen(true);
-            }}
-            className="h-11 rounded-xl bg-[var(--color-secondary-600)] px-5 text-sm font-semibold text-white hover:bg-[var(--color-secondary-700)]"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Add Category
-          </Button>
-        }
+        
       />
       <AdminContent className="h-[calc(100vh-80px)] overflow-hidden">
         <div className="flex h-full flex-col overflow-hidden bg-[var(--color-background)] px-6 py-6">
@@ -235,6 +237,15 @@ export default function AdminCategoriesPage() {
               />
             </div>
 
+            <Button
+              type="button"
+              onClick={() => setIsCreateOpen(true)}
+              className="h-11 rounded-xl bg-[var(--color-secondary-600)] px-5 text-sm font-semibold text-white hover:bg-[var(--color-secondary-700)]"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add Category
+            </Button>
+
             {/* <div className="flex gap-3">
         <Button
           variant="outline"
@@ -255,7 +266,16 @@ export default function AdminCategoriesPage() {
 
           {/* Table Container */}
           <div className="mt-6 min-h-0 flex-1">
-            <DataTable columns={columns} data={categories} pageSize={10} className="bg-white" />
+            <DataTable
+              columns={columns}
+              data={categories}
+              pageSize={pageSize}
+              page={data?.meta?.page ?? page}
+              totalPages={data?.meta?.totalPages ?? 1}
+              totalItems={data?.meta?.total ?? 0}
+              onPageChange={setPage}
+              className="bg-white"
+            />
           </div>
         </div>
       </AdminContent>

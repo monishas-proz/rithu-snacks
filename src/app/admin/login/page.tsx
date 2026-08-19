@@ -113,16 +113,16 @@ function AdminLoginForm() {
             leftIcon={<LockKeyhole size={18} />}
           />
 
-          <div className="flex items-center justify-between">
-            <Checkbox
+          <div className="flex items-center justify-end">
+            {/* <Checkbox
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
               label="Remember me"
               className="border-neutral-300"
-            />
+            /> */}
 
             <Link
-              href="/forgot-password"
+              href="/forgot-password?from=admin"
               className="text-sm font-medium text-secondary-600 hover:underline"
             >
               Forgot password?

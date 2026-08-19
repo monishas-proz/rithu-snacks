@@ -20,6 +20,10 @@ import { BrandForm } from "@/features/brands/components/BrandForm";
 export default function AdminBrandsPage() {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -33,7 +37,14 @@ export default function AdminBrandsPage() {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
+useEffect(() => {
+  setPage(1);
+}, [search]);
+
+
   const { data, isLoading, error, refetch } = useBrands({
+    page,
+    limit: pageSize,
     search: search || undefined,
   });
 
@@ -142,15 +153,15 @@ export default function AdminBrandsPage() {
       <AdminPageHeader
         title="Brand Management"
         description="Manage product brands and their associated catalogs."
-        actions={
-          <Button
-            onClick={() => setIsCreateOpen(true)}
-            className="h-11 rounded-xl bg-[var(--color-secondary-600)] px-5 text-sm font-semibold text-white hover:bg-[var(--color-secondary-700)]"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Add Brand
-          </Button>
-        }
+        // actions={
+        //   <Button
+        //     onClick={() => setIsCreateOpen(true)}
+        //     className="h-11 rounded-xl bg-[var(--color-secondary-600)] px-5 text-sm font-semibold text-white hover:bg-[var(--color-secondary-700)]"
+        //   >
+        //     <Plus className="mr-2 h-4 w-4" />
+        //     Add Brand
+        //   </Button>
+        // }
       />
       
         <AdminContent className="h-[calc(100vh-80px)] overflow-hidden">
@@ -168,6 +179,14 @@ export default function AdminBrandsPage() {
           className="h-11 w-full rounded-xl border border-[var(--color-neutral-300)] bg-white pl-11 pr-4 text-sm text-[var(--color-neutral-900)] outline-none transition-all focus:border-[var(--color-primary-500)] focus:ring-2 focus:ring-[var(--color-primary-100)]"
         />
       </div>
+
+       <Button
+          onClick={() => setIsCreateOpen(true)}
+          className="h-11 rounded-xl bg-[var(--color-secondary-600)] px-5 text-sm font-semibold text-white hover:bg-[var(--color-secondary-700)]"
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Add Brand
+        </Button>
 
       {/* <div className="flex gap-3">
         <Button
@@ -192,7 +211,11 @@ export default function AdminBrandsPage() {
       <DataTable
         columns={columns}
         data={brands}
-        pageSize={10}
+        pageSize={pageSize}
+        page={data?.meta?.page ?? page}
+        totalPages={data?.meta?.totalPages ?? 1}
+        totalItems={data?.meta?.total ?? 0}
+        onPageChange={setPage}
         className="bg-white"
       />
     </div>

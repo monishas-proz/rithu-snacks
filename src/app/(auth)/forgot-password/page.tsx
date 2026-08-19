@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { forgotPasswordSchema, type ForgotPasswordInput } from "@/lib/validations/auth";
@@ -14,6 +14,8 @@ import { Spinner } from "@/components/ui/spinner";
 
 function ForgotPasswordForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const fromAdmin = searchParams.get("from") === "admin";
   const [success, setSuccess] = useState("");
   const forgotPasswordMutation = useForgotPassword();
 
@@ -109,7 +111,7 @@ function ForgotPasswordForm() {
         {/* Back Link */}
         <div className="mt-8 text-center">
           <Link
-            href="/login"
+            href={fromAdmin ? "/admin/login" : "/login"}
             className="inline-flex items-center gap-2 text-sm font-medium text-neutral-600 transition-colors hover:text-secondary-600"
           >
             <ArrowLeft size={16} />

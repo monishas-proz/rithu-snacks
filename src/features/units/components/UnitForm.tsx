@@ -1,6 +1,7 @@
 "use client";
 
 import { FormProvider, useForm, useWatch } from "react-hook-form";
+import { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   createAdminUnitSchema,
@@ -53,16 +54,35 @@ export function UnitForm({
     },
   });
 
-  const selectedType = useWatch({
-    control: methods.control,
-    name: "type",
-  });
+const selectedType = useWatch({
+  control: methods.control,
+  name: "type",
+});
 
-  const filteredBaseUnits = baseUnits.filter(
-    (unit) => unit.type === selectedType
-  );
+const filteredBaseUnits = baseUnits.filter(
+  (unit) => unit.type?.toLowerCase() === selectedType?.toLowerCase()
+);
+
+
+//     useEffect(() => {
+//   const currentBaseUnitId = methods.getValues("baseUnitId");
+
+//   const isValidBaseUnit = baseUnits.some(
+//     (unit) =>
+//       unit.id === currentBaseUnitId &&
+//       unit.type === selectedType
+//   );
+
+//   if (!isValidBaseUnit) {
+//     methods.setValue("baseUnitId", null, {
+//       shouldValidate: true,
+//       shouldDirty: true,
+//     });
+//   }
+// }, [selectedType, baseUnits, methods]);
 
   const typeOptions = [
+    
     { label: "Weight", value: "weight" },
     { label: "Volume", value: "volume" },
     { label: "Count", value: "count" },
