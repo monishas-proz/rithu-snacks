@@ -115,6 +115,23 @@ export const userService = {
         },
       });
 
+      // Create customer profile atomically inside the transaction
+      const referralCode = "REF" + userUuid.replace(/-/g, "").slice(0, 8).toUpperCase();
+      await tx.customer_profiles.create({
+        data: {
+          uuid: crypto.randomUUID(),
+          user_id: newUser.id,
+          name: newUser.name,
+          email: newUser.email,
+          phone: newUser.phone,
+          is_whatsapp: false,
+          whatsapp_no: null,
+          referral_code: referralCode,
+          is_active: true,
+          status: true,
+        },
+      });
+
       // Atomically mark verification token as used inside transaction
       await otpRepository.markVerificationTokenUsed(tokenRecord.id, tx);
 
