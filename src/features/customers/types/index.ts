@@ -15,3 +15,4 @@ export interface CustomerProfileResponse {
 }
 
 export * from "./customer-address.types";
+export * from "./catalog.types";

@@ -1,16 +1,16 @@
+import type { VariantMeasurement } from "../utils/measurement.util";
+
+export * from "../utils/measurement.util";
+
 export interface AdminVariantResponse {
   id: string; // Public Variant UUID
   productId: string; // Public Product UUID
   productName: string;
   variantName: string; // Stored DB variant_name e.g. "1 kg"
+  measurement: VariantMeasurement;
   sku: string;
-  unitValue: number;
-  unitId: string; // Public Unit UUID
-  unitName: string;
-  unitCode: string;
   basePrice: number;
   salePrice: number;
-  weightGrams: number | null;
   primaryImage: string | null;
   isActive: boolean;
   createdAt: Date;
