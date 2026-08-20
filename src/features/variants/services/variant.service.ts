@@ -4,6 +4,7 @@ import { variantRepository } from "../repositories/variant.repository";
 import { productRepository } from "@/features/products/repositories/product.repository";
 import { unitRepository } from "@/features/units/repositories/unit.repository";
 import { userRepository } from "@/features/users/repositories/user.repository";
+import { formatVariantMeasurement } from "../utils/measurement.util";
 import type { Prisma } from "@/generated/prisma";
 import type {
   AdminVariantResponse,
@@ -25,47 +26,48 @@ function formatAdminVariantResponse(
     unit_id: bigint;
     base_price: Prisma.Decimal | number;
     sale_price: Prisma.Decimal | number;
-    weight_grams: Prisma.Decimal | number | null;
+    weight_grams?: Prisma.Decimal | number | null;
     isActive: boolean;
     createdAt: Date;
     updatedAt: Date;
     product?: { uuid: string | null; name: string } | null;
-    product_units?: { uuid: string | null; name: string; code: string } | null;
+    product_units?: { uuid: string | null; name: string; code: string; type?: string | null } | null;
     product_variant_images?: Array<{ image_url: string; is_primary: boolean }> | null;
   },
   cachedProductUuid?: string,
   cachedUnitUuid?: string,
   cachedProductName?: string,
   cachedUnitName?: string,
-  cachedUnitCode?: string
+  cachedUnitCode?: string,
+  cachedUnitType?: string
 ): AdminVariantResponse {
   const variantUuid = variant.uuid;
   const productUuid = cachedProductUuid ?? variant.product?.uuid ?? String(variant.productId);
-  const unitUuid = cachedUnitUuid ?? variant.product_units?.uuid ?? String(variant.unit_id);
 
   const productName = cachedProductName || variant.product?.name || "";
   const variantName = variant.variant_name || "";
-  const unitName = cachedUnitName || variant.product_units?.name || "";
   const unitCode = cachedUnitCode || variant.product_units?.code || "";
+  const unitType = cachedUnitType || (variant.product_units as any)?.type || "";
 
   const primaryImgObj =
     variant.product_variant_images?.find((img) => img.is_primary) ??
     variant.product_variant_images?.[0];
   const primaryImage = primaryImgObj ? primaryImgObj.image_url : null;
 
+  const measurement = formatVariantMeasurement(
+    { type: unitType, code: unitCode },
+    variant.unit_value
+  );
+
   return {
     id: variantUuid,
     productId: productUuid,
     productName,
     variantName,
+    measurement,
     sku: variant.sku,
-    unitValue: Number(variant.unit_value),
-    unitId: unitUuid,
-    unitName,
-    unitCode,
     basePrice: Number(variant.base_price),
-    salePrice: Number(variant.sale_price),
-    weightGrams: variant.weight_grams !== null ? Number(variant.weight_grams) : null,
+    salePrice: variant.sale_price !== null && Number(variant.sale_price) > 0 ? Number(variant.sale_price) : Number(variant.base_price),
     primaryImage,
     isActive: Boolean(variant.isActive),
     createdAt: variant.createdAt,
@@ -128,7 +130,8 @@ export const variantService = {
       unit.uuid || data.unitId,
       product.name,
       unit.name,
-      unit.code
+      unit.code,
+      unit.type
     );
   },
 
@@ -220,6 +223,7 @@ export const variantService = {
     let unitUuid: string | undefined = undefined;
     let unitName: string | undefined = undefined;
     let unitCode: string | undefined = undefined;
+    let unitType: string | undefined = undefined;
 
     if (data.unitId !== undefined) {
       const unit = await unitRepository.findByUuid(data.unitId);
@@ -230,6 +234,7 @@ export const variantService = {
       unitUuid = unit.uuid || data.unitId;
       unitName = unit.name;
       unitCode = unit.code;
+      unitType = unit.type;
     }
 
     if (data.sku !== undefined && data.sku !== existing.sku) {
@@ -267,7 +272,8 @@ export const variantService = {
       unitUuid,
       product.name,
       unitName,
-      unitCode
+      unitCode,
+      unitType
     );
   },
 
