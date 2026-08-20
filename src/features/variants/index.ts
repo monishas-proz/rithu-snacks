@@ -5,3 +5,5 @@ export * from "./repositories/variant.repository";
 export * from "./repositories/variant-image.repository";
 export * from "./services/variant.service";
 export * from "./services/variant-image.service";
+export * from "./hooks";
+export * from "./components";

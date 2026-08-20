@@ -35,3 +35,14 @@ export interface GetAdminVariantsParams {
   productId?: string;
   productUuid?: string;
 }
+
+export interface GetAdminVariantsResult {
+  data: AdminVariantResponse[];
+  meta?: {
+    page: number;
+    limit: number;
+    pageSize?: number;
+    total: number;
+    totalPages: number;
+  };
+}

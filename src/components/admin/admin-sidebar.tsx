@@ -47,9 +47,10 @@ const sidebarItems: SidebarItem[] = [
     icon: Package,
     children: [
       { label: "Products", href: "/admin/dashboard/products", icon: Package },
+      { label: "Variants", href: "/admin/dashboard/variants", icon: Tag },
       { label: "Categories", href: "/admin/dashboard/categories", icon: FolderTree },
       { label: "Brands", href: "/admin/dashboard/brands", icon: Crown },
-      { label: "GST Rates", href: "/admin/dashboard/gst-rates", icon:Receipt},
+      { label: "GST Rates", href: "/admin/dashboard/gst-rates", icon: Receipt },
       { label: "HSN Codes", href: "/admin/dashboard/hsn-codes", icon: Hash },
       { label: "Units", href: "/admin/dashboard/units", icon: Ruler },
       { label: "Attributes", href: "/admin/dashboard/attributes", icon: Tag },

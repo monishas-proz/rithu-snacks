@@ -112,3 +112,14 @@ export interface GetAdminProductsParams {
   pageSize?: number;
   search?: string;
 }
+
+export interface GetAdminProductsResult {
+  data: AdminProductResponse[];
+  meta?: {
+    page: number;
+    limit: number;
+    pageSize?: number;
+    total: number;
+    totalPages: number;
+  };
+}
