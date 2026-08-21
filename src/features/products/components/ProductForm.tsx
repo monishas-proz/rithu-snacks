@@ -31,7 +31,7 @@ const productFormSchema = z.object({
     .string()
     .min(1, "Please select an HSN code"),
   vegType: vegTypeEnum,
-  isFeatured: z.boolean().default(false),
+  isFeatured: z.boolean(),
   shortDescription: z
     .string()
     .trim()
