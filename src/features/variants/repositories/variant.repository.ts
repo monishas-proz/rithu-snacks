@@ -18,6 +18,7 @@ const variantInclude = Prisma.validator<Prisma.ProductVariantInclude>()({
       uuid: true,
       name: true,
       code: true,
+      type: true,
       is_active: true,
     },
   },

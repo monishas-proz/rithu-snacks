@@ -1,10 +1,10 @@
 import { createApiHandler } from "@/lib/api/api-handler";
-import { apiCreated } from "@/lib/api/api-response";
+import { apiSuccess } from "@/lib/api/api-response";
 import { ApiError } from "@/lib/api/api-error";
 import { orderService } from "@/features/orders/services/order.service";
 import {
-  adminCreateOrderSchema,
-  type AdminCreateOrderInput,
+  cancelOrderSchema,
+  type CancelOrderInput,
 } from "@/features/orders/validations/order.schema";
 
 export const POST = createApiHandler(
@@ -15,15 +15,23 @@ export const POST = createApiHandler(
         throw ApiError.unauthorized("Authentication required");
       }
 
-      const body = context.body as AdminCreateOrderInput;
-      const order = await orderService.createAdminOrder(sessionUserId, body);
+      const uuid = context.params?.uuid;
+      if (!uuid) {
+        throw ApiError.badRequest("Order UUID is required");
+      }
 
-      return apiCreated(order, "Order created successfully");
+      const body = context.body as CancelOrderInput | undefined;
+      const order = await orderService.cancelCustomerOrder(
+        sessionUserId,
+        uuid,
+        body
+      );
+
+      return apiSuccess(order, "Order cancelled successfully", 200);
     },
   },
   {
     requireAuth: true,
-    requiredRole: ["ADMIN", "STAFF"],
-    bodySchema: adminCreateOrderSchema,
+    bodySchema: cancelOrderSchema,
   }
 );

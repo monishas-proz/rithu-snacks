@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { db } from "@/lib/db/prisma";
 import { Prisma } from "@/generated/prisma";
 import type { GetAdminUnitsParams } from "../types";
@@ -94,7 +95,10 @@ export const unitRepository = {
 
   async create(data: Prisma.product_unitsUncheckedCreateInput) {
     return db.product_units.create({
-      data,
+      data: {
+        ...data,
+        uuid: data.uuid || crypto.randomUUID(),
+      },
       include: unitInclude,
     });
   },
