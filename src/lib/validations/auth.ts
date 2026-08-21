@@ -11,6 +11,8 @@ export {
   type VerifyOtpInput,
   type ResendOtpInput,
   type ResetPasswordInput,
+  type SendEmailOtpInput,
+  type VerifyEmailOtpInput,
 } from "@/features/auth/validations/auth.schema";
 
 export {

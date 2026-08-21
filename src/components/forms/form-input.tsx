@@ -11,6 +11,7 @@ interface FormInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   description?: string;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
+  inputPrefix?: React.ReactNode;
 }
 
 function FormInput({
@@ -20,6 +21,7 @@ function FormInput({
   className,
   leftIcon,
   rightIcon,
+  inputPrefix,
   ...props
 }: FormInputProps) {
   const { control } = useFormContext();
@@ -33,11 +35,25 @@ function FormInput({
           {label && <Label htmlFor={name}>{label}</Label>}
           <Input
             id={name}
-            {...field}
             {...props}
+            value={field.value ?? ""}
+            onChange={(e) => {
+              const value =
+                props.type === "number"
+                  ? e.target.value === ""
+                    ? ""
+                    : Number(e.target.value)
+                  : e.target.value;
+
+              field.onChange(value);
+            }}
+            onBlur={field.onBlur}
+            name={field.name}
+            ref={field.ref}
             className={className}
             leftIcon={leftIcon}
             rightIcon={rightIcon}
+            inputPrefix={inputPrefix}
             error={fieldState.error?.message}
           />
           {description && !fieldState.error && (

@@ -6,9 +6,9 @@ export const POST = createApiHandler(
   {
     POST: async (request) => {
       const formData = await request.formData();
-      const result = await uploadService.handleFileUpload(formData);
+      const result = await uploadService.handleMultiFileUpload(formData);
 
-      return apiSuccess(result, "File uploaded successfully");
+      return apiSuccess(result, "Files uploaded successfully");
     },
   },
   {

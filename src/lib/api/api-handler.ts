@@ -77,14 +77,23 @@ export function createApiHandler(
     let session: Session | null = null;
 
     if (options.requireAuth) {
-      // 1. Try NextAuth session (Google OAuth & NextAuth Credentials)
-      session = (await auth()) as Session | null;
+      try {
+        // 1. Try NextAuth session (Google OAuth & NextAuth Credentials)
+        session = (await auth()) as Session | null;
+      } catch {
+        session = null;
+      }
 
       // 2. Fallback: Try HttpOnly access_token cookie or Authorization header
       if (!session?.user) {
-        const cookieStore = await cookies();
+        let cookieStore;
+        try {
+          cookieStore = await cookies();
+        } catch {
+          cookieStore = null;
+        }
         const token =
-          cookieStore.get("access_token")?.value ||
+          cookieStore?.get("access_token")?.value ||
           request.headers.get("authorization")?.replace("Bearer ", "");
 
         if (token) {
@@ -156,6 +165,13 @@ export function createApiHandler(
     } catch (error) {
       if (error instanceof ApiError) {
         return apiFromError(error);
+      }
+
+      if (
+        error instanceof TypeError &&
+        error.message.includes("Content-Type")
+      ) {
+        return apiError("Content-Type must be multipart/form-data", 400);
       }
 
       const prismaResult = handlePrismaError(error);

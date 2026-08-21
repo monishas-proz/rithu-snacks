@@ -16,8 +16,6 @@ export const createBrandSchema = z.object({
     "Brand slug must be uppercase letters, numbers, hyphens, or underscores (e.g. RITHANYA_SNACKS)"
   ),
   description: z.string().max(1000).optional(),
-  logo: z.string().max(500).optional(),
-  isActive: z.boolean().optional(),
 });
 
 export type CreateBrandSchemaInput = z.infer<typeof createBrandSchema>;

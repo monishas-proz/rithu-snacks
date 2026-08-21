@@ -104,8 +104,8 @@ function LoginForm() {
             leftIcon={<LockKeyhole size={18} />}
           />
 
-          <div className="flex items-center justify-between">
-            <Checkbox label="Remember Me" className="border-neutral-300" />
+          <div className="flex items-center justify-end">
+            {/* <Checkbox label="Remember Me" className="border-neutral-300" /> */}
 
             <Link
               href="/forgot-password"

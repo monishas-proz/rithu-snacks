@@ -5,8 +5,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { createBrandSchema, updateBrandSchema } from "../validations/brand.schema";
 import { FormInput } from "@/components/forms/form-input";
 import { FormTextarea } from "@/components/forms/form-textarea";
-import { FormCheckbox } from "@/components/forms/form-checkbox";
-import { FormImageUpload } from "@/components/forms/form-image-upload";
 import { FormSubmitButton } from "@/components/forms/form-submit-button";
 import type { z } from "zod";
 
@@ -33,8 +31,6 @@ function BrandForm({
       name: (initialData?.name as string) || "",
       slug: (initialData?.slug as string) || "",
       description: (initialData?.description as string) || "",
-      logo: (initialData?.logo as string) || "",
-      isActive: (initialData?.isActive as boolean) ?? true,
     },
   });
 
@@ -64,16 +60,17 @@ function BrandForm({
           placeholder="Enter brand description"
         />
 
-        <FormImageUpload
+        {/* <FormImageUpload
           name="logo"
           label="Brand Logo"
-        />
+          folder = "brands"
+        /> */}
 
-        <FormCheckbox
+        {/* <FormCheckbox
           name="isActive"
           label="Active"
           description="Brand is visible and available for use"
-        />
+        /> */}
 
         <div className="flex justify-end pt-4">
           <FormSubmitButton

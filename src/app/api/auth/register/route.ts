@@ -8,21 +8,16 @@ export const POST = createApiHandler(
     POST: async (_request, context) => {
       const body = context.body as RegisterInput;
 
-      const user = await userService.createUser({
-        name: body.name,
-        email: body.email,
-        phone: body.phone,
-        password: body.password,
-      });
+      const user = await userService.registerUserWithToken(body);
 
       return apiCreated(
         {
-          id: user.id, 
+          id: user.id,
           name: user.name,
           email: user.email,
           phone: user.phone,
         },
-        "Account created successfully. You can now sign in."
+        "Registration successful"
       );
     },
   },

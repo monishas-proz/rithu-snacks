@@ -5,6 +5,8 @@ import type {
   VerifyOtpInput,
   ResendOtpInput,
   ResetPasswordInput,
+  SendEmailOtpInput,
+  VerifyEmailOtpInput,
 } from "../types";
 import { RegisterInput } from "@/features/users/validations/user.schema";
 
@@ -23,15 +25,29 @@ export async function registerApi(data: RegisterInput) {
   const response = await apiClient.post<{ id: string; name: string; email: string; phone: string | null }>(
     "/api/auth/register",
     {
-      name: data.name.trim(),
+      name: (data.name || data.fullName || "").trim(),
       email: data.email.trim(),
-      phone: data.phone.trim(),
+      phone: (data.phone || data.mobileNumber || "").trim(),
       password: data.password,
       confirmPassword: data.confirmPassword,
+      emailVerificationToken: data.emailVerificationToken,
     }
   );
 
   return response;
+}
+
+export async function sendEmailOtpApi(data: SendEmailOtpInput) {
+  return apiClient.post<null>("/api/auth/send-email-otp", {
+    email: data.email.trim(),
+  });
+}
+
+export async function verifyEmailOtpApi(data: VerifyEmailOtpInput) {
+  return apiClient.post<{ verificationToken: string }>("/api/auth/verify-email-otp", {
+    email: data.email.trim(),
+    otp: data.otp.trim(),
+  });
 }
 
 export async function forgotPasswordApi(data: ForgotPasswordInput) {

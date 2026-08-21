@@ -20,8 +20,11 @@ function createQueryKeyFactory(base: string): QueryKeyFactory {
 }
 
 export const productKeys = createQueryKeyFactory("products");
+export const gstRateKeys = createQueryKeyFactory("gst-rates");
+export const hsnCodeKeys = createQueryKeyFactory("hsn-codes");
 export const categoryKeys = createQueryKeyFactory("categories");
 export const brandKeys = createQueryKeyFactory("brands");
+export const unitKeys = createQueryKeyFactory("units");
 export const cartKeys = createQueryKeyFactory("cart");
 export const wishlistKeys = createQueryKeyFactory("wishlist");
 export const orderKeys = createQueryKeyFactory("orders");

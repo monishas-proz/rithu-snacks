@@ -20,6 +20,10 @@ import { BrandForm } from "@/features/brands/components/BrandForm";
 export default function AdminBrandsPage() {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -33,7 +37,14 @@ export default function AdminBrandsPage() {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
+useEffect(() => {
+  setPage(1);
+}, [search]);
+
+
   const { data, isLoading, error, refetch } = useBrands({
+    page,
+    limit: pageSize,
     search: search || undefined,
   });
 
@@ -44,27 +55,21 @@ export default function AdminBrandsPage() {
   const brands = data?.data ?? [];
 
   const columns: ColumnDef<BrandListItem, unknown>[] = [
-  {
-    id: "logo",
-    header: "Logo",
-    cell: ({ row }) => (
-      <div className="h-12 w-12 overflow-hidden rounded-xl bg-[var(--color-neutral-100)]">
-        {row.original.logo ? (
-          <Image
-            src={row.original.logo}
-            alt={row.original.name}
-            width={48}
-            height={48}
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-[10px] font-medium text-[var(--color-neutral-500)]">
-            LOGO
-          </div>
-        )}
-      </div>
-    ),
-  },
+  // {
+  //   id: "logo",
+  //   header: "Logo",
+  //   cell: ({ row }) => (
+  //     <div className="h-12 w-12 overflow-hidden rounded-xl bg-[var(--color-neutral-100)]">
+  //       <Image
+  //         src={row.original.icon || "/images/category_img.png"}
+  //         alt={row.original.name}
+  //         width={48}
+  //         height={48}
+  //         className="h-full w-full object-cover"
+  //       />
+  //     </div>
+  //   ),
+  // },
   {
     accessorKey: "name",
     header: "Brand Name",
@@ -112,7 +117,7 @@ export default function AdminBrandsPage() {
     id: "actions",
     header: "Actions",
     cell: ({ row }) => (
-      <div className="flex justify-end gap-2">
+      <div className="flex gap-2">
         <Button
           variant="ghost"
           size="icon"
@@ -148,15 +153,15 @@ export default function AdminBrandsPage() {
       <AdminPageHeader
         title="Brand Management"
         description="Manage product brands and their associated catalogs."
-        actions={
-          <Button
-            onClick={() => setIsCreateOpen(true)}
-            className="h-11 rounded-xl bg-[var(--color-secondary-600)] px-5 text-sm font-semibold text-white hover:bg-[var(--color-secondary-700)]"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Add Brand
-          </Button>
-        }
+        // actions={
+        //   <Button
+        //     onClick={() => setIsCreateOpen(true)}
+        //     className="h-11 rounded-xl bg-[var(--color-secondary-600)] px-5 text-sm font-semibold text-white hover:bg-[var(--color-secondary-700)]"
+        //   >
+        //     <Plus className="mr-2 h-4 w-4" />
+        //     Add Brand
+        //   </Button>
+        // }
       />
       
         <AdminContent className="h-[calc(100vh-80px)] overflow-hidden">
@@ -175,7 +180,15 @@ export default function AdminBrandsPage() {
         />
       </div>
 
-      <div className="flex gap-3">
+       <Button
+          onClick={() => setIsCreateOpen(true)}
+          className="h-11 rounded-xl bg-[var(--color-secondary-600)] px-5 text-sm font-semibold text-white hover:bg-[var(--color-secondary-700)]"
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Add Brand
+        </Button>
+
+      {/* <div className="flex gap-3">
         <Button
           variant="outline"
           className="rounded-xl border-[var(--color-neutral-300)] bg-white text-[var(--color-neutral-700)] hover:bg-[var(--color-neutral-50)]"
@@ -190,7 +203,7 @@ export default function AdminBrandsPage() {
           <Filter className="mr-2 h-4 w-4" />
           Filter
         </Button>
-      </div>
+      </div> */}
     </div>
 
     {/* Table */}
@@ -198,7 +211,11 @@ export default function AdminBrandsPage() {
       <DataTable
         columns={columns}
         data={brands}
-        pageSize={10}
+        pageSize={pageSize}
+        page={data?.meta?.page ?? page}
+        totalPages={data?.meta?.totalPages ?? 1}
+        totalItems={data?.meta?.total ?? 0}
+        onPageChange={setPage}
         className="bg-white"
       />
     </div>
@@ -243,8 +260,7 @@ export default function AdminBrandsPage() {
         name: selectedBrand.name,
         slug: selectedBrand.slug,
         description: selectedBrand.description,
-        logo: selectedBrand.logo,
-        isActive: selectedBrand.isActive,
+        
       }}
       isEditing
       isLoading={updateMutation.isPending}
@@ -254,6 +270,7 @@ export default function AdminBrandsPage() {
           name: data.name,
           slug: data.slug,
           description: data.description || null,
+         
         };
 
         await updateMutation.mutateAsync({

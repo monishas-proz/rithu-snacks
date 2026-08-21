@@ -46,6 +46,8 @@ export interface CategoryDetail extends CategoryListItem {
 }
 
 export interface GetCategoriesParams {
+  page?: number;
+  pageSize?: number;
   search?: string;
   parentId?: number | null;
 }
