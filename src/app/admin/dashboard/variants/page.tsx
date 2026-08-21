@@ -18,6 +18,7 @@ import {
 import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FormModal } from "@/components/common/FormModal";
 import {
@@ -105,12 +106,12 @@ export default function AdminVariantsPage() {
     }));
   }, [products]);
 
-  const unitOptions = useMemo(() => {
-    return units.map((u) => ({
-      value: u.id,
-      label: `${u.name} (${u.code})`,
-    }));
-  }, [units]);
+  const productFilterOptions = useMemo(() => {
+    return [
+      { value: "", label: "All Products" },
+      ...productOptions,
+    ];
+  }, [productOptions]);
 
   const columns: ColumnDef<AdminVariantResponse>[] = [
     {
@@ -160,14 +161,31 @@ export default function AdminVariantsPage() {
       ),
     },
     {
-      accessorKey: "unitValue",
-      header: "Unit / Size",
-      cell: ({ row }) => (
-        <span className="text-[var(--color-neutral-700)]">
-          {row.original.unitValue}{" "}
-          {row.original.unitCode || row.original.unitName}
-        </span>
-      ),
+      accessorKey: "measurement",
+      header: "Measurement",
+      cell: ({ row }) => {
+        const m = row.original.measurement;
+        if (!m) return <span className="text-[var(--color-neutral-400)]">—</span>;
+        const typeBadgeStyles =
+          m.type === "weight"
+            ? "bg-[var(--color-primary-50)] text-[var(--color-primary-700)] border-[var(--color-primary-200)]"
+            : m.type === "volume"
+            ? "bg-blue-50 text-blue-700 border-blue-200"
+            : "bg-amber-50 text-amber-700 border-amber-200";
+
+        return (
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-[var(--color-neutral-800)]">
+              {m.value} {m.unit}
+            </span>
+            <span
+              className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase border ${typeBadgeStyles}`}
+            >
+              {m.type}
+            </span>
+          </div>
+        );
+      },
     },
     {
       accessorKey: "basePrice",
@@ -184,15 +202,6 @@ export default function AdminVariantsPage() {
       cell: ({ row }) => (
         <span className="font-semibold text-[var(--color-success-700)]">
           ₹{row.original.salePrice}
-        </span>
-      ),
-    },
-    {
-      accessorKey: "weightGrams",
-      header: "Weight",
-      cell: ({ row }) => (
-        <span className="text-[var(--color-neutral-700)]">
-          {row.original.weightGrams ? `${row.original.weightGrams}g` : "—"}
         </span>
       ),
     },
@@ -262,29 +271,25 @@ export default function AdminVariantsPage() {
           <div className="flex-shrink-0 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
               <div className="relative w-full max-w-md">
-                <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-neutral-400)]" />
+                <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-neutral-400)] pointer-events-none" />
                 <input
                   type="text"
                   placeholder="Search variants by name, SKU..."
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
-                  className="h-11 w-full rounded-xl border border-[var(--color-neutral-300)] bg-white pl-11 pr-4 text-sm text-[var(--color-neutral-900)] outline-none transition-all focus:border-[var(--color-primary-500)] focus:ring-2 focus:ring-[var(--color-primary-100)]"
+                  className="h-11 w-full rounded-xl border border-[var(--color-neutral-200)] bg-white pl-11 pr-4 text-sm text-[var(--color-neutral-900)] placeholder:text-[var(--color-neutral-400)] outline-none transition-all focus:outline-none focus:border-secondary-600 focus:ring-2 focus:ring-secondary-600/20 hover:border-neutral-300"
                 />
               </div>
 
-              <select
-                value={selectedProductFilter}
-                onChange={(e) => setSelectedProductFilter(e.target.value)}
-                aria-label="Filter by Product"
-                className="h-11 rounded-xl border border-[var(--color-neutral-300)] bg-white px-4 text-sm text-[var(--color-neutral-700)] outline-none transition-all focus:border-[var(--color-primary-500)] focus:ring-2 focus:ring-[var(--color-primary-100)] sm:max-w-xs"
-              >
-                <option value="">All Products</option>
-                {productOptions.map((p) => (
-                  <option key={p.value} value={p.value}>
-                    {p.label}
-                  </option>
-                ))}
-              </select>
+              <div className="w-full sm:w-64">
+                <Select
+                  value={selectedProductFilter}
+                  onChange={(e) => setSelectedProductFilter(e.target.value)}
+                  options={productFilterOptions}
+                  placeholder="All Products"
+                  className="h-11 rounded-xl"
+                />
+              </div>
             </div>
 
             <Button
@@ -365,7 +370,7 @@ export default function AdminVariantsPage() {
         {createStep === 1 && (
           <VariantForm
             products={productOptions}
-            units={unitOptions}
+            units={units}
             isLoading={createMutation.isPending}
             submitLabel="Next: Upload Images"
             onSubmit={async (formData) => {
@@ -461,8 +466,20 @@ export default function AdminVariantsPage() {
                   productId: selectedVariant.productId,
                   variantName: selectedVariant.variantName,
                   sku: selectedVariant.sku,
-                  unitId: selectedVariant.unitId,
-                  unitValue: selectedVariant.unitValue,
+                  unitId:
+                    units.find(
+                      (u) =>
+                        u.code?.toLowerCase() ===
+                          selectedVariant.measurement?.unit?.toLowerCase() ||
+                        u.name?.toLowerCase() ===
+                          selectedVariant.measurement?.unit?.toLowerCase() ||
+                        u.id === selectedVariant.unitId
+                    )?.id ||
+                    selectedVariant.unitId ||
+                    "",
+                  unitValue:
+                    selectedVariant.measurement?.value ??
+                    selectedVariant.unitValue,
                   basePrice: selectedVariant.basePrice,
                   salePrice: selectedVariant.salePrice,
                   weightGrams: selectedVariant.weightGrams,
@@ -470,7 +487,7 @@ export default function AdminVariantsPage() {
                 isEditing
                 fixedProductId={selectedVariant.productId}
                 products={productOptions}
-                units={unitOptions}
+                units={units}
                 isLoading={updateMutation.isPending}
                 submitLabel="Update Details"
                 onSubmit={async (formData) => {

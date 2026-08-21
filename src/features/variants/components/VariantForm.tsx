@@ -1,14 +1,14 @@
 "use client";
 
-import { FormProvider, useForm } from "react-hook-form";
+import { useMemo } from "react";
+import { FormProvider, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
-  createAdminVariantSchema,
-  updateAdminVariantSchema,
-  type CreateAdminVariantInput,
-  type UpdateAdminVariantInput,
-} from "../validations/admin-variant.schema";
+  getMeasurementFieldConfig,
+  calculateWeightGrams,
+} from "../utils/measurement.util";
+import type { UnitOption } from "../types";
 import { FormInput } from "@/components/forms/form-input";
 import { FormSelect } from "@/components/forms/form-select";
 import { FormSubmitButton } from "@/components/forms/form-submit-button";
@@ -18,13 +18,34 @@ const variantFormSchema = z.object({
     .string()
     .uuid("Invalid Product UUID format")
     .optional(),
-  variantName: createAdminVariantSchema.shape.variantName,
-  sku: createAdminVariantSchema.shape.sku,
-  unitId: createAdminVariantSchema.shape.unitId,
-  unitValue: createAdminVariantSchema.shape.unitValue,
-  basePrice: createAdminVariantSchema.shape.basePrice,
-  salePrice: createAdminVariantSchema.shape.salePrice,
-  weightGrams: createAdminVariantSchema.shape.weightGrams,
+  variantName: z
+    .string({ message: "Variant name is required" })
+    .trim()
+    .min(1, "Variant name cannot be empty")
+    .max(100, "Variant name cannot exceed 100 characters"),
+  sku: z
+    .string({ message: "SKU is required" })
+    .trim()
+    .min(1, "SKU cannot be empty")
+    .max(100, "SKU cannot exceed 100 characters"),
+  unitId: z
+    .string({ message: "Please select a unit" })
+    .uuid("Invalid Unit UUID format")
+    .min(1, "Unit is required"),
+  unitValue: z
+    .number({ message: "Measurement value is required" })
+    .gt(0, "Measurement value must be greater than 0"),
+  basePrice: z
+    .number({ message: "Base price is required" })
+    .min(0, "Base price cannot be negative"),
+  salePrice: z
+    .number({ message: "Sale price is required" })
+    .min(0, "Sale price cannot be negative"),
+  weightGrams: z
+    .number()
+    .min(0, "Weight in grams cannot be negative")
+    .optional()
+    .nullable(),
 });
 
 export type VariantFormValues = z.infer<typeof variantFormSchema>;
@@ -34,12 +55,20 @@ export interface SelectOption {
   label: string;
 }
 
+export type UnitFormItem = UnitOption | (SelectOption & {
+  id?: string;
+  type?: "weight" | "volume" | "count";
+  code?: string;
+  name?: string;
+  conversionFactor?: number;
+});
+
 interface VariantFormProps {
   initialData?: Partial<VariantFormValues>;
   isEditing?: boolean;
   fixedProductId?: string;
   products?: SelectOption[];
-  units?: SelectOption[];
+  units?: UnitFormItem[];
   onSubmit: (data: VariantFormValues) => Promise<void>;
   isLoading?: boolean;
   submitLabel?: string;
@@ -69,22 +98,69 @@ function VariantForm({
     },
   });
 
-  const productOptions = [
-    { label: "Select Product", value: "" },
-    ...products,
-  ];
+  const selectedUnitId = useWatch({
+    control: methods.control,
+    name: "unitId",
+  });
 
-  const unitOptions = [
-    { label: "Select Unit", value: "" },
-    ...units,
-  ];
+  // Find the selected unit object to extract its type, code, name, and conversionFactor
+  const selectedUnit = useMemo(() => {
+    if (!selectedUnitId) return null;
+    return (
+      units.find(
+        (u) =>
+          ("id" in u && u.id === selectedUnitId) ||
+          ("value" in u && u.value === selectedUnitId)
+      ) || null
+    );
+  }, [units, selectedUnitId]);
+
+  // Derive dynamic configuration (label, placeholder, helper, badge)
+  const measurementConfig = useMemo(() => {
+    return getMeasurementFieldConfig(selectedUnit);
+  }, [selectedUnit]);
+
+  const productOptions = useMemo(
+    () => [{ label: "Select Product", value: "" }, ...products],
+    [products]
+  );
+
+  const unitOptions = useMemo(() => {
+    return [
+      { label: "Select Unit", value: "" },
+      ...units.map((u) => {
+        if ("value" in u && "label" in u) {
+          return { value: u.value, label: u.label };
+        }
+        return {
+          value: u.id,
+          label: `${u.name} (${u.code})`,
+        };
+      }),
+    ];
+  }, [units]);
 
   const handleFormSubmit = async (data: VariantFormValues) => {
     if (!fixedProductId && !data.productId) {
       methods.setError("productId", { message: "Please select a product" });
       return;
     }
-    await onSubmit(data);
+
+    // Auto-calculate weightGrams for weight units, or set to null for volume/count
+    const calculatedWeightGrams = calculateWeightGrams(
+      Number(data.unitValue),
+      selectedUnit
+    );
+
+    const submissionPayload: VariantFormValues = {
+      ...data,
+      unitValue: Number(data.unitValue),
+      basePrice: Number(data.basePrice),
+      salePrice: Number(data.salePrice),
+      weightGrams: calculatedWeightGrams,
+    };
+
+    await onSubmit(submissionPayload);
   };
 
   return (
@@ -106,17 +182,17 @@ function VariantForm({
           <FormInput
             name="variantName"
             label="Variant Name"
-            placeholder="e.g. 500 Grams Pack, 1 kg"
+            placeholder="e.g. 500 Grams Pack, 1 Litre Bottle"
           />
 
           <FormInput
             name="sku"
             label="SKU"
-            placeholder="e.g. BANANA-500G"
+            placeholder="e.g. BANANA-500G, OIL-1L"
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
           <FormSelect
             name="unitId"
             label="Unit"
@@ -126,14 +202,23 @@ function VariantForm({
 
           <FormInput
             name="unitValue"
-            label="Unit Value"
+            label={measurementConfig.label}
+            placeholder={measurementConfig.placeholder}
+            description={measurementConfig.helperText}
             type="number"
             step="any"
-            placeholder="e.g. 500, 1"
+            min="0"
+            rightIcon={
+              measurementConfig.unitBadge ? (
+                <span className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase tracking-wider">
+                  {measurementConfig.unitBadge}
+                </span>
+              ) : undefined
+            }
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormInput
             name="basePrice"
             label="Base Price (MRP ₹)"
@@ -151,15 +236,6 @@ function VariantForm({
             min="0"
             placeholder="e.g. 230"
           />
-
-          <FormInput
-            name="weightGrams"
-            label="Weight (in Grams)"
-            type="number"
-            step="any"
-            min="0"
-            placeholder="e.g. 500"
-          />
         </div>
 
         <div className="flex justify-end pt-4">
@@ -176,3 +252,4 @@ function VariantForm({
 }
 
 export { VariantForm };
+

@@ -2,6 +2,15 @@ import type { VariantMeasurement } from "../utils/measurement.util";
 
 export * from "../utils/measurement.util";
 
+export interface UnitOption {
+  id: string;
+  name: string;
+  code: string;
+  type: "weight" | "volume" | "count";
+  conversionFactor?: number;
+  baseUnitId?: string | null;
+}
+
 export interface AdminVariantResponse {
   id: string; // Public Variant UUID
   productId: string; // Public Product UUID
@@ -13,6 +22,11 @@ export interface AdminVariantResponse {
   salePrice: number;
   primaryImage: string | null;
   isActive: boolean;
+  unitId?: string;
+  unitValue?: number;
+  weightGrams?: number | null;
+  unitName?: string;
+  unitCode?: string;
   createdAt: Date;
   updatedAt: Date;
 }
