@@ -26,6 +26,7 @@ import {
   Hash,
   type LucideIcon,
   Ruler,
+  Layers,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
@@ -48,7 +49,7 @@ const sidebarItems: SidebarItem[] = [
     icon: Package,
     children: [
       { label: "Products", href: "/admin/dashboard/products", icon: Package },
-      { label: "Variants", href: "/admin/dashboard/variants", icon: Tag },
+      { label: "Variants", href: "/admin/dashboard/variants", icon: Layers },
       { label: "Categories", href: "/admin/dashboard/categories", icon: FolderTree },
       { label: "Brands", href: "/admin/dashboard/brands", icon: Crown },
       { label: "GST Rates", href: "/admin/dashboard/gst-rates", icon: Receipt },
