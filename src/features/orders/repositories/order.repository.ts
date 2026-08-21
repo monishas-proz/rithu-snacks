@@ -1,229 +1,869 @@
+import crypto from "crypto";
 import { db } from "@/lib/db/prisma";
-import {
-  Prisma,
-  OrderStatus as DBOrderStatus,
-  PaymentStatus as DBPaymentStatus,
-} from "@/generated/prisma";
-import type { GetOrdersParams, OrderStatus } from "../types";
+import { Prisma } from "@/generated/prisma";
+import { formatVariantMeasurement } from "@/features/variants/utils/measurement.util";
+import type {
+  OrderDetailResponse,
+  OrderListItemResponse,
+  OrderItemResponse,
+  OrderAddressResponse,
+  OrderStatusHistoryResponse,
+  OrderListResponse,
+} from "../types";
+import type {
+  CustomerOrdersQueryInput,
+  AdminOrdersListInput,
+} from "../validations/order.schema";
 
-const listItemSelect = {
-  id: true,
-  productId: true,
+export const orderAddressInclude = Prisma.validator<Prisma.OrderAddressInclude>()({});
+
+export const orderItemInclude = Prisma.validator<Prisma.OrderItemInclude>()({
   product: {
     select: {
+      id: true,
+      uuid: true,
       name: true,
-      slug: true,
-      sku: true,
-      images: { take: 1, orderBy: { isPrimary: "desc" } },
+      images: {
+        where: { is_active: true },
+        orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }],
+        take: 1,
+      },
     },
   },
-  variant: { select: { name: true, sku: true } },
-  quantity: true,
-  price: true,
-  total: true,
-} satisfies Prisma.OrderItemSelect;
-
-const detailInclude = {
-  items: {
-    include: {
-      product: {
+  variant: {
+    select: {
+      id: true,
+      uuid: true,
+      variant_name: true,
+      sku: true,
+      unit_value: true,
+      product_units: {
         select: {
           id: true,
           name: true,
-          slug: true,
-          sku: true,
-          images: { take: 1, orderBy: { isPrimary: "desc" } },
+          code: true,
+          type: true,
         },
       },
-      variant: { select: { id: true, name: true, sku: true } },
+      product_variant_images: {
+        where: { is_active: true },
+        orderBy: [{ is_primary: "desc" }, { sort_order: "asc" }],
+        take: 1,
+      },
     },
   },
-  address: true,
-  payments: true,
-  delivery: true,
-  shipping: true,
-  user: { select: { id: true, name: true, email: true, phone: true } },
-} satisfies Prisma.OrderInclude;
+});
 
-function buildAdminWhere(params: GetOrdersParams): Prisma.OrderWhereInput {
-  const where: Prisma.OrderWhereInput = {};
+export const orderDetailInclude = Prisma.validator<Prisma.OrderInclude>()({
+  user: {
+    select: {
+      id: true,
+      uuid: true,
+      cust_id: true,
+      name: true,
+      email: true,
+      phone: true,
+    },
+  },
+  address: {
+    where: { is_active: true },
+  },
+  items: {
+    where: { is_active: true },
+    include: orderItemInclude,
+  },
+  order_status_history: {
+    where: { is_active: true },
+    orderBy: [{ created_at: "desc" }, { id: "desc" }],
+  },
+});
 
-  if (params.status) {
-    where.status = params.status as DBOrderStatus;
+export function formatOrderAddress(
+  address?: Prisma.OrderAddressGetPayload<typeof orderAddressInclude> | null
+): OrderAddressResponse | null {
+  if (!address) return null;
+  return {
+    id: address.uuid || String(address.id),
+    type: address.type,
+    fullName: address.full_name,
+    phone: address.phone,
+    addressLine1: address.address_line1,
+    addressLine2: address.address_line2 ?? null,
+    landmark: address.landmark ?? null,
+    city: address.city,
+    state: address.state,
+    pincode: address.pincode,
+    country: address.country,
+    latitude: address.latitude ? Number(address.latitude) : null,
+    longitude: address.longitude ? Number(address.longitude) : null,
+  };
+}
+
+export function formatOrderItem(
+  item: Prisma.OrderItemGetPayload<{ include: typeof orderItemInclude }>
+): OrderItemResponse {
+  const measurement = formatVariantMeasurement(
+    item.variant?.product_units,
+    item.variant?.unit_value
+  );
+
+  const primaryImage =
+    item.variant?.product_variant_images?.[0]?.image_url ||
+    item.product?.images?.[0]?.image_url ||
+    null;
+
+  return {
+    id: item.uuid || String(item.id),
+    productId: item.product?.uuid || String(item.productId),
+    variantId: item.variant?.uuid || String(item.variantId),
+    productName: item.product_name_snapshot,
+    variantName: item.variant_snapshot,
+    sku: item.sku_snapshot,
+    measurement,
+    primaryImage,
+    quantity: item.quantity,
+    unitPrice: Number(item.unit_price),
+    taxAmount: Number(item.tax_amount),
+    totalPrice: Number(item.total_price),
+  };
+}
+
+export function formatOrderStatusHistory(
+  history: Prisma.order_status_historyGetPayload<{}>
+): OrderStatusHistoryResponse {
+  return {
+    id: String(history.id),
+    status: history.status,
+    note: history.note ?? null,
+    createdAt: history.created_at,
+  };
+}
+
+export function formatOrderDetail(
+  order: Prisma.OrderGetPayload<{ include: typeof orderDetailInclude }>
+): OrderDetailResponse {
+  const customer = {
+    id: order.user?.uuid || String(order.userId),
+    customerId: order.user?.cust_id ?? null,
+    name: order.user?.name || "",
+    email: order.user?.email ?? null,
+    phone: order.user?.phone ?? null,
+  };
+
+  const items = (order.items || []).map(formatOrderItem);
+  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+
+  const shippingRaw = (order.address || []).find((a) => a.type === "shipping");
+  const billingRaw = (order.address || []).find((a) => a.type === "billing");
+
+  const shippingAddress = formatOrderAddress(shippingRaw);
+  const billingAddress = formatOrderAddress(billingRaw || shippingRaw);
+
+  const statusHistory = (order.order_status_history || []).map(
+    formatOrderStatusHistory
+  );
+
+  return {
+    id: order.uuid || String(order.id),
+    orderNumber: order.orderNumber,
+    customer,
+    status: order.order_status,
+    paymentStatus: order.payment_status,
+    subtotal: Number(order.subtotal),
+    discountAmount: Number(order.discountAmount),
+    taxAmount: Number(order.taxAmount),
+    shippingCharge: Number(order.shipping_charge),
+    totalAmount: Number(order.totalAmount),
+    totalItems,
+    notes: order.notes ?? null,
+    placedAt: order.placed_at ?? null,
+    createdAt: order.createdAt,
+    updatedAt: order.updatedAt,
+    items,
+    shippingAddress,
+    billingAddress,
+    statusHistory,
+  };
+}
+
+export function formatOrderListItem(
+  order: Prisma.OrderGetPayload<{
+    include: {
+      user: {
+        select: {
+          id: true;
+          uuid: true;
+          cust_id: true;
+          name: true;
+          email: true;
+          phone: true;
+        };
+      };
+      items: {
+        where: { is_active: true };
+        select: { quantity: true };
+      };
+    };
+  }>
+): OrderListItemResponse {
+  const customer = {
+    id: order.user?.uuid || String(order.userId),
+    customerId: order.user?.cust_id ?? null,
+    name: order.user?.name || "",
+    email: order.user?.email ?? null,
+    phone: order.user?.phone ?? null,
+  };
+
+  const totalItems = (order.items || []).reduce(
+    (sum, item) => sum + item.quantity,
+    0
+  );
+
+  return {
+    id: order.uuid || String(order.id),
+    orderNumber: order.orderNumber,
+    customer,
+    status: order.order_status,
+    paymentStatus: order.payment_status,
+    subtotal: Number(order.subtotal),
+    discountAmount: Number(order.discountAmount),
+    taxAmount: Number(order.taxAmount),
+    shippingCharge: Number(order.shipping_charge),
+    totalAmount: Number(order.totalAmount),
+    totalItems,
+    notes: order.notes ?? null,
+    placedAt: order.placed_at ?? null,
+    createdAt: order.createdAt,
+    updatedAt: order.updatedAt,
+  };
+}
+
+export async function generateUniqueOrderNumber(
+  prismaClient: Prisma.TransactionClient | typeof db = db
+): Promise<string> {
+  const today = new Date();
+  const dateStr = today.toISOString().slice(0, 10).replace(/-/g, "");
+
+  for (let i = 0; i < 10; i++) {
+    const randomHex = crypto.randomBytes(3).toString("hex").toUpperCase();
+    const orderNumber = `ORD-${dateStr}-${randomHex}`;
+
+    const existing = await prismaClient.order.findUnique({
+      where: { orderNumber },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      return orderNumber;
+    }
   }
 
-  if (params.search) {
-    where.OR = [
-      { orderNumber: { contains: params.search } },
-      { user: { name: { contains: params.search } } },
-      { user: { email: { contains: params.search } } },
-      {
-        items: {
-          some: { product: { name: { contains: params.search } } },
-        },
-      },
-    ];
-  }
-
-  return where;
+  // Fallback with timestamp
+  return `ORD-${dateStr}-${Date.now().toString().slice(-6)}`;
 }
 
 export const orderRepository = {
-  async findAllForCustomer(userId: number, params: GetOrdersParams = {}) {
-    const page = params.page ?? 1;
-    const limit = params.limit ?? 10;
+  async createCustomerOrderTransaction(params: {
+    userId: bigint;
+    cartId: bigint;
+    subtotal: number;
+    totalAmount: number;
+    notes?: string;
+    shippingAddress: {
+      fullName: string;
+      phone: string;
+      addressLine1: string;
+      addressLine2?: string | null;
+      landmark?: string | null;
+      city: string;
+      state: string;
+      pincode?: string | null;
+      country?: string | null;
+      latitude?: number | null;
+      longitude?: number | null;
+    };
+    billingAddress: {
+      fullName: string;
+      phone: string;
+      addressLine1: string;
+      addressLine2?: string | null;
+      landmark?: string | null;
+      city: string;
+      state: string;
+      pincode?: string | null;
+      country?: string | null;
+      latitude?: number | null;
+      longitude?: number | null;
+    };
+    items: Array<{
+      productId: bigint;
+      variantId: bigint;
+      productName: string;
+      variantName: string;
+      sku: string;
+      quantity: number;
+      unitPrice: number;
+      taxAmount: number;
+      totalPrice: number;
+    }>;
+  }): Promise<OrderDetailResponse> {
+    return db.$transaction(async (tx) => {
+      const orderNumber = await generateUniqueOrderNumber(tx);
+      const now = new Date();
 
-    const where: Prisma.OrderWhereInput = { userId };
+      // 1. Create Order
+      const createdOrder = await tx.order.create({
+        data: {
+          uuid: crypto.randomUUID(),
+          orderNumber,
+          userId: params.userId,
+          cart_id: params.cartId,
+          order_status: "pending",
+          payment_status: "pending",
+          subtotal: params.subtotal,
+          discountAmount: 0,
+          taxAmount: 0,
+          shipping_charge: 0,
+          totalAmount: params.totalAmount,
+          notes: params.notes ?? null,
+          placed_at: now,
+          is_active: true,
+          created_by: params.userId,
+          updated_by: params.userId,
+        },
+      });
+
+      // 2. Create Addresses (Shipping & Billing)
+      await tx.orderAddress.createMany({
+        data: [
+          {
+            uuid: crypto.randomUUID(),
+            orderId: createdOrder.id,
+            type: "shipping",
+            full_name: params.shippingAddress.fullName,
+            phone: params.shippingAddress.phone,
+            address_line1: params.shippingAddress.addressLine1,
+            address_line2: params.shippingAddress.addressLine2 ?? null,
+            landmark: params.shippingAddress.landmark ?? null,
+            city: params.shippingAddress.city,
+            state: params.shippingAddress.state,
+            pincode: params.shippingAddress.pincode || "",
+            country: params.shippingAddress.country || "India",
+            latitude: params.shippingAddress.latitude ?? null,
+            longitude: params.shippingAddress.longitude ?? null,
+            is_active: true,
+            created_by: params.userId,
+            updated_by: params.userId,
+          },
+          {
+            uuid: crypto.randomUUID(),
+            orderId: createdOrder.id,
+            type: "billing",
+            full_name: params.billingAddress.fullName,
+            phone: params.billingAddress.phone,
+            address_line1: params.billingAddress.addressLine1,
+            address_line2: params.billingAddress.addressLine2 ?? null,
+            landmark: params.billingAddress.landmark ?? null,
+            city: params.billingAddress.city,
+            state: params.billingAddress.state,
+            pincode: params.billingAddress.pincode || "",
+            country: params.billingAddress.country || "India",
+            latitude: params.billingAddress.latitude ?? null,
+            longitude: params.billingAddress.longitude ?? null,
+            is_active: true,
+            created_by: params.userId,
+            updated_by: params.userId,
+          },
+        ],
+      });
+
+      // 3. Create Order Items
+      await tx.orderItem.createMany({
+        data: params.items.map((item) => ({
+          uuid: crypto.randomUUID(),
+          orderId: createdOrder.id,
+          productId: item.productId,
+          variantId: item.variantId,
+          product_name_snapshot: item.productName,
+          variant_snapshot: item.variantName,
+          sku_snapshot: item.sku,
+          quantity: item.quantity,
+          unit_price: item.unitPrice,
+          tax_amount: item.taxAmount,
+          total_price: item.totalPrice,
+          is_active: true,
+          created_by: params.userId,
+          updated_by: params.userId,
+        })),
+      });
+
+      // 4. Create Status History
+      await tx.order_status_history.create({
+        data: {
+          order_id: createdOrder.id,
+          status: "pending",
+          note: params.notes || "Order placed by customer",
+          changed_by: params.userId,
+          is_active: true,
+          created_by: params.userId,
+          updated_by: params.userId,
+        },
+      });
+
+      // 5. Convert Cart & Deactivate Items
+      await tx.cart.update({
+        where: { id: params.cartId },
+        data: {
+          status: "converted",
+          last_activity_at: now,
+          updatedAt: now,
+          updated_by: params.userId,
+        },
+      });
+
+      await tx.cartItem.updateMany({
+        where: {
+          cartId: params.cartId,
+          is_active: true,
+        },
+        data: {
+          is_active: false,
+          updatedAt: now,
+          updated_by: params.userId,
+        },
+      });
+
+      // 6. Fetch created full order
+      const fullOrder = await tx.order.findUniqueOrThrow({
+        where: { id: createdOrder.id },
+        include: orderDetailInclude,
+      });
+
+      return formatOrderDetail(fullOrder);
+    });
+  },
+
+  async createAdminOrderTransaction(params: {
+    adminUserId: bigint;
+    customerUserId: bigint;
+    subtotal: number;
+    totalAmount: number;
+    notes?: string;
+    shippingAddress: {
+      fullName: string;
+      phone: string;
+      addressLine1: string;
+      addressLine2?: string | null;
+      landmark?: string | null;
+      city: string;
+      state: string;
+      pincode?: string | null;
+      country?: string | null;
+      latitude?: number | null;
+      longitude?: number | null;
+    };
+    billingAddress: {
+      fullName: string;
+      phone: string;
+      addressLine1: string;
+      addressLine2?: string | null;
+      landmark?: string | null;
+      city: string;
+      state: string;
+      pincode?: string | null;
+      country?: string | null;
+      latitude?: number | null;
+      longitude?: number | null;
+    };
+    items: Array<{
+      productId: bigint;
+      variantId: bigint;
+      productName: string;
+      variantName: string;
+      sku: string;
+      quantity: number;
+      unitPrice: number;
+      taxAmount: number;
+      totalPrice: number;
+    }>;
+  }): Promise<OrderDetailResponse> {
+    return db.$transaction(async (tx) => {
+      const orderNumber = await generateUniqueOrderNumber(tx);
+      const now = new Date();
+
+      // 1. Create Order
+      const createdOrder = await tx.order.create({
+        data: {
+          uuid: crypto.randomUUID(),
+          orderNumber,
+          userId: params.customerUserId,
+          cart_id: null,
+          order_status: "pending",
+          payment_status: "pending",
+          subtotal: params.subtotal,
+          discountAmount: 0,
+          taxAmount: 0,
+          shipping_charge: 0,
+          totalAmount: params.totalAmount,
+          notes: params.notes ?? null,
+          placed_at: now,
+          is_active: true,
+          created_by: params.adminUserId,
+          updated_by: params.adminUserId,
+        },
+      });
+
+      // 2. Create Addresses (Shipping & Billing)
+      await tx.orderAddress.createMany({
+        data: [
+          {
+            uuid: crypto.randomUUID(),
+            orderId: createdOrder.id,
+            type: "shipping",
+            full_name: params.shippingAddress.fullName,
+            phone: params.shippingAddress.phone,
+            address_line1: params.shippingAddress.addressLine1,
+            address_line2: params.shippingAddress.addressLine2 ?? null,
+            landmark: params.shippingAddress.landmark ?? null,
+            city: params.shippingAddress.city,
+            state: params.shippingAddress.state,
+            pincode: params.shippingAddress.pincode || "",
+            country: params.shippingAddress.country || "India",
+            latitude: params.shippingAddress.latitude ?? null,
+            longitude: params.shippingAddress.longitude ?? null,
+            is_active: true,
+            created_by: params.adminUserId,
+            updated_by: params.adminUserId,
+          },
+          {
+            uuid: crypto.randomUUID(),
+            orderId: createdOrder.id,
+            type: "billing",
+            full_name: params.billingAddress.fullName,
+            phone: params.billingAddress.phone,
+            address_line1: params.billingAddress.addressLine1,
+            address_line2: params.billingAddress.addressLine2 ?? null,
+            landmark: params.billingAddress.landmark ?? null,
+            city: params.billingAddress.city,
+            state: params.billingAddress.state,
+            pincode: params.billingAddress.pincode || "",
+            country: params.billingAddress.country || "India",
+            latitude: params.billingAddress.latitude ?? null,
+            longitude: params.billingAddress.longitude ?? null,
+            is_active: true,
+            created_by: params.adminUserId,
+            updated_by: params.adminUserId,
+          },
+        ],
+      });
+
+      // 3. Create Order Items
+      await tx.orderItem.createMany({
+        data: params.items.map((item) => ({
+          uuid: crypto.randomUUID(),
+          orderId: createdOrder.id,
+          productId: item.productId,
+          variantId: item.variantId,
+          product_name_snapshot: item.productName,
+          variant_snapshot: item.variantName,
+          sku_snapshot: item.sku,
+          quantity: item.quantity,
+          unit_price: item.unitPrice,
+          tax_amount: item.taxAmount,
+          total_price: item.totalPrice,
+          is_active: true,
+          created_by: params.adminUserId,
+          updated_by: params.adminUserId,
+        })),
+      });
+
+      // 4. Create Status History
+      await tx.order_status_history.create({
+        data: {
+          order_id: createdOrder.id,
+          status: "pending",
+          note: params.notes || "Order created by admin",
+          changed_by: params.adminUserId,
+          is_active: true,
+          created_by: params.adminUserId,
+          updated_by: params.adminUserId,
+        },
+      });
+
+      // 5. Fetch created full order
+      const fullOrder = await tx.order.findUniqueOrThrow({
+        where: { id: createdOrder.id },
+        include: orderDetailInclude,
+      });
+
+      return formatOrderDetail(fullOrder);
+    });
+  },
+
+  async findCustomerOrders(
+    userId: bigint,
+    params: CustomerOrdersQueryInput
+  ): Promise<OrderListResponse<OrderListItemResponse>> {
+    const page = params.page ?? 1;
+    const pageSize = params.pageSize ?? 20;
+
+    const where: Prisma.OrderWhereInput = {
+      userId,
+      is_active: true,
+    };
 
     if (params.status) {
-      where.status = params.status as DBOrderStatus;
+      where.order_status = params.status;
     }
 
-    const [data, total] = await Promise.all([
+    if (params.search) {
+      where.orderNumber = { contains: params.search };
+    }
+
+    const sortOrder = params.sortOrder ?? "desc";
+    let orderBy: Prisma.OrderOrderByWithRelationInput = { createdAt: sortOrder };
+
+    if (params.sortBy === "orderNumber") {
+      orderBy = { orderNumber: sortOrder };
+    } else if (params.sortBy === "createdAt") {
+      orderBy = { createdAt: sortOrder };
+    } else if (params.sortBy === "updatedAt") {
+      orderBy = { updatedAt: sortOrder };
+    } else if (params.sortBy === "placedAt") {
+      orderBy = { placed_at: sortOrder };
+    } else if (params.sortBy === "totalAmount") {
+      orderBy = { totalAmount: sortOrder };
+    }
+
+    const [orders, total] = await Promise.all([
       db.order.findMany({
         where,
-        select: {
-          id: true,
-          orderNumber: true,
-          status: true,
-          subtotal: true,
-          taxAmount: true,
-          shippingAmount: true,
-          discountAmount: true,
-          totalAmount: true,
-          couponId: true,
-          createdAt: true,
-          items: {
+        orderBy,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        include: {
+          user: {
             select: {
               id: true,
-              quantity: true,
-              price: true,
-              total: true,
-              product: {
-                select: {
-                  id: true,
-                  name: true,
-                  slug: true,
-                  images: { take: 1, orderBy: { isPrimary: "desc" } },
-                },
-              },
-              variant: { select: { name: true, sku: true } },
+              uuid: true,
+              cust_id: true,
+              name: true,
+              email: true,
+              phone: true,
             },
           },
-          payments: { take: 1 },
-          delivery: true,
+          items: {
+            where: { is_active: true },
+            select: { quantity: true },
+          },
         },
-        orderBy: { createdAt: "desc" },
-        skip: (page - 1) * limit,
-        take: limit,
       }),
       db.order.count({ where }),
     ]);
 
     return {
-      data,
-      total,
+      data: orders.map(formatOrderListItem),
       meta: {
         page,
-        limit,
+        limit: pageSize,
+        pageSize,
         total,
-        totalPages: Math.ceil(total / limit),
+        totalPages: Math.ceil(total / pageSize),
       },
     };
   },
 
-  async findByIdForCustomer(userId: number, id: number) {
-    return db.order.findFirst({
-      where: { id, userId },
-      include: detailInclude,
+  async findCustomerOrderByUuid(
+    userId: bigint,
+    uuid: string
+  ): Promise<OrderDetailResponse | null> {
+    const order = await db.order.findFirst({
+      where: {
+        uuid,
+        userId,
+        is_active: true,
+      },
+      include: orderDetailInclude,
     });
+
+    return order ? formatOrderDetail(order) : null;
   },
 
-  async findById(id: number) {
-    return db.order.findUnique({
-      where: { id },
-      include: detailInclude,
-    });
-  },
-
-  async findByOrderNumber(orderNumber: string) {
-    return db.order.findUnique({
-      where: { orderNumber },
-      include: detailInclude,
-    });
-  },
-
-  async findAll(params: GetOrdersParams = {}) {
+  async findAdminOrders(
+    params: AdminOrdersListInput
+  ): Promise<OrderListResponse<OrderListItemResponse>> {
     const page = params.page ?? 1;
-    const limit = params.limit ?? 10;
-    const where = buildAdminWhere(params);
+    const pageSize = params.pageSize ?? 20;
 
-    const [data, total] = await Promise.all([
+    const where: Prisma.OrderWhereInput = {
+      is_active: true,
+    };
+
+    if (params.customerId) {
+      where.user = { uuid: params.customerId };
+    }
+
+    if (params.status) {
+      where.order_status = params.status;
+    }
+
+    if (params.paymentStatus) {
+      where.payment_status = params.paymentStatus;
+    }
+
+    if (params.search) {
+      const s = params.search;
+      where.OR = [
+        { orderNumber: { contains: s } },
+        { user: { name: { contains: s } } },
+        { user: { email: { contains: s } } },
+        { user: { phone: { contains: s } } },
+        { user: { cust_id: { contains: s } } },
+      ];
+    }
+
+    const sortOrder = params.sortOrder ?? "desc";
+    let orderBy: Prisma.OrderOrderByWithRelationInput = { createdAt: sortOrder };
+
+    if (params.sortBy === "orderNumber") {
+      orderBy = { orderNumber: sortOrder };
+    } else if (params.sortBy === "createdAt") {
+      orderBy = { createdAt: sortOrder };
+    } else if (params.sortBy === "updatedAt") {
+      orderBy = { updatedAt: sortOrder };
+    } else if (params.sortBy === "placedAt") {
+      orderBy = { placed_at: sortOrder };
+    } else if (params.sortBy === "totalAmount") {
+      orderBy = { totalAmount: sortOrder };
+    } else if (params.sortBy === "orderStatus") {
+      orderBy = { order_status: sortOrder };
+    } else if (params.sortBy === "paymentStatus") {
+      orderBy = { payment_status: sortOrder };
+    }
+
+    const [orders, total] = await Promise.all([
       db.order.findMany({
         where,
-        select: {
-          id: true,
-          orderNumber: true,
-          status: true,
-          subtotal: true,
-          taxAmount: true,
-          shippingAmount: true,
-          discountAmount: true,
-          totalAmount: true,
-          couponId: true,
-          createdAt: true,
-          user: { select: { id: true, name: true, email: true, phone: true } },
-          items: {
+        orderBy,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        include: {
+          user: {
             select: {
               id: true,
-              quantity: true,
-              price: true,
-              total: true,
-              product: {
-                select: {
-                  id: true,
-                  name: true,
-                  slug: true,
-                  images: { take: 1, orderBy: { isPrimary: "desc" } },
-                },
-              },
-              variant: { select: { name: true, sku: true } },
+              uuid: true,
+              cust_id: true,
+              name: true,
+              email: true,
+              phone: true,
             },
           },
-          payments: { take: 1 },
-          delivery: true,
+          items: {
+            where: { is_active: true },
+            select: { quantity: true },
+          },
         },
-        orderBy: { createdAt: "desc" },
-        skip: (page - 1) * limit,
-        take: limit,
       }),
       db.order.count({ where }),
     ]);
 
     return {
-      data,
-      total,
+      data: orders.map(formatOrderListItem),
       meta: {
         page,
-        limit,
+        limit: pageSize,
+        pageSize,
         total,
-        totalPages: Math.ceil(total / limit),
+        totalPages: Math.ceil(total / pageSize),
       },
     };
   },
 
-  async updateStatus(id: number, status: OrderStatus) {
-    return db.order.update({
-      where: { id },
-      data: { status },
-      include: detailInclude,
+  async findAdminOrderByUuid(uuid: string): Promise<OrderDetailResponse | null> {
+    const order = await db.order.findFirst({
+      where: {
+        uuid,
+        is_active: true,
+      },
+      include: orderDetailInclude,
+    });
+
+    return order ? formatOrderDetail(order) : null;
+  },
+
+  async cancelOrderTransaction(params: {
+    orderId: bigint;
+    note?: string;
+    changedBy: bigint;
+  }): Promise<OrderDetailResponse> {
+    return db.$transaction(async (tx) => {
+      const now = new Date();
+
+      await tx.order.update({
+        where: { id: params.orderId },
+        data: {
+          order_status: "cancelled",
+          updatedAt: now,
+          updated_by: params.changedBy,
+        },
+      });
+
+      await tx.order_status_history.create({
+        data: {
+          order_id: params.orderId,
+          status: "cancelled",
+          note: params.note || "Order cancelled",
+          changed_by: params.changedBy,
+          is_active: true,
+          created_by: params.changedBy,
+          updated_by: params.changedBy,
+        },
+      });
+
+      const updated = await tx.order.findUniqueOrThrow({
+        where: { id: params.orderId },
+        include: orderDetailInclude,
+      });
+
+      return formatOrderDetail(updated);
     });
   },
 
-  async updatePaymentStatus(orderId: number, status: string) {
-    return db.payment.updateMany({
-      where: { orderId },
-      data: { status: status as DBPaymentStatus },
+  async returnOrderTransaction(params: {
+    orderId: bigint;
+    note?: string;
+    changedBy: bigint;
+  }): Promise<OrderDetailResponse> {
+    return db.$transaction(async (tx) => {
+      const now = new Date();
+
+      await tx.order.update({
+        where: { id: params.orderId },
+        data: {
+          order_status: "returned",
+          updatedAt: now,
+          updated_by: params.changedBy,
+        },
+      });
+
+      await tx.order_status_history.create({
+        data: {
+          order_id: params.orderId,
+          status: "returned",
+          note: params.note || "Order returned",
+          changed_by: params.changedBy,
+          is_active: true,
+          created_by: params.changedBy,
+          updated_by: params.changedBy,
+        },
+      });
+
+      const updated = await tx.order.findUniqueOrThrow({
+        where: { id: params.orderId },
+        include: orderDetailInclude,
+      });
+
+      return formatOrderDetail(updated);
     });
   },
 };
