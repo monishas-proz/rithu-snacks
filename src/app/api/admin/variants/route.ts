@@ -2,27 +2,22 @@ import { createApiHandler } from "@/lib/api/api-handler";
 import { apiSuccess } from "@/lib/api/api-response";
 import { variantService } from "@/features/variants/services/variant.service";
 import {
-  adminVariantsQuerySchema,
-  type AdminVariantsQueryInput,
+  adminVariantListSchema,
+  type AdminVariantListInput,
 } from "@/features/variants/validations/admin-variant.schema";
 
-export const GET = createApiHandler(
+export const POST = createApiHandler(
   {
-    GET: async (_request, context) => {
-      const query = context.query as AdminVariantsQueryInput;
-      const result = await variantService.getAllAdminVariants({
-        page: query?.page ?? 1,
-        pageSize: query?.pageSize ?? 10,
-        search: query?.search,
-        productId: query?.productId || query?.productUuid,
-      });
+    POST: async (_request, context) => {
+      const body = (context.body || {}) as AdminVariantListInput;
+      const result = await variantService.getAllAdminVariants(body);
 
       return apiSuccess(result.data, "Variants fetched successfully", 200, result.meta);
     },
   },
   {
     requireAuth: true,
-    requiredRole: ["ADMIN"],
-    querySchema: adminVariantsQuerySchema,
+    requiredRole: ["ADMIN", "STAFF"],
+    bodySchema: adminVariantListSchema,
   }
 );

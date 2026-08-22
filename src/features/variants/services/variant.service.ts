@@ -9,6 +9,7 @@ import type { Prisma } from "@/generated/prisma";
 import type {
   AdminVariantResponse,
   GetAdminVariantsParams,
+  AdminVariantListParams,
 } from "../types";
 import type {
   CreateAdminVariantInput,
@@ -135,19 +136,8 @@ export const variantService = {
     );
   },
 
-  async getAllAdminVariants(params: GetAdminVariantsParams = {}) {
-    let productId: bigint | undefined = undefined;
-
-    const targetProductUuid = params.productId || params.productUuid;
-    if (targetProductUuid) {
-      const product = await productRepository.findByUuid(targetProductUuid);
-      if (!product || !product.isActive || product.deleted_at !== null) {
-        throw ApiError.notFound("Product not found or inactive");
-      }
-      productId = product.id;
-    }
-
-    const result = await variantRepository.findAdminAll(params, productId);
+  async getAllAdminVariants(params: AdminVariantListParams = {}) {
+    const result = await variantRepository.findAdminVariants(params);
     const data = result.data.map((item) => formatAdminVariantResponse(item));
 
     return {

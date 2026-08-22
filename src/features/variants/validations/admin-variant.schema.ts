@@ -49,3 +49,69 @@ export const adminVariantsQuerySchema = z.object({
 });
 
 export type AdminVariantsQueryInput = z.infer<typeof adminVariantsQuerySchema>;
+
+export const adminVariantListSchema = z
+  .object({
+    page: z.number().int().min(1, "page must be at least 1").default(1),
+    pageSize: z
+      .number()
+      .int()
+      .min(1, "pageSize must be at least 1")
+      .max(100, "pageSize cannot exceed 100")
+      .default(20),
+    search: z.string().trim().optional(),
+    productIds: z
+      .array(z.string().uuid("Invalid Product UUID format"))
+      .optional()
+      .default([]),
+    brandIds: z
+      .array(z.string().uuid("Invalid Brand UUID format"))
+      .optional()
+      .default([]),
+    categoryIds: z
+      .array(z.string().uuid("Invalid Category UUID format"))
+      .optional()
+      .default([]),
+    measurementTypes: z
+      .array(z.enum(["weight", "volume", "count"]))
+      .optional()
+      .default([]),
+    unitIds: z
+      .array(z.string().uuid("Invalid Unit UUID format"))
+      .optional()
+      .default([]),
+    isActive: z.boolean().optional(),
+    minPrice: z
+      .number()
+      .min(0, "minPrice must be greater than or equal to 0")
+      .optional(),
+    maxPrice: z
+      .number()
+      .min(0, "maxPrice must be greater than or equal to 0")
+      .optional(),
+    sortBy: z
+      .enum([
+        "variantName",
+        "productName",
+        "sku",
+        "basePrice",
+        "salePrice",
+        "createdAt",
+        "updatedAt",
+      ])
+      .default("createdAt"),
+    sortOrder: z.enum(["asc", "desc"]).default("desc"),
+  })
+  .strict()
+  .refine(
+    (data) =>
+      data.minPrice === undefined ||
+      data.maxPrice === undefined ||
+      data.maxPrice >= data.minPrice,
+    {
+      message: "maxPrice cannot be less than minPrice",
+      path: ["maxPrice"],
+    }
+  );
+
+export type AdminVariantListInput = z.infer<typeof adminVariantListSchema>;
