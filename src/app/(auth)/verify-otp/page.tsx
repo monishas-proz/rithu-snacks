@@ -13,10 +13,12 @@ function VerifyOtpForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") || "";
+  const fromAdmin = searchParams.get("from") === "admin";
 
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [timeLeft, setTimeLeft] = useState(59);
   const [infoMessage, setInfoMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
   const verifyOtpMutation = useVerifyOtp();
@@ -93,15 +95,27 @@ function VerifyOtpForm() {
     const code = otp.join("");
     if (!email || code.length !== 6) return;
 
+    setInfoMessage("");
+    setErrorMessage("");
+
     verifyOtpMutation.mutate(
       { email, otp: code },
       {
         onSuccess: (res) => {
           setInfoMessage("OTP verified successfully. Redirecting...");
+          const resetToken = res.data?.resetToken || "";
+          const targetUrl = `/reset-password?token=${encodeURIComponent(
+            resetToken
+          )}${fromAdmin ? "&from=admin" : ""}`;
           setTimeout(() => {
-            const resetToken = res.data?.resetToken || "";
-            router.push(`/reset-password?token=${encodeURIComponent(resetToken)}`);
-          }, 1000);
+            router.push(targetUrl);
+          }, 800);
+        },
+        onError: (err: any) => {
+          setErrorMessage(
+            err?.message ||
+              "Invalid or expired verification code. Please try again."
+          );
         },
       }
     );
@@ -109,6 +123,9 @@ function VerifyOtpForm() {
 
   const handleResend = () => {
     if (!email) return;
+
+    setInfoMessage("");
+    setErrorMessage("");
 
     resendOtpMutation.mutate(
       { email },
@@ -118,6 +135,11 @@ function VerifyOtpForm() {
           setTimeLeft(59);
           setOtp(["", "", "", "", "", ""]);
           inputRefs.current[0]?.focus();
+        },
+        onError: (err: any) => {
+          setErrorMessage(
+            err?.message || "Failed to resend code. Please try again."
+          );
         },
       }
     );
@@ -155,11 +177,19 @@ function VerifyOtpForm() {
           </p>
         </div>
 
-        {/* Info Message */}
+        {/* Info / Success Message */}
         {infoMessage && (
           <div className="mt-6 flex items-center gap-2 rounded-lg border border-success-200 bg-success-50 p-3 text-sm text-success-600">
             <CheckCircle2 className="h-4 w-4 shrink-0" />
             {infoMessage}
+          </div>
+        )}
+
+        {/* Error Message */}
+        {errorMessage && (
+          <div className="mt-6 flex items-center gap-2 rounded-lg border border-error-200 bg-error-50 p-3 text-sm text-error-600">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            {errorMessage}
           </div>
         )}
 
@@ -246,7 +276,7 @@ function VerifyOtpForm() {
         {/* Change Email */}
         <div className="mt-6 text-center">
           <Link
-            href="/forgot-password"
+            href={fromAdmin ? "/forgot-password?from=admin" : "/forgot-password"}
             className="text-sm font-medium text-secondary-600 hover:underline"
           >
             Change Email

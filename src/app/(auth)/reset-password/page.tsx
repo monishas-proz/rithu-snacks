@@ -16,6 +16,7 @@ function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tokenFromUrl = searchParams.get("token") || "";
+  const fromAdmin = searchParams.get("from") === "admin";
   const [success, setSuccess] = useState("");
   const resetPasswordMutation = useResetPassword();
 
@@ -83,6 +84,7 @@ function ResetPasswordForm() {
 
   const onSubmit = (data: ResetPasswordInput) => {
     setSuccess("");
+    methods.clearErrors("root");
     const activeToken = data.resetToken || tokenFromUrl || "http_only_cookie";
 
     resetPasswordMutation.mutate(
@@ -93,11 +95,22 @@ function ResetPasswordForm() {
       },
       {
         onSuccess: (res) => {
-          setSuccess(res.message || "Password reset successfully. Redirecting to login...");
+          setSuccess(
+            res.message || "Password reset successfully. Redirecting to login..."
+          );
           methods.reset();
+          const targetLogin = fromAdmin ? "/admin/login" : "/login";
           setTimeout(() => {
-            router.push("/login");
-          }, 1500);
+            router.push(targetLogin);
+          }, 1200);
+        },
+        onError: (err: any) => {
+          methods.setError("root", {
+            type: "server",
+            message:
+              err?.message ||
+              "Failed to reset password. Your token may have expired. Please try again.",
+          });
         },
       }
     );
@@ -193,7 +206,7 @@ function ResetPasswordForm() {
         {/* Back Link */}
         <div className="mt-8 text-center">
           <Link
-            href="/login"
+            href={fromAdmin ? "/admin/login" : "/login"}
             className="inline-flex items-center gap-2 text-sm font-medium text-neutral-600 transition-colors hover:text-secondary-600"
           >
             <ArrowLeft size={16} />

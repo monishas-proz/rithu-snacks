@@ -4,8 +4,9 @@ import { authConfig } from "@/lib/auth/auth.config";
 
 const { auth } = NextAuth(authConfig);
 
-function getAccessTokenPayload(
-  token?: string
+function parseJwtPayload(
+  token?: string,
+  checkExp: boolean = true
 ): { role?: string; userId?: string; email?: string; exp?: number } | null {
   if (!token) return null;
   try {
@@ -23,8 +24,8 @@ function getAccessTokenPayload(
 
     const payload = JSON.parse(jsonPayload);
 
-    // Verify token expiration
-    if (payload.exp && payload.exp * 1000 < Date.now()) {
+    // Verify token expiration if requested
+    if (checkExp && payload.exp && payload.exp * 1000 < Date.now()) {
       return null;
     }
 
@@ -40,12 +41,21 @@ export default auth((req) => {
 
   // Check HttpOnly access_token cookie
   const accessTokenCookie = req.cookies.get("access_token")?.value;
-  const tokenPayload = getAccessTokenPayload(accessTokenCookie);
+  const validAccessToken = parseJwtPayload(accessTokenCookie, true);
+  const rawAccessToken = parseJwtPayload(accessTokenCookie, false);
 
-  // User is authenticated if valid access_token cookie exists OR NextAuth session exists
-  const isAuthenticated = !!tokenPayload || !!nextAuthUser;
+  // Check HttpOnly refresh_token cookie
+  const refreshTokenCookie = req.cookies.get("refresh_token")?.value;
+  const validRefreshToken = parseJwtPayload(refreshTokenCookie, true);
+
+  // User is authenticated if valid access_token, valid refresh_token, OR NextAuth session exists
+  const isAuthenticated =
+    !!validAccessToken || !!validRefreshToken || !!nextAuthUser;
+
   const userRole =
-    tokenPayload?.role || (nextAuthUser as { role?: string })?.role;
+    validAccessToken?.role ||
+    rawAccessToken?.role ||
+    (nextAuthUser as { role?: string })?.role;
 
   if (pathname.startsWith("/admin")) {
     if (pathname === "/admin/login") {

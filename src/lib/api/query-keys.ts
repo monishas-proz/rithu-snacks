@@ -37,3 +37,4 @@ export const adminOrderKeys = createQueryKeyFactory("admin-orders");
 export const checkoutKeys = createQueryKeyFactory("checkout");
 export const roleKeys = createQueryKeyFactory("roles");
 export const permissionKeys = createQueryKeyFactory("permissions");
+export const variantKeys = createQueryKeyFactory("variants");

@@ -148,15 +148,15 @@ export default function AdminGstRatesPage() {
   }
 
   return (
-    <div>
+    <div className="flex flex-1 min-h-0 flex-col">
       <AdminPageHeader
         title="GST Rate Management"
         description="Manage GST rates for products."
       />
 
-      <AdminContent className="h-[calc(100vh-80px)] overflow-hidden">
-        <div className="flex h-full flex-col overflow-hidden bg-[var(--color-background)] px-6 py-6">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <AdminContent className="flex-1 min-h-0 overflow-hidden">
+        <div className="flex h-full flex-col overflow-hidden bg-[var(--color-background)] py-1 rounded-2xl">
+          <div className="flex-shrink-0 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="relative w-full max-w-md">
               <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-neutral-400)]" />
               <input
@@ -168,16 +168,16 @@ export default function AdminGstRatesPage() {
               />
             </div>
 
-             <Button
-                onClick={() => setIsCreateOpen(true)}
-                className="h-11 rounded-xl bg-[var(--color-secondary-600)] px-5 text-sm font-semibold text-white hover:bg-[var(--color-secondary-700)]"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add GST Rate
-              </Button>
+            <Button
+              onClick={() => setIsCreateOpen(true)}
+              className="h-11 rounded-xl bg-[var(--color-secondary-600)] px-5 text-sm font-semibold text-white hover:bg-[var(--color-secondary-700)]"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add GST Rate
+            </Button>
           </div>
 
-          <div className="mt-6 flex-1 min-h-0 overflow-hidden">
+          <div className="mt-6 flex-1 min-h-0 overflow-hidden flex flex-col">
             <DataTable
               columns={columns}
               data={gstRates}

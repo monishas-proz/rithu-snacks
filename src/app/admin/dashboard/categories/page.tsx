@@ -188,17 +188,16 @@ console.log("Categories received from API:", categories.length);
       : null;
 
   return (
-    <div>
+    <div className="flex flex-1 min-h-0 flex-col">
       {/* <AdminBreadcrumb items={[{ label: "Categories" }]} /> */}
       <AdminPageHeader
         title="Categories"
         description="Manage your product categories"
-        
       />
-      <AdminContent className="h-[calc(100vh-80px)] overflow-hidden">
-        <div className="flex h-full flex-col overflow-hidden bg-[var(--color-background)] px-6 py-6">
+      <AdminContent className="flex-1 min-h-0 overflow-hidden">
+        <div className="flex h-full flex-col overflow-hidden bg-[var(--color-background)] py-1 rounded-2xl">
           {/* Stats Cards */}
-          <div className="flex gap-4 overflow-x-auto overscroll-x-contain pb-2">
+          <div className="flex-shrink-0 flex gap-4 overflow-x-auto overscroll-x-contain pb-2">
             <StatsCard
               title="Total Categories"
               value={totalCategories}
@@ -225,7 +224,7 @@ console.log("Categories received from API:", categories.length);
           </div>
 
           {/* Search + Filter */}
-          <div className="mt-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex-shrink-0 mt-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="relative w-full max-w-md">
               <Search className="absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-[var(--color-neutral-400)]" />
               <input
@@ -245,27 +244,10 @@ console.log("Categories received from API:", categories.length);
               <Plus className="mr-2 h-4 w-4" />
               Add Category
             </Button>
-
-            {/* <div className="flex gap-3">
-        <Button
-          variant="outline"
-          className="rounded-xl border-[var(--color-neutral-300)] bg-white text-[var(--color-neutral-700)] hover:bg-[var(--color-neutral-50)]"
-        >
-          All Status
-        </Button>
-
-        <Button
-          variant="outline"
-          className="rounded-xl border-[var(--color-neutral-300)] bg-white text-[var(--color-neutral-700)] hover:bg-[var(--color-neutral-50)]"
-        >
-          <Filter className="mr-2 h-4 w-4" />
-          Filter
-        </Button>
-      </div> */}
           </div>
 
           {/* Table Container */}
-          <div className="mt-6 min-h-0 flex-1">
+          <div className="mt-6 flex-1 min-h-0 overflow-hidden flex flex-col">
             <DataTable
               columns={columns}
               data={categories}

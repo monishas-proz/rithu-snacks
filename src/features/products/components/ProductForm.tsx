@@ -2,190 +2,193 @@
 
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { createProductSchema } from "../validations/product.schema";
+import { z } from "zod";
+import { vegTypeEnum, type VegType } from "../validations/admin-product.schema";
 import { FormInput } from "@/components/forms/form-input";
 import { FormTextarea } from "@/components/forms/form-textarea";
 import { FormSelect } from "@/components/forms/form-select";
 import { FormCheckbox } from "@/components/forms/form-checkbox";
 import { FormSubmitButton } from "@/components/forms/form-submit-button";
-import type { z } from "zod";
 
-type ProductFormData = z.infer<typeof createProductSchema>;
+const productFormSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Product name is required")
+    .max(200, "Product name cannot exceed 200 characters"),
+  slug: z
+    .string()
+    .trim()
+    .min(1, "Product slug is required")
+    .max(220, "Product slug cannot exceed 220 characters"),
+  categoryId: z
+    .string()
+    .min(1, "Please select a category"),
+  brandId: z
+    .string()
+    .min(1, "Please select a brand"),
+  hsnCodeId: z
+    .string()
+    .min(1, "Please select an HSN code"),
+  vegType: vegTypeEnum,
+  isFeatured: z.boolean(),
+  shortDescription: z
+    .string()
+    .trim()
+    .max(500, "Short description cannot exceed 500 characters")
+    .optional(),
+  description: z.string().trim().optional(),
+});
 
-interface CategoryOption {
-  value: string;
-  label: string;
-}
+export type ProductFormValues = z.infer<typeof productFormSchema>;
 
-interface BrandOption {
+export interface ProductOption {
   value: string;
   label: string;
 }
 
 interface ProductFormProps {
-  initialData?: Record<string, unknown>;
+  initialData?: Partial<ProductFormValues>;
   isEditing?: boolean;
-  categories: CategoryOption[];
-  brands: BrandOption[];
-  onSubmit: (data: ProductFormData) => Promise<void>;
+  categories: ProductOption[];
+  brands: ProductOption[];
+  hsnCodes: ProductOption[];
+  onSubmit: (data: ProductFormValues) => Promise<void>;
   isLoading?: boolean;
   submitLabel?: string;
 }
 
+const vegTypeOptions = [
+  { label: "Vegetarian (Veg)", value: "veg" },
+  { label: "Non-Vegetarian (Non-Veg)", value: "nonveg" },
+  { label: "Vegan", value: "vegan" },
+  { label: "Not Applicable (N/A)", value: "na" },
+];
+
 function ProductForm({
   initialData,
   isEditing = false,
-  categories,
-  brands,
+  categories = [],
+  brands = [],
+  hsnCodes = [],
   onSubmit,
   isLoading = false,
   submitLabel = "Save Product",
 }: ProductFormProps) {
-  const methods = useForm({
-    resolver: zodResolver(createProductSchema),
+  const methods = useForm<ProductFormValues>({
+    resolver: zodResolver(productFormSchema),
     defaultValues: {
-      name: (initialData?.name as string) || "",
-      slug: (initialData?.slug as string) || "",
-      description: (initialData?.description as string) || "",
-      shortDescription: (initialData?.shortDescription as string) || "",
-      categoryId: (initialData?.categoryId as number) || undefined,
-      brandId: (initialData?.brandId as number) || null,
-      sku: (initialData?.sku as string) || "",
-      price: (initialData?.price as number) || 0,
-      comparePrice: (initialData?.comparePrice as number) || null,
-      costPrice: (initialData?.costPrice as number) || null,
-      taxRate: (initialData?.taxRate as number) || 0,
-      discountPercent: (initialData?.discountPercent as number) || 0,
-      isActive: (initialData?.isActive as boolean) ?? true,
-      isFeatured: (initialData?.isFeatured as boolean) ?? false,
-      isDigital: (initialData?.isDigital as boolean) ?? false,
-      metaTitle: (initialData?.metaTitle as string) || "",
-      metaDescription: (initialData?.metaDescription as string) || "",
+      name: initialData?.name || "",
+      slug: initialData?.slug || "",
+      categoryId: initialData?.categoryId || "",
+      brandId: initialData?.brandId || "",
+      hsnCodeId: initialData?.hsnCodeId || "",
+      vegType: initialData?.vegType || "veg",
+      isFeatured: initialData?.isFeatured ?? false,
+      shortDescription: initialData?.shortDescription || "",
+      description: initialData?.description || "",
     },
   });
 
+  const categoryOptions = [
+    { label: "Select Category", value: "" },
+    ...categories,
+  ];
+
+  const brandOptions = [
+    { label: "Select Brand", value: "" },
+    ...brands,
+  ];
+
+  const hsnCodeOptions = [
+    { label: "Select HSN Code", value: "" },
+    ...hsnCodes,
+  ];
+
   return (
     <FormProvider {...methods}>
-      <form onSubmit={methods.handleSubmit((data) => onSubmit(data as ProductFormData))} className="space-y-6">
+      <form
+        onSubmit={methods.handleSubmit(async (data) => {
+          await onSubmit(data);
+        })}
+        className="space-y-6"
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormInput
             name="name"
             label="Product Name"
-            placeholder="Enter product name"
+            placeholder="e.g. Banana Chips"
           />
 
           <FormInput
             name="slug"
-            label="Slug"
-            placeholder="product-slug"
+            label="Product Slug"
+            placeholder="e.g. BANANA_CHIPS"
           />
         </div>
-
-        <FormTextarea
-          name="description"
-          label="Description"
-          placeholder="Enter product description"
-        />
-
-        <FormTextarea
-          name="shortDescription"
-          label="Short Description"
-          placeholder="Brief product summary"
-        />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <FormSelect
             name="categoryId"
             label="Category"
             placeholder="Select category"
-            options={categories}
+            options={categoryOptions}
           />
 
           <FormSelect
             name="brandId"
             label="Brand"
             placeholder="Select brand"
-            options={[{ value: "", label: "No Brand" }, ...brands]}
+            options={brandOptions}
           />
 
-          <FormInput
-            name="sku"
-            label="SKU"
-            placeholder="Product SKU"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <FormInput
-            name="price"
-            label="Price"
-            type="number"
-            step="0.01"
-            placeholder="0.00"
-          />
-
-          <FormInput
-            name="comparePrice"
-            label="Compare Price"
-            type="number"
-            step="0.01"
-            placeholder="0.00"
-          />
-
-          <FormInput
-            name="taxRate"
-            label="Tax Rate (%)"
-            type="number"
-            step="0.01"
-            placeholder="0"
-          />
-
-          <FormInput
-            name="discountPercent"
-            label="Discount (%)"
-            type="number"
-            step="0.01"
-            placeholder="0"
+          <FormSelect
+            name="hsnCodeId"
+            label="HSN Code"
+            placeholder="Select HSN code"
+            options={hsnCodeOptions}
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <FormCheckbox
-            name="isActive"
-            label="Active"
-            description="Product is visible and available for purchase"
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+          <FormSelect
+            name="vegType"
+            label="Dietary Type"
+            placeholder="Select dietary type"
+            options={vegTypeOptions}
           />
 
-          <FormCheckbox
-            name="isFeatured"
-            label="Featured"
-            description="Show on homepage featured section"
-          />
-
-          <FormCheckbox
-            name="isDigital"
-            label="Digital Product"
-            description="This is a digital/downloadable product"
-          />
+          <div className="pt-6">
+            <FormCheckbox
+              name="isFeatured"
+              label="Featured Product"
+              description="Display this product prominently in featured sections"
+            />
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormInput
-            name="metaTitle"
-            label="Meta Title"
-            placeholder="SEO meta title"
-          />
+        <FormTextarea
+          name="shortDescription"
+          label="Short Description"
+          placeholder="Brief summary of the product (max 500 characters)"
+          rows={2}
+        />
 
-          <FormInput
-            name="metaDescription"
-            label="Meta Description"
-            placeholder="SEO meta description"
-          />
+        <FormTextarea
+          name="description"
+          label="Description"
+          placeholder="Detailed product information and description"
+          rows={4}
+        />
+
+        <div className="flex justify-end pt-4">
+          <FormSubmitButton
+            isLoading={isLoading}
+            className="h-11 rounded-xl bg-[var(--color-secondary-600)] px-6 text-sm font-semibold text-white hover:bg-[var(--color-secondary-700)]"
+          >
+            {submitLabel}
+          </FormSubmitButton>
         </div>
-
-        <FormSubmitButton isLoading={isLoading}>
-          {submitLabel}
-        </FormSubmitButton>
       </form>
     </FormProvider>
   );

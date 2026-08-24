@@ -1,27 +1,49 @@
 import { apiClient } from "@/lib/api/api-client";
-import type { ProductListItem, ProductDetail } from "../types";
+import type { AdminProductResponse, GetAdminProductsResult } from "../types";
 
-export async function getProducts(params?: Record<string, string | number | boolean | undefined | null>) {
-  const response = await apiClient.get<ProductListItem[]>("/api/products", { params });
-  return response;
+export async function getAdminProducts(
+  params?: Record<string, string | number | boolean | undefined | null>
+): Promise<GetAdminProductsResult> {
+  const response = await apiClient.get<AdminProductResponse[]>(
+    "/api/admin/products",
+    { params }
+  );
+
+  return {
+    data: response.data ?? [],
+    meta: response.meta,
+  };
 }
 
-export async function getProduct(slugOrId: string) {
-  const response = await apiClient.get<ProductDetail>(`/api/products/${slugOrId}`);
-  return response;
+export async function getAdminProduct(uuid: string) {
+  return apiClient.get<AdminProductResponse>(`/api/admin/products/${uuid}`);
 }
 
-export async function createProduct(data: Record<string, unknown>) {
-  const response = await apiClient.post<ProductDetail>("/api/products", data);
-  return response;
+export async function createAdminProduct(data: Record<string, unknown>) {
+  return apiClient.post<AdminProductResponse>("/api/admin/products", data);
 }
 
-export async function updateProduct(id: number, data: Record<string, unknown>) {
-  const response = await apiClient.put<ProductDetail>(`/api/products/${id}`, data);
-  return response;
+export async function updateAdminProduct(
+  uuid: string,
+  data: Record<string, unknown>
+) {
+  return apiClient.put<AdminProductResponse>(
+    `/api/admin/products/${uuid}`,
+    data
+  );
 }
 
-export async function deleteProduct(id: number) {
-  const response = await apiClient.delete<null>(`/api/products/${id}`);
-  return response;
+export async function deleteAdminProduct(uuid: string) {
+  return apiClient.delete(`/api/admin/products/${uuid}`);
 }
+
+// Aliases for compatibility
+export const getProducts = getAdminProducts;
+export const getProduct = getAdminProduct;
+export const createProduct = createAdminProduct;
+export const updateProduct = (
+  idOrUuid: string | number,
+  data: Record<string, unknown>
+) => updateAdminProduct(String(idOrUuid), data);
+export const deleteProduct = (idOrUuid: string | number) =>
+  deleteAdminProduct(String(idOrUuid));

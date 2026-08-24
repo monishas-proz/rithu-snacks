@@ -30,6 +30,7 @@ function ForgotPasswordForm() {
 
   const onSubmit = (data: ForgotPasswordInput) => {
     setSuccess("");
+    methods.clearErrors("root");
     const userEmail = data.email.trim();
 
     forgotPasswordMutation.mutate(
@@ -37,9 +38,20 @@ function ForgotPasswordForm() {
       {
         onSuccess: (res) => {
           setSuccess(res.message || "OTP sent to your email.");
+          const targetUrl = `/verify-otp?email=${encodeURIComponent(userEmail)}${
+            fromAdmin ? "&from=admin" : ""
+          }`;
           setTimeout(() => {
-            router.push(`/verify-otp?email=${encodeURIComponent(userEmail)}`);
-          }, 1200);
+            router.push(targetUrl);
+          }, 800);
+        },
+        onError: (err: any) => {
+          methods.setError("root", {
+            type: "server",
+            message:
+              err?.message ||
+              "Failed to send OTP. Please check your email and try again.",
+          });
         },
       }
     );

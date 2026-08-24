@@ -3,8 +3,8 @@
 import { Bell, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dropdown, DropdownItem } from "@/components/common/dropdown";
-import { useSession } from "next-auth/react";
-import { signOut } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
+import { logoutApi } from "@/features/auth/api/auth.api";
 import { getInitials } from "@/lib/utils";
 
 interface AdminHeaderProps {
@@ -13,6 +13,15 @@ interface AdminHeaderProps {
 
 function AdminHeader({ onMenuClick }: AdminHeaderProps) {
   const { data: session } = useSession();
+
+  const handleLogout = async () => {
+    try {
+      await logoutApi();
+    } catch {
+      // ignore network errors on logout
+    }
+    await signOut({ callbackUrl: "/admin/login" });
+  };
 
   return (
     <header className="flex h-16 items-center justify-between border-b border-neutral-200 bg-neutral-50 px-4 lg:hidden">
@@ -44,7 +53,7 @@ function AdminHeader({ onMenuClick }: AdminHeaderProps) {
             </Button>
           }
         >
-          <DropdownItem onClick={() => signOut({ callbackUrl: "/admin/login" })}>
+          <DropdownItem onClick={handleLogout}>
             Logout
           </DropdownItem>
         </Dropdown>

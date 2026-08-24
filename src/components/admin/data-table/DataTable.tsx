@@ -104,44 +104,50 @@ function DataTable<TData, TValue>({
 
       <div className="min-h-0 flex-1 overflow-hidden rounded-2xl">
         <div className="h-full overflow-x-auto overflow-y-auto overscroll-x-contain">
-          <table className="w-full min-w-[720px] table-auto caption-bottom text-sm">
-            <thead className="sticky top-0 z-10 bg-[var(--color-neutral-50)]">
+          <table className="w-full min-w-[720px] table-auto caption-bottom text-sm border-separate border-spacing-0">
+            <thead>
               {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id} className="border-b border-gray-200 transition-colors">
-                  {headerGroup.headers.map((header) => (
-                    <th
-                      key={header.id}
-                      className={cn(
-                        "h-14 px-4 text-left align-middle text-xs font-semibold tracking-wider whitespace-nowrap text-[var(--color-neutral-500)] uppercase sm:px-5",
-                        header.column.id === "actions" && "text-right",
-                        header.column.getCanSort() &&
-                          "cursor-pointer select-none hover:text-[var(--color-neutral-700)]"
-                      )}
-                      onClick={header.column.getToggleSortingHandler()}
-                    >
-                      <div
+                <tr key={headerGroup.id} className="transition-colors">
+                  {headerGroup.headers.map((header) => {
+                    const isActions =
+                      header.column.id.toLowerCase() === "actions" ||
+                      header.id.toLowerCase() === "actions";
+                    return (
+                      <th
+                        key={header.id}
                         className={cn(
-                          "flex items-center gap-1",
-                          header.column.id === "actions" && "justify-end"
+                          "h-14 px-4 text-left align-middle text-xs font-semibold tracking-wider whitespace-nowrap text-[var(--color-neutral-500)] uppercase sm:px-5 bg-[var(--color-neutral-50)] border-b border-gray-200 sticky top-0 z-10",
+                          isActions &&
+                            "text-right sticky top-0 right-0 z-30 shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.06)] border-l border-neutral-200/80 bg-[var(--color-neutral-50)]",
+                          header.column.getCanSort() &&
+                            "cursor-pointer select-none hover:text-[var(--color-neutral-700)]"
                         )}
+                        onClick={header.column.getToggleSortingHandler()}
                       >
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(header.column.columnDef.header, header.getContext())}
-                        {header.column.getCanSort() && (
-                          <span className="text-gray-300">
-                            {header.column.getIsSorted() === "asc" ? (
-                              <ChevronUp className="h-4 w-4" />
-                            ) : header.column.getIsSorted() === "desc" ? (
-                              <ChevronDown className="h-4 w-4" />
-                            ) : (
-                              <ChevronsUpDown className="h-4 w-4" />
-                            )}
-                          </span>
-                        )}
-                      </div>
-                    </th>
-                  ))}
+                        <div
+                          className={cn(
+                            "flex items-center gap-1",
+                            isActions && "justify-end"
+                          )}
+                        >
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(header.column.columnDef.header, header.getContext())}
+                          {header.column.getCanSort() && (
+                            <span className="text-gray-300">
+                              {header.column.getIsSorted() === "asc" ? (
+                                <ChevronUp className="h-4 w-4" />
+                              ) : header.column.getIsSorted() === "desc" ? (
+                                <ChevronDown className="h-4 w-4" />
+                              ) : (
+                                <ChevronsUpDown className="h-4 w-4" />
+                              )}
+                            </span>
+                          )}
+                        </div>
+                      </th>
+                    );
+                  })}
                 </tr>
               ))}
             </thead>
@@ -151,24 +157,30 @@ function DataTable<TData, TValue>({
                   <tr
                     key={row.id}
                     data-state={row.getIsSelected() && "selected"}
-                    className="transition-colors hover:bg-[var(--color-neutral-50)]"
+                    className="group transition-colors hover:bg-[var(--color-neutral-50)]"
                   >
-                    {row.getVisibleCells().map((cell) => (
-                      <td
-                        key={cell.id}
-                        className={cn(
-                          "px-4 py-4 align-middle whitespace-nowrap sm:px-5",
-                          cell.column.id === "actions" && "text-right [&>div]:justify-end"
-                        )}
-                      >
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    ))}
+                    {row.getVisibleCells().map((cell) => {
+                      const isActions =
+                        cell.column.id.toLowerCase() === "actions" ||
+                        cell.id.toLowerCase().includes("actions");
+                      return (
+                        <td
+                          key={cell.id}
+                          className={cn(
+                            "px-4 py-4 align-middle whitespace-nowrap sm:px-5 bg-white group-hover:bg-[var(--color-neutral-50)] transition-colors border-b border-gray-200",
+                            isActions &&
+                              "text-right [&>div]:justify-end sticky right-0 z-20 shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.06)] border-l border-neutral-200/80 bg-white group-hover:bg-[var(--color-neutral-50)]"
+                          )}
+                        >
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={columns.length} className="h-24 text-center text-gray-500">
+                  <td colSpan={columns.length} className="h-24 text-center text-gray-500 bg-white border-b border-gray-200">
                     {emptyMessage}
                   </td>
                 </tr>

@@ -26,10 +26,12 @@ import {
   Hash,
   type LucideIcon,
   Ruler,
+  Layers,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
 import { signOut } from "next-auth/react";
+import { logoutApi } from "@/features/auth/api/auth.api";
 import { Drawer } from "@/components/common/drawer";
 
 interface SidebarItem {
@@ -47,9 +49,10 @@ const sidebarItems: SidebarItem[] = [
     icon: Package,
     children: [
       { label: "Products", href: "/admin/dashboard/products", icon: Package },
+      { label: "Variants", href: "/admin/dashboard/variants", icon: Layers },
       { label: "Categories", href: "/admin/dashboard/categories", icon: FolderTree },
       { label: "Brands", href: "/admin/dashboard/brands", icon: Crown },
-      { label: "GST Rates", href: "/admin/dashboard/gst-rates", icon:Receipt},
+      { label: "GST Rates", href: "/admin/dashboard/gst-rates", icon: Receipt },
       { label: "HSN Codes", href: "/admin/dashboard/hsn-codes", icon: Hash },
       { label: "Units", href: "/admin/dashboard/units", icon: Ruler },
       { label: "Attributes", href: "/admin/dashboard/attributes", icon: Tag },
@@ -227,11 +230,20 @@ function SidebarNavigation({
 }
 
 function SidebarLogout() {
+  const handleLogout = async () => {
+    try {
+      await logoutApi();
+    } catch {
+      // ignore network errors on logout
+    }
+    await signOut({ callbackUrl: "/admin/login" });
+  };
+
   return (
     <div className="border-t border-neutral-200 p-3">
       <button
-        onClick={() => signOut({ callbackUrl: "/admin/login" })}
-        className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
+        onClick={handleLogout}
+        className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white transition-colors bg-[var(--color-secondary-600)] hover:bg-[var(--color-secondary-700)] cursor-pointer"
       >
         <LogOut className="h-4 w-4" />
         Logout
