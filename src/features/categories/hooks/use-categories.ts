@@ -2,8 +2,41 @@
 
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { categoryKeys } from "@/lib/api/query-keys";
-import { getCategories, getCategory } from "../api/get-categories";
-import type { GetCategoriesParams } from "../types";
+import {
+  getCategories,
+  getCategory,
+  getCustomerCategories,
+  getCustomerCategory,
+} from "../api/get-categories";
+import type {
+  GetCategoriesParams,
+  CustomerCategoryListParams,
+} from "../types";
+
+export function useCustomerCategories(params?: CustomerCategoryListParams) {
+  const queryParams: Record<string, string | number | boolean | undefined> = {
+    page: params?.page ?? 1,
+    pageSize: params?.pageSize ?? 20,
+    search: params?.search,
+    sortBy: params?.sortBy ?? "name",
+    sortOrder: params?.sortOrder ?? "asc",
+  };
+
+  return useQuery({
+    queryKey: categoryKeys.list({ ...queryParams, type: "customer" }),
+    queryFn: () => getCustomerCategories(params),
+    placeholderData: keepPreviousData,
+    staleTime: 5 * 60 * 1000, // 5 minutes cache
+  });
+}
+
+export function useCustomerCategory(uuid: string | null) {
+  return useQuery({
+    queryKey: categoryKeys.detail(uuid ? `customer-${uuid}` : ""),
+    queryFn: () => getCustomerCategory(uuid!),
+    enabled: !!uuid,
+  });
+}
 
 export function useCategories(params?: GetCategoriesParams) {
   const queryParams: Record<string, string | number | boolean | undefined> = {};

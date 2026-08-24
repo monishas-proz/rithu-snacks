@@ -38,3 +38,4 @@ export const checkoutKeys = createQueryKeyFactory("checkout");
 export const roleKeys = createQueryKeyFactory("roles");
 export const permissionKeys = createQueryKeyFactory("permissions");
 export const variantKeys = createQueryKeyFactory("variants");
+export const adminCustomerKeys = createQueryKeyFactory("admin-customers");

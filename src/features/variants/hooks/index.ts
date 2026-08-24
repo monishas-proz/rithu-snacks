@@ -5,6 +5,7 @@ export {
   useVariantImages,
   useAdminVariants,
   useAdminVariant,
+  useCustomerVariants,
 } from "./use-variants";
 
 export {
