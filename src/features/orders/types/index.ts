@@ -76,6 +76,12 @@ export interface OrderDetailResponse extends OrderListItemResponse {
   statusHistory: OrderStatusHistoryResponse[];
 }
 
+export interface OrderStatusTransitionResponse {
+  id: string;
+  orderNumber: string;
+  status: OrderStatus;
+}
+
 export interface OrderPaginationMeta {
   page: number;
   limit: number;

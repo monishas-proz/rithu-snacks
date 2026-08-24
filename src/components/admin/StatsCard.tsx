@@ -36,7 +36,7 @@ function StatsCard({ title, value, icon: Icon, description, trend, className }: 
         )}
       </div>
 
-      <div className="mt-5">
+      <div className="">
         <h3 className="text-3xl font-bold text-[var(--color-neutral-900)]">{value}</h3>
 
         {(description || trend) && (

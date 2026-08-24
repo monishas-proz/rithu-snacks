@@ -24,7 +24,7 @@ function FilterDropdown({
       <select
         value={value}
         onChange={(e) => onChange?.(e.target.value)}
-        className="h-10 w-full appearance-none rounded-md border border-input bg-background px-3 py-2 pr-8 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        className="h-10 w-full appearance-none rounded-lg border border-neutral-200 bg-white px-3 py-2 pr-8 text-sm text-neutral-900 outline-none transition-all focus:outline-none focus:border-secondary-600 focus:ring-2 focus:ring-secondary-600/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary-600/20 hover:border-neutral-300"
       >
         <option value="">{label}</option>
         {options.map((option) => (

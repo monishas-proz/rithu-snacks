@@ -117,3 +117,18 @@ export const returnOrderSchema = z
   .strict();
 
 export type ReturnOrderInput = z.infer<typeof returnOrderSchema>;
+
+export const orderStatusTransitionSchema = z
+  .object({
+    note: z
+      .string()
+      .trim()
+      .min(1, "Note cannot be empty")
+      .max(255, "Note cannot exceed 255 characters")
+      .optional(),
+  })
+  .strict();
+
+export type OrderStatusTransitionInput = z.infer<
+  typeof orderStatusTransitionSchema
+>;

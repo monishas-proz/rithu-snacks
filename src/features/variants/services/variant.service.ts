@@ -9,6 +9,9 @@ import type { Prisma } from "@/generated/prisma";
 import type {
   AdminVariantResponse,
   GetAdminVariantsParams,
+  AdminVariantListParams,
+  VariantPriceHistoryResponse,
+  GetVariantPriceHistoryParams,
 } from "../types";
 import type {
   CreateAdminVariantInput,
@@ -75,6 +78,36 @@ function formatAdminVariantResponse(
   };
 }
 
+function formatVariantPriceHistory(
+  item: Prisma.variant_price_historyGetPayload<{
+    include: {
+      users_variant_price_history_created_byTousers: {
+        select: {
+          id: true;
+          uuid: true;
+          name: true;
+        };
+      };
+    };
+  }>
+): VariantPriceHistoryResponse {
+  const user = item.users_variant_price_history_created_byTousers;
+  return {
+    id: item.uuid || String(item.id),
+    oldBasePrice: item.old_base_price !== null ? Number(item.old_base_price) : null,
+    newBasePrice: item.new_base_price !== null ? Number(item.new_base_price) : null,
+    oldSalePrice: item.old_sale_price !== null ? Number(item.old_sale_price) : null,
+    newSalePrice: item.new_sale_price !== null ? Number(item.new_sale_price) : null,
+    changedAt: item.changed_at,
+    changedBy: user
+      ? {
+          id: user.uuid || String(user.id),
+          name: user.name,
+        }
+      : null,
+  };
+}
+
 async function getAdminInternalId(email?: string): Promise<bigint | null> {
   if (!email) return null;
   const user = await userRepository.findByEmail(email);
@@ -102,30 +135,33 @@ export const variantService = {
       throw ApiError.badRequest("Invalid or inactive unit");
     }
 
-    // 3. Check duplicate SKU among active variants
+    // 3. Unique SKU Check
     const existingSku = await variantRepository.findBySku(data.sku);
     if (existingSku) {
       throw ApiError.conflict(`An active variant with SKU '${data.sku}' already exists`);
     }
 
-    const created = await variantRepository.create({
+    // 4. Derive variant_name if not provided
+    const variantName = data.variantName || `${data.unitValue} ${unit.code}`;
+
+    // 5. Create Variant
+    const variant = await variantRepository.create({
       uuid: crypto.randomUUID(),
       productId: product.id,
-      variant_name: data.variantName,
+      variant_name: variantName,
       sku: data.sku,
       unit_value: data.unitValue,
       unit_id: unit.id,
       base_price: data.basePrice,
       sale_price: data.salePrice,
       weight_grams: data.weightGrams ?? null,
-      is_default: false,
       isActive: true,
       created_by: adminId,
       updated_by: adminId,
     });
 
     return formatAdminVariantResponse(
-      created,
+      variant,
       product.uuid || productUuid,
       unit.uuid || data.unitId,
       product.name,
@@ -135,19 +171,8 @@ export const variantService = {
     );
   },
 
-  async getAllAdminVariants(params: GetAdminVariantsParams = {}) {
-    let productId: bigint | undefined = undefined;
-
-    const targetProductUuid = params.productId || params.productUuid;
-    if (targetProductUuid) {
-      const product = await productRepository.findByUuid(targetProductUuid);
-      if (!product || !product.isActive || product.deleted_at !== null) {
-        throw ApiError.notFound("Product not found or inactive");
-      }
-      productId = product.id;
-    }
-
-    const result = await variantRepository.findAdminAll(params, productId);
+  async getAllAdminVariants(params: AdminVariantListParams = {}) {
+    const result = await variantRepository.findAdminVariants(params);
     const data = result.data.map((item) => formatAdminVariantResponse(item));
 
     return {
@@ -261,7 +286,7 @@ export const variantService = {
       updateData.weight_grams = data.weightGrams;
     }
 
-    const updated = await variantRepository.updateByUuid(variantUuid, updateData);
+    const updated = await variantRepository.updateByUuid(variantUuid, updateData, adminId);
     if (!updated) {
       throw ApiError.notFound("Variant not found");
     }
@@ -298,6 +323,28 @@ export const variantService = {
     return {
       success: true,
       message: "Variant deleted successfully",
+    };
+  },
+
+  async getVariantPriceHistory(
+    variantUuid: string,
+    params: GetVariantPriceHistoryParams = {}
+  ) {
+    const variant = await variantRepository.findByUuid(variantUuid);
+    if (!variant || variant.deleted_at !== null) {
+      throw ApiError.notFound("Variant not found");
+    }
+
+    const result = await variantRepository.findPriceHistoryByVariantId(
+      variant.id,
+      params
+    );
+
+    const data = result.data.map(formatVariantPriceHistory);
+
+    return {
+      data,
+      meta: result.meta,
     };
   },
 };

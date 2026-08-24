@@ -49,3 +49,114 @@ export const adminVariantsQuerySchema = z.object({
 });
 
 export type AdminVariantsQueryInput = z.infer<typeof adminVariantsQuerySchema>;
+
+export const adminVariantListSchema = z
+  .object({
+    page: z.number().int().min(1, "page must be at least 1").default(1),
+    pageSize: z
+      .number()
+      .int()
+      .min(1, "pageSize must be at least 1")
+      .max(100, "pageSize cannot exceed 100")
+      .default(20),
+    search: z.string().trim().optional(),
+    productIds: z
+      .array(z.string().uuid("Invalid Product UUID format"))
+      .optional()
+      .default([]),
+    brandIds: z
+      .array(z.string().uuid("Invalid Brand UUID format"))
+      .optional()
+      .default([]),
+    categoryIds: z
+      .array(z.string().uuid("Invalid Category UUID format"))
+      .optional()
+      .default([]),
+    measurementTypes: z
+      .array(z.enum(["weight", "volume", "count"]))
+      .optional()
+      .default([]),
+    unitIds: z
+      .array(z.string().uuid("Invalid Unit UUID format"))
+      .optional()
+      .default([]),
+    isActive: z.boolean().optional(),
+    minPrice: z
+      .number()
+      .min(0, "minPrice must be greater than or equal to 0")
+      .optional(),
+    maxPrice: z
+      .number()
+      .min(0, "maxPrice must be greater than or equal to 0")
+      .optional(),
+    sortBy: z
+      .enum([
+        "variantName",
+        "productName",
+        "sku",
+        "basePrice",
+        "salePrice",
+        "createdAt",
+        "updatedAt",
+      ])
+      .default("createdAt"),
+    sortOrder: z.enum(["asc", "desc"]).default("desc"),
+  })
+  .strict()
+  .refine(
+    (data) =>
+      data.minPrice === undefined ||
+      data.maxPrice === undefined ||
+      data.maxPrice >= data.minPrice,
+    {
+      message: "maxPrice cannot be less than minPrice",
+      path: ["maxPrice"],
+    }
+  );
+
+export type AdminVariantListInput = z.infer<typeof adminVariantListSchema>;
+
+export const variantPriceHistoryQuerySchema = z
+  .object({
+    page: z.number().int().min(1, "page must be at least 1").default(1),
+    pageSize: z
+      .number()
+      .int()
+      .min(1, "pageSize must be at least 1")
+      .max(100, "pageSize cannot exceed 100")
+      .default(20),
+    fromDate: z
+      .string()
+      .trim()
+      .regex(
+        /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?)?$/,
+        "Invalid fromDate format (expected YYYY-MM-DD)"
+      )
+      .optional(),
+    toDate: z
+      .string()
+      .trim()
+      .regex(
+        /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?)?$/,
+        "Invalid toDate format (expected YYYY-MM-DD)"
+      )
+      .optional(),
+    sortOrder: z.enum(["asc", "desc"]).default("desc"),
+  })
+  .strict()
+  .refine(
+    (data) => {
+      if (data.fromDate && data.toDate) {
+        return new Date(data.toDate) >= new Date(data.fromDate);
+      }
+      return true;
+    },
+    {
+      message: "toDate cannot be earlier than fromDate",
+      path: ["toDate"],
+    }
+  );
+
+export type VariantPriceHistoryQueryInput = z.infer<
+  typeof variantPriceHistoryQuerySchema
+>;

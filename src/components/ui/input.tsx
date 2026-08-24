@@ -51,11 +51,11 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             type={inputType}
             className={cn(
               "h-10 w-full rounded-lg border border-neutral-200 bg-white px-4 text-sm text-neutral-900 placeholder:text-neutral-400 transition-all outline-none",
-              "focus:border-secondary-600",
+              "focus:outline-none focus:border-secondary-600 focus:ring-2 focus:ring-secondary-600/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary-600/20 hover:border-neutral-300",
               leftIcon && "pl-10",
               inputPrefix && "pl-22",
               (rightIcon || isPassword) && "pr-11",
-              error && "border-error-600",
+              error && "border-error-600 focus:border-error-600 focus:ring-error-600/20 focus-visible:border-error-600 focus-visible:ring-error-600/20",
               className
             )}
             {...props}
@@ -71,7 +71,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             </button>
           ) : (
             rightIcon && (
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400">
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400">
                 {rightIcon}
               </div>
             )

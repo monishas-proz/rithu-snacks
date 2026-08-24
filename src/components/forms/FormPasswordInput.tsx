@@ -46,13 +46,13 @@ function FormPasswordInput({
               {...props}
               type={showPassword ? "text" : "password"}
               className={cn(
-                "flex h-10 w-full rounded-lg border bg-white px-3 py-2 pr-10 text-sm",
+                "flex h-10 w-full rounded-lg border bg-white px-3 py-2 pr-10 text-sm outline-none transition-all duration-200",
+                "focus:outline-none focus:border-secondary-600 focus:ring-2 focus:ring-secondary-600/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary-600/20",
                 leftIcon && "pl-10",
-                "transition-colors duration-200",
-                "placeholder:text-gray-500",
+                "placeholder:text-neutral-400 text-neutral-900",
                 fieldState.error
-                  ? "border-error-600"
-                  : "border-gray-300 hover:border-gray-400",
+                  ? "border-error-600 focus:border-error-600 focus:ring-error-600/20 focus-visible:border-error-600 focus-visible:ring-error-600/20"
+                  : "border-neutral-200 hover:border-neutral-300",
                 className
               )}
             />
