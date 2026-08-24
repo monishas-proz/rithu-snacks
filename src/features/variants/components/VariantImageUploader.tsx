@@ -9,7 +9,6 @@ import {
   Trash2,
   CheckCircle2,
   AlertCircle,
-  ImageIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -53,7 +52,7 @@ export function VariantImageUploader({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const { data: existingImages = [], isLoading: isLoadingExisting } =
+  const { data: existingImages = [], isLoading: _isLoadingExisting } =
     useVariantImages(productUuid, variantUuid);
 
   const createImagesMutation = useCreateVariantImages();

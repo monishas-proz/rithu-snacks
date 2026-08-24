@@ -3,7 +3,44 @@ import type {
   AdminVariantResponse,
   AdminVariantImageResponse,
   GetAdminVariantsResult,
+  CustomerVariantListItemDto,
+  CustomerGlobalVariantListParams,
 } from "../types";
+
+export async function getCustomerVariants(
+  params?: CustomerGlobalVariantListParams
+) {
+  const body: Record<string, unknown> = {
+    page: params?.page ?? 1,
+    pageSize: params?.pageSize ?? 20,
+    sortBy: params?.sortBy ?? "createdAt",
+    sortOrder: params?.sortOrder ?? "desc",
+  };
+
+  if (params?.search) body.search = params.search;
+  if (params?.categoryIds && params.categoryIds.length > 0) {
+    body.categoryIds = params.categoryIds;
+  }
+  if (params?.brandIds && params.brandIds.length > 0) {
+    body.brandIds = params.brandIds;
+  }
+  if (params?.productIds && params.productIds.length > 0) {
+    body.productIds = params.productIds;
+  }
+  if (params?.minPrice !== undefined && params?.minPrice !== null) {
+    body.minPrice = params.minPrice;
+  }
+  if (params?.maxPrice !== undefined && params?.maxPrice !== null) {
+    body.maxPrice = params.maxPrice;
+  }
+
+  const response = await apiClient.post<CustomerVariantListItemDto[]>(
+    "/api/customer/variants",
+    body
+  );
+
+  return response;
+}
 
 export async function getAdminVariants(
   params?: Record<string, string | number | boolean | undefined | null>

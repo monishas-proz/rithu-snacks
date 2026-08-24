@@ -5,8 +5,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { createCategorySchema,updateCategorySchema } from "../validations/category.schema";
 import { FormInput } from "@/components/forms/form-input";
 import { FormTextarea } from "@/components/forms/form-textarea";
-import { FormSelect } from "@/components/forms/form-select";
-import { FormCheckbox } from "@/components/forms/form-checkbox";
 import { FormImageUpload } from "@/components/forms/form-image-upload";
 import { FormSubmitButton } from "@/components/forms/form-submit-button";
 import type { z } from "zod";
@@ -21,7 +19,7 @@ interface ParentCategoryOption {
 interface CategoryFormProps {
   initialData?: Record<string, unknown>;
   isEditing?: boolean;
-  parentCategories: ParentCategoryOption[];
+  parentCategories?: ParentCategoryOption[];
   onSubmit: (data: CategoryFormData) => Promise<void>;
   isLoading?: boolean;
   submitLabel?: string;
@@ -30,7 +28,6 @@ interface CategoryFormProps {
 function CategoryForm({
   initialData,
   isEditing = false,
-  parentCategories,
   onSubmit,
   isLoading = false,
   submitLabel = "Save Category",
