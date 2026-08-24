@@ -866,4 +866,43 @@ export const orderRepository = {
       return formatOrderDetail(updated);
     });
   },
+
+  async updateOrderStatusWithHistory(params: {
+    orderId: bigint;
+    status: string;
+    note?: string;
+    changedBy: bigint;
+  }): Promise<OrderDetailResponse> {
+    return db.$transaction(async (tx) => {
+      const now = new Date();
+
+      await tx.order.update({
+        where: { id: params.orderId },
+        data: {
+          order_status: params.status as any,
+          updatedAt: now,
+          updated_by: params.changedBy,
+        },
+      });
+
+      await tx.order_status_history.create({
+        data: {
+          order_id: params.orderId,
+          status: params.status,
+          note: params.note || null,
+          changed_by: params.changedBy,
+          is_active: true,
+          created_by: params.changedBy,
+          updated_by: params.changedBy,
+        },
+      });
+
+      const updated = await tx.order.findUniqueOrThrow({
+        where: { id: params.orderId },
+        include: orderDetailInclude,
+      });
+
+      return formatOrderDetail(updated);
+    });
+  },
 };

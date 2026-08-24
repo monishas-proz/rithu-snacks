@@ -49,39 +49,3 @@ export interface GetAdminVariantsParams {
   productId?: string;
   productUuid?: string;
 }
-
-export interface GetAdminVariantsResult {
-  data: AdminVariantResponse[];
-  meta?: {
-    page: number;
-    limit: number;
-    pageSize?: number;
-    total: number;
-    totalPages: number;
-  };
-}
-
-export interface CustomerVariantListItemDto {
-  id: string; // Variant UUID
-  productId: string; // Product UUID
-  productName: string;
-  variantName: string;
-  measurement: VariantMeasurement;
-  sku: string;
-  basePrice: number;
-  salePrice: number;
-  primaryImage: string | null;
-}
-
-export interface CustomerGlobalVariantListParams {
-  page?: number;
-  pageSize?: number;
-  search?: string;
-  productIds?: string[];
-  brandIds?: string[];
-  categoryIds?: string[];
-  minPrice?: number | null;
-  maxPrice?: number | null;
-  sortBy?: "variantName" | "salePrice" | "basePrice" | "createdAt" | "productName";
-  sortOrder?: "asc" | "desc";
-}
