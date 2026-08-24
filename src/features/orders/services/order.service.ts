@@ -6,6 +6,7 @@ import type {
   OrderDetailResponse,
   OrderListItemResponse,
   OrderListResponse,
+  OrderStatusTransitionResponse,
 } from "../types";
 import type {
   CustomerCreateOrderInput,
@@ -14,7 +15,9 @@ import type {
   AdminOrdersListInput,
   CancelOrderInput,
   ReturnOrderInput,
+  OrderStatusTransitionInput,
 } from "../validations/order.schema";
+import type { orders_order_status } from "@/generated/prisma";
 
 export const orderService = {
   async createCustomerOrder(
@@ -520,5 +523,90 @@ export const orderService = {
       note: input?.note || "Return processed by admin",
       changedBy: adminUser.internalId,
     });
+  },
+
+  async transitionOrderStatus(
+    adminSessionUserId: string,
+    uuid: string,
+    expectedCurrentStatus: orders_order_status,
+    newStatus: orders_order_status,
+    input?: OrderStatusTransitionInput
+  ): Promise<OrderStatusTransitionResponse> {
+    const adminUser = await userRepository.findById(adminSessionUserId);
+    if (!adminUser || !adminUser.internalId) {
+      throw ApiError.unauthorized("Admin user not found");
+    }
+
+    const order = await db.order.findFirst({
+      where: {
+        uuid,
+        is_active: true,
+      },
+    });
+
+    if (!order) {
+      throw ApiError.notFound("Order not found");
+    }
+
+    if (order.order_status !== expectedCurrentStatus) {
+      throw ApiError.badRequest(
+        `Order status is '${order.order_status}'. Only '${expectedCurrentStatus}' orders can be transitioned to '${newStatus}'.`
+      );
+    }
+
+    const updated = await orderRepository.updateOrderStatusWithHistory({
+      orderId: order.id,
+      status: newStatus,
+      note: input?.note,
+      changedBy: adminUser.internalId,
+    });
+
+    return {
+      id: updated.id,
+      orderNumber: updated.orderNumber,
+      status: updated.status,
+    };
+  },
+
+  async confirmOrder(
+    adminSessionUserId: string,
+    uuid: string,
+    input?: OrderStatusTransitionInput
+  ): Promise<OrderStatusTransitionResponse> {
+    return this.transitionOrderStatus(
+      adminSessionUserId,
+      uuid,
+      "pending",
+      "confirmed",
+      input
+    );
+  },
+
+  async startProcessingOrder(
+    adminSessionUserId: string,
+    uuid: string,
+    input?: OrderStatusTransitionInput
+  ): Promise<OrderStatusTransitionResponse> {
+    return this.transitionOrderStatus(
+      adminSessionUserId,
+      uuid,
+      "confirmed",
+      "processing",
+      input
+    );
+  },
+
+  async markOrderAsPacked(
+    adminSessionUserId: string,
+    uuid: string,
+    input?: OrderStatusTransitionInput
+  ): Promise<OrderStatusTransitionResponse> {
+    return this.transitionOrderStatus(
+      adminSessionUserId,
+      uuid,
+      "processing",
+      "packed",
+      input
+    );
   },
 };

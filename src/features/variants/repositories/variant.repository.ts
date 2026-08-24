@@ -1,6 +1,11 @@
+import crypto from "crypto";
 import { db } from "@/lib/db/prisma";
 import { Prisma } from "@/generated/prisma";
-import type { GetAdminVariantsParams, AdminVariantListParams } from "../types";
+import type {
+  GetAdminVariantsParams,
+  AdminVariantListParams,
+  GetVariantPriceHistoryParams,
+} from "../types";
 
 export const variantInclude = Prisma.validator<Prisma.ProductVariantInclude>()({
   product: {
@@ -256,15 +261,50 @@ export const variantRepository = {
 
   async updateByUuid(
     uuid: string,
-    data: Prisma.ProductVariantUncheckedUpdateInput
+    data: Prisma.ProductVariantUncheckedUpdateInput,
+    adminId?: bigint | null
   ) {
-    const existing = await this.findByUuid(uuid);
-    if (!existing) return null;
+    return db.$transaction(async (tx) => {
+      const existing = await tx.productVariant.findFirst({
+        where: { uuid, deleted_at: null },
+      });
+      if (!existing) return null;
 
-    return db.productVariant.update({
-      where: { id: existing.id },
-      data,
-      include: variantInclude,
+      const oldBasePrice = Number(existing.base_price);
+      const newBasePrice =
+        data.base_price !== undefined ? Number(data.base_price) : oldBasePrice;
+
+      const oldSalePrice = Number(existing.sale_price);
+      const newSalePrice =
+        data.sale_price !== undefined ? Number(data.sale_price) : oldSalePrice;
+
+      const isBasePriceChanged =
+        data.base_price !== undefined && oldBasePrice !== newBasePrice;
+      const isSalePriceChanged =
+        data.sale_price !== undefined && oldSalePrice !== newSalePrice;
+
+      if (isBasePriceChanged || isSalePriceChanged) {
+        await tx.variant_price_history.create({
+          data: {
+            uuid: crypto.randomUUID(),
+            variant_id: existing.id,
+            old_base_price: oldBasePrice,
+            new_base_price: newBasePrice,
+            old_sale_price: oldSalePrice,
+            new_sale_price: newSalePrice,
+            changed_at: new Date(),
+            is_active: true,
+            created_by: adminId ?? null,
+            updated_by: adminId ?? null,
+          },
+        });
+      }
+
+      return tx.productVariant.update({
+        where: { id: existing.id },
+        data,
+        include: variantInclude,
+      });
     });
   },
 
@@ -280,5 +320,64 @@ export const variantRepository = {
         ...(adminId ? { updated_by: adminId } : {}),
       },
     });
+  },
+
+  async findPriceHistoryByVariantId(
+    variantId: bigint,
+    params: GetVariantPriceHistoryParams
+  ) {
+    const page = params.page ?? 1;
+    const pageSize = params.pageSize ?? 20;
+    const sortOrder = params.sortOrder ?? "desc";
+
+    const where: Prisma.variant_price_historyWhereInput = {
+      variant_id: variantId,
+      is_active: true,
+    };
+
+    if (params.fromDate || params.toDate) {
+      where.changed_at = {};
+      if (params.fromDate) {
+        const fromStr = params.fromDate.includes("T")
+          ? params.fromDate
+          : `${params.fromDate}T00:00:00.000Z`;
+        where.changed_at.gte = new Date(fromStr);
+      }
+      if (params.toDate) {
+        const toStr = params.toDate.includes("T")
+          ? params.toDate
+          : `${params.toDate}T23:59:59.999Z`;
+        where.changed_at.lte = new Date(toStr);
+      }
+    }
+
+    const [data, total] = await Promise.all([
+      db.variant_price_history.findMany({
+        where,
+        include: {
+          users_variant_price_history_created_byTousers: {
+            select: {
+              id: true,
+              uuid: true,
+              name: true,
+            },
+          },
+        },
+        orderBy: [{ changed_at: sortOrder }, { id: sortOrder }],
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      db.variant_price_history.count({ where }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.ceil(total / pageSize),
+      },
+    };
   },
 };

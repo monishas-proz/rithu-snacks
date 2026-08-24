@@ -58,3 +58,26 @@ export interface AdminVariantListParams {
     | "updatedAt";
   sortOrder?: "asc" | "desc";
 }
+
+export interface VariantPriceHistoryChangedByDto {
+  id: string; // user uuid
+  name: string;
+}
+
+export interface VariantPriceHistoryResponse {
+  id: string; // history uuid
+  oldBasePrice: number | null;
+  newBasePrice: number | null;
+  oldSalePrice: number | null;
+  newSalePrice: number | null;
+  changedAt: Date;
+  changedBy: VariantPriceHistoryChangedByDto | null;
+}
+
+export interface GetVariantPriceHistoryParams {
+  page?: number;
+  pageSize?: number;
+  fromDate?: string;
+  toDate?: string;
+  sortOrder?: "asc" | "desc";
+}

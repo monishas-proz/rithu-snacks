@@ -285,6 +285,8 @@ model User {
   wishlist_items_wishlist_items_created_byTousers                     WishlistItem[]             @relation("wishlist_items_created_byTousers")
   wishlist_items_wishlist_items_updated_byTousers                     WishlistItem[]             @relation("wishlist_items_updated_byTousers")
   wishlistItems                                                       WishlistItem[]
+  users_variant_price_history_created_byTousers                       variant_price_history[]    @relation("variant_price_history_created_byTousers")
+  users_variant_price_history_updated_byTousers                       variant_price_history[]    @relation("variant_price_history_updated_byTousers")
 
   @@index([created_by], map: "fk_users_created_by")
   @@index([roleId], map: "fk_users_role")
@@ -425,6 +427,7 @@ model ProductVariant {
   stock_adjustments                        stock_adjustments[]
   stock_reports                            stock_reports[]
   wishlist_items                           WishlistItem[]
+  variant_price_history                    variant_price_history[]
 
   @@index([created_by], map: "fk_product_variants_created_by")
   @@index([updated_by], map: "fk_product_variants_updated_by")
@@ -2343,4 +2346,28 @@ enum products_veg_type {
   nonveg
   vegan
   na
+}
+
+model variant_price_history {
+  id                                            BigInt         @id @default(autoincrement()) @db.UnsignedBigInt
+  uuid                                          String         @default("UUID()") @db.VarChar(255)
+  variant_id                                    BigInt         @db.UnsignedBigInt
+  old_base_price                                Decimal?       @db.Decimal(10, 2)
+  new_base_price                                Decimal?       @db.Decimal(10, 2)
+  old_sale_price                                Decimal?       @db.Decimal(10, 2)
+  new_sale_price                                Decimal?       @db.Decimal(10, 2)
+  changed_at                                    DateTime       @default(now()) @db.Timestamp(0)
+  created_at                                    DateTime       @default(now()) @db.Timestamp(0)
+  updated_at                                    DateTime       @default(now()) @updatedAt @db.Timestamp(0)
+  is_active                                     Boolean        @default(true)
+  created_by                                    BigInt?        @db.UnsignedBigInt
+  updated_by                                    BigInt?        @db.UnsignedBigInt
+  product_variants                              ProductVariant @relation(fields: [variant_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_vph_variant")
+  users_variant_price_history_created_byTousers User?          @relation("variant_price_history_created_byTousers", fields: [created_by], references: [id], onUpdate: NoAction, map: "fk_vph_created_by")
+  users_variant_price_history_updated_byTousers User?          @relation("variant_price_history_updated_byTousers", fields: [updated_by], references: [id], onUpdate: NoAction, map: "fk_vph_updated_by")
+
+  @@index([variant_id], map: "fk_vph_variant")
+  @@index([created_by], map: "fk_vph_created_by")
+  @@index([updated_by], map: "fk_vph_updated_by")
+  @@map("variant_price_history")
 }
