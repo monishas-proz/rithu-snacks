@@ -333,7 +333,7 @@ export const mobileBottomIcons = [
 ];
 
 export interface StorefrontProduct {
-  productId: number;
+  productId: number | string;
   productName: string;
   image: string;
   discount: number;

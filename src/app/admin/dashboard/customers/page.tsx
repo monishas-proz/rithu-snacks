@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   useAdminCustomers,
   type AdminCustomerListItemDto,
@@ -14,7 +15,6 @@ import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CustomerDetailModal } from "@/features/customers/components/CustomerDetailModal";
 import {
   Users,
   UserCheck,
@@ -36,9 +36,6 @@ export default function AdminCustomersPage() {
   const [verificationFilter, setVerificationFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   const pageSize = 20;
-
-  const [selectedCustomer, setSelectedCustomer] = useState<AdminCustomerListItemDto | null>(null);
-  const [detailModalOpen, setDetailModalOpen] = useState(false);
 
   // Debounce search input
   useEffect(() => {
@@ -298,18 +295,13 @@ export default function AdminCustomersPage() {
       header: "Actions",
       cell: ({ row }) => (
         <div className="flex items-center justify-end gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 gap-1 px-2.5 text-xs text-secondary-600 hover:text-secondary-700 hover:bg-secondary-50 cursor-pointer"
-            onClick={() => {
-              setSelectedCustomer(row.original);
-              setDetailModalOpen(true);
-            }}
+          <Link
+            href={`/admin/dashboard/customers/${row.original.id}`}
+            className="inline-flex items-center h-8 gap-1 px-2.5 rounded-lg text-xs font-semibold text-secondary-600 hover:text-secondary-700 hover:bg-secondary-50 cursor-pointer transition-colors"
           >
             <Eye className="h-3.5 w-3.5" />
             View
-          </Button>
+          </Link>
         </div>
       ),
     },
@@ -462,16 +454,6 @@ export default function AdminCustomersPage() {
           />
         </div>
       </AdminContent>
-
-      {/* Customer Details Modal */}
-      <CustomerDetailModal
-        customer={selectedCustomer}
-        open={detailModalOpen}
-        onClose={() => {
-          setDetailModalOpen(false);
-          setSelectedCustomer(null);
-        }}
-      />
     </div>
   );
 }
