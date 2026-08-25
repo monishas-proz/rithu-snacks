@@ -3,15 +3,36 @@
 import * as React from "react";
 import { MapPin, Phone, User, CheckCircle2, Home, Building } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import type { CustomerAddressResponse } from "../../types/customer-address.types";
+import type { AdminCustomerAddressDto } from "../../types/admin-customer.types";
+import { LoadingState } from "@/components/ui/loading-state";
+import { ErrorState } from "@/components/ui/error-state";
 
 interface CustomerAddressesSectionProps {
-  addresses?: CustomerAddressResponse[];
+  addresses?: AdminCustomerAddressDto[];
+  isLoading?: boolean;
+  error?: Error | null;
+  onRetry?: () => void;
 }
 
 export function CustomerAddressesSection({
   addresses = [],
+  isLoading = false,
+  error = null,
+  onRetry,
 }: CustomerAddressesSectionProps) {
+  if (isLoading) {
+    return <LoadingState text="Loading customer addresses..." />;
+  }
+
+  if (error) {
+    return (
+      <ErrorState
+        message={error.message || "Failed to load customer addresses"}
+        onRetry={onRetry}
+      />
+    );
+  }
+
   if (!addresses || addresses.length === 0) {
     return (
       <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-xs">
@@ -48,10 +69,11 @@ export function CustomerAddressesSection({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {addresses.map((addr) => {
-          const isHome = addr.label?.toLowerCase().includes("home");
+          const label = (addr as unknown as { label?: string }).label || addr.type || "Delivery Address";
+          const isHome = label.toLowerCase().includes("home");
           const isWork =
-            addr.label?.toLowerCase().includes("work") ||
-            addr.label?.toLowerCase().includes("office");
+            label.toLowerCase().includes("work") ||
+            label.toLowerCase().includes("office");
 
           return (
             <div
@@ -75,7 +97,7 @@ export function CustomerAddressesSection({
                       )}
                     </div>
                     <span className="text-xs font-bold uppercase tracking-wider text-neutral-800">
-                      {addr.label || "Delivery Address"}
+                      {label}
                     </span>
                   </div>
 

@@ -77,31 +77,12 @@ export interface GetAdminVariantsParams {
   search?: string;
   productId?: string;
   productUuid?: string;
-  productIds?: string[];
-  brandIds?: string[];
-  categoryIds?: string[];
-  measurementTypes?: Array<"weight" | "volume" | "count">;
-  unitIds?: string[];
-  isActive?: boolean;
-  minPrice?: number;
-  maxPrice?: number;
-  sortBy?:
-    | "variantName"
-    | "productName"
-    | "sku"
-    | "basePrice"
-    | "salePrice"
-    | "createdAt"
-    | "updatedAt";
-  sortOrder?: "asc" | "desc";
 }
 
 export interface AdminVariantListParams {
   page?: number;
   pageSize?: number;
   search?: string;
-  productId?: string;
-  productUuid?: string;
   productIds?: string[];
   brandIds?: string[];
   categoryIds?: string[];

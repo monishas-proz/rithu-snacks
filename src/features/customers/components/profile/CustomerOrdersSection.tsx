@@ -3,17 +3,47 @@
 import * as React from "react";
 import Link from "next/link";
 import { Package, ExternalLink, Clock, CheckCircle2, AlertTriangle, XCircle, RotateCcw } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import type { MockCustomerOrder } from "../../mocks/customer-profile.mock";
+import type {
+  AdminCustomerOrderItemDto,
+  AdminCustomerListPaginationMeta,
+} from "../../types/admin-customer.types";
+import { LoadingState } from "@/components/ui/loading-state";
+import { ErrorState } from "@/components/ui/error-state";
+import { Button } from "@/components/ui/button";
 
 interface CustomerOrdersSectionProps {
-  orders: MockCustomerOrder[];
+  orders?: AdminCustomerOrderItemDto[];
+  meta?: AdminCustomerListPaginationMeta;
+  isLoading?: boolean;
+  error?: Error | null;
+  onRetry?: () => void;
+  onPageChange?: (page: number) => void;
 }
 
-export function CustomerOrdersSection({ orders }: CustomerOrdersSectionProps) {
+export function CustomerOrdersSection({
+  orders = [],
+  meta,
+  isLoading = false,
+  error = null,
+  onRetry,
+  onPageChange,
+}: CustomerOrdersSectionProps) {
+  if (isLoading) {
+    return <LoadingState text="Loading customer order history..." />;
+  }
+
+  if (error) {
+    return (
+      <ErrorState
+        message={error.message || "Failed to load customer order history"}
+        onRetry={onRetry}
+      />
+    );
+  }
+
   if (!orders || orders.length === 0) {
     return (
-      <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-sm">
+      <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-xs">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100 text-neutral-400">
           <Package className="h-6 w-6" />
         </div>
@@ -28,7 +58,7 @@ export function CustomerOrdersSection({ orders }: CustomerOrdersSectionProps) {
   }
 
   const getOrderStatusBadge = (status: string) => {
-    switch (status) {
+    switch (status?.toUpperCase()) {
       case "DELIVERED":
         return (
           <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-success-700 bg-success-50 px-2 py-0.5 rounded-full border border-success-200">
@@ -46,7 +76,7 @@ export function CustomerOrdersSection({ orders }: CustomerOrdersSectionProps) {
       case "PACKED":
       case "CONFIRMED":
         return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 uppercase">
             <Clock className="h-3 w-3" />
             {status}
           </span>
@@ -66,12 +96,16 @@ export function CustomerOrdersSection({ orders }: CustomerOrdersSectionProps) {
           </span>
         );
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return (
+          <span className="inline-flex items-center text-[10px] font-semibold text-neutral-700 bg-neutral-100 px-2 py-0.5 rounded-md uppercase">
+            {status || "UNKNOWN"}
+          </span>
+        );
     }
   };
 
   const getPaymentStatusBadge = (status: string) => {
-    switch (status) {
+    switch (status?.toUpperCase()) {
       case "PAID":
         return (
           <span className="inline-flex items-center text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
@@ -98,9 +132,11 @@ export function CustomerOrdersSection({ orders }: CustomerOrdersSectionProps) {
           </span>
         );
       default:
-        return <span className="text-xs text-neutral-500">{status}</span>;
+        return <span className="text-xs text-neutral-500">{status || "—"}</span>;
     }
   };
+
+  const totalCount = meta?.total ?? orders.length;
 
   return (
     <div className="space-y-4">
@@ -114,20 +150,20 @@ export function CustomerOrdersSection({ orders }: CustomerOrdersSectionProps) {
               Customer Order History
             </h2>
             <p className="text-xs text-neutral-500">
-              {orders.length} order{orders.length === 1 ? "" : "s"} placed to date
+              {totalCount} order{totalCount === 1 ? "" : "s"} recorded on file
             </p>
           </div>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
+      <div className="rounded-2xl border border-neutral-200 bg-white shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[620px] text-left text-sm">
             <thead className="bg-neutral-50/80 text-xs font-semibold uppercase tracking-wider text-neutral-500 border-b border-neutral-200">
               <tr>
                 <th className="py-3.5 px-4">Order #</th>
                 <th className="py-3.5 px-4">Date</th>
-                <th className="py-3.5 px-4">Items Summary</th>
+                <th className="py-3.5 px-4 text-center">Items</th>
                 <th className="py-3.5 px-4">Payment</th>
                 <th className="py-3.5 px-4">Status</th>
                 <th className="py-3.5 px-4 text-right">Total Amount</th>
@@ -158,22 +194,16 @@ export function CustomerOrdersSection({ orders }: CustomerOrdersSectionProps) {
                     )}
                   </td>
 
-                  {/* Items Summary */}
-                  <td className="py-3.5 px-4">
-                    <p className="font-medium text-neutral-900 line-clamp-1 max-w-xs sm:max-w-md">
-                      {order.itemsSummary}
-                    </p>
-                    <p className="text-xs text-neutral-500">
-                      {order.totalItems} item{order.totalItems === 1 ? "" : "s"} total
-                    </p>
+                  {/* Items Count */}
+                  <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                    <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-md bg-neutral-100 text-xs font-medium text-neutral-700">
+                      {order.totalItems} item{order.totalItems === 1 ? "" : "s"}
+                    </span>
                   </td>
 
                   {/* Payment */}
-                  <td className="py-3.5 px-4 whitespace-nowrap space-y-1">
-                    <div>{getPaymentStatusBadge(order.paymentStatus)}</div>
-                    <p className="text-[10px] text-neutral-400">
-                      {order.paymentMethod}
-                    </p>
+                  <td className="py-3.5 px-4 whitespace-nowrap">
+                    {getPaymentStatusBadge(order.paymentStatus)}
                   </td>
 
                   {/* Status */}
@@ -190,6 +220,36 @@ export function CustomerOrdersSection({ orders }: CustomerOrdersSectionProps) {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Footer */}
+        {meta && meta.totalPages > 1 && (
+          <div className="flex items-center justify-between border-t border-neutral-100 px-4 py-3 bg-neutral-50/50">
+            <p className="text-xs text-neutral-500">
+              Page <span className="font-medium text-neutral-900">{meta.page}</span> of{" "}
+              <span className="font-medium text-neutral-900">{meta.totalPages}</span> ({meta.total} orders)
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={meta.page <= 1}
+                onClick={() => onPageChange?.(meta.page - 1)}
+                className="h-8 text-xs px-3 rounded-lg"
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={meta.page >= meta.totalPages}
+                onClick={() => onPageChange?.(meta.page + 1)}
+                className="h-8 text-xs px-3 rounded-lg"
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

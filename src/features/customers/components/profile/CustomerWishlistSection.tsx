@@ -3,12 +3,26 @@
 import * as React from "react";
 import Image from "next/image";
 import { Heart, Package, CheckCircle2, XCircle } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import type { MockWishlistItem } from "../../mocks/customer-profile.mock";
+export interface CustomerWishlistItemDto {
+  id: string;
+  productId: string;
+  productName: string;
+  categoryName?: string;
+  brandName?: string;
+  sku?: string;
+  primaryImage?: string | null;
+  price: number;
+  comparePrice?: number | null;
+  discountPercent?: number;
+  inStock: boolean;
+  addedAt: Date | string;
+}
 
 interface CustomerWishlistSectionProps {
-  wishlist: MockWishlistItem[];
+  wishlist?: CustomerWishlistItem[] | CustomerWishlistItemDto[];
 }
+
+type CustomerWishlistItem = CustomerWishlistItemDto;
 
 export function CustomerWishlistSection({
   wishlist,

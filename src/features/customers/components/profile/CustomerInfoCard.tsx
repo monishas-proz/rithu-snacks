@@ -13,10 +13,13 @@ import {
   Shield,
   Hash,
 } from "lucide-react";
-import type { AdminCustomerListItemDto } from "../../types/admin-customer.types";
+import type {
+  AdminCustomerListItemDto,
+  AdminCustomerDetailDto,
+} from "../../types/admin-customer.types";
 
 interface CustomerInfoCardProps {
-  customer: AdminCustomerListItemDto;
+  customer: AdminCustomerListItemDto | AdminCustomerDetailDto;
 }
 
 export function CustomerInfoCard({ customer }: CustomerInfoCardProps) {

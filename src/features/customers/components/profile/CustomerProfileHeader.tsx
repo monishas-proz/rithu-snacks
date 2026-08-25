@@ -13,10 +13,13 @@ import {
   User,
   Calendar,
 } from "lucide-react";
-import type { AdminCustomerListItemDto } from "../../types/admin-customer.types";
+import type {
+  AdminCustomerListItemDto,
+  AdminCustomerDetailDto,
+} from "../../types/admin-customer.types";
 
 interface CustomerProfileHeaderProps {
-  customer: AdminCustomerListItemDto;
+  customer: AdminCustomerListItemDto | AdminCustomerDetailDto;
 }
 
 export function CustomerProfileHeader({ customer }: CustomerProfileHeaderProps) {

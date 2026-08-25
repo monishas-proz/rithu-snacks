@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  ORDER_STATUS_ENUM,
+  PAYMENT_STATUS_ENUM,
+} from "@/features/orders/validations/order.schema";
 
 export const adminCustomerListSchema = z
   .object({
@@ -25,3 +29,24 @@ export const adminCustomerListSchema = z
   .strict();
 
 export type AdminCustomerListInput = z.infer<typeof adminCustomerListSchema>;
+
+export const adminCustomerOrdersSchema = z
+  .object({
+    page: z.number().int().min(1, "page must be at least 1").default(1),
+    pageSize: z
+      .number()
+      .int()
+      .min(1, "pageSize must be at least 1")
+      .max(100, "pageSize cannot exceed 100")
+      .default(20),
+    status: z.enum(ORDER_STATUS_ENUM).optional(),
+    paymentStatus: z.enum(PAYMENT_STATUS_ENUM).optional(),
+    search: z.string().trim().optional(),
+    sortBy: z
+      .enum(["orderNumber", "status", "totalAmount", "placedAt", "createdAt"])
+      .default("createdAt"),
+    sortOrder: z.enum(["asc", "desc"]).default("desc"),
+  })
+  .strict();
+
+export type AdminCustomerOrdersInput = z.infer<typeof adminCustomerOrdersSchema>;
