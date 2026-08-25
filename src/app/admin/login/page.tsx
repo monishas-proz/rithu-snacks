@@ -148,24 +148,28 @@ function AdminLoginForm() {
 
 export default function AdminLoginPage() {
   return (
-    <div className="min-h-screen bg-background">
-      <div className="grid min-h-screen lg:grid-cols-2">
-        {/* Left Banner */}
+    <div className="grid h-screen w-full overflow-hidden bg-background lg:grid-cols-2">
+      {/* Left Banner */}
+      <div className="hidden h-screen min-h-0 w-full overflow-hidden lg:block">
         <AuthBanner />
-
-        {/* Right Form */}
-        <div className="flex items-center justify-center px-6 py-12 sm:px-8 lg:px-16">
-          <Suspense
-            fallback={
-              <div className="flex items-center justify-center">
-                <Spinner size="lg" />
-              </div>
-            }
-          >
-            <AdminLoginForm />
-          </Suspense>
-        </div>
       </div>
+
+      {/* Right Form */}
+      <main className="h-screen min-h-0 w-full overflow-y-auto bg-background">
+        <div className="flex min-h-full w-full items-center justify-center px-6 py-12 sm:px-8 lg:px-16">
+          <div className="my-auto w-full max-w-[440px]">
+            <Suspense
+              fallback={
+                <div className="flex items-center justify-center">
+                  <Spinner size="lg" />
+                </div>
+              }
+            >
+              <AdminLoginForm />
+            </Suspense>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }

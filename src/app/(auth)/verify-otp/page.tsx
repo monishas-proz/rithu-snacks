@@ -7,13 +7,22 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { useVerifyOtp, useResendOtp } from "@/features/auth";
+import {
+  useVerifyOtp,
+  useResendOtp,
+  useVerifyEmailOtp,
+  useSendEmailOtp,
+  useRegister,
+} from "@/features/auth";
 
 function VerifyOtpForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") || "";
-  const fromAdmin = searchParams.get("from") === "admin";
+  const fromType = searchParams.get("from");
+  const isRegistration = fromType === "register";
+  const fromAdmin = fromType === "admin";
+  const callbackUrl = searchParams.get("callbackUrl") || "/";
 
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [timeLeft, setTimeLeft] = useState(59);
@@ -23,6 +32,9 @@ function VerifyOtpForm() {
 
   const verifyOtpMutation = useVerifyOtp();
   const resendOtpMutation = useResendOtp();
+  const verifyEmailOtpMutation = useVerifyEmailOtp();
+  const sendEmailOtpMutation = useSendEmailOtp();
+  const registerMutation = useRegister();
 
   useEffect(() => {
     if (timeLeft === 0) return;
@@ -98,27 +110,100 @@ function VerifyOtpForm() {
     setInfoMessage("");
     setErrorMessage("");
 
-    verifyOtpMutation.mutate(
-      { email, otp: code },
-      {
-        onSuccess: (res) => {
-          setInfoMessage("OTP verified successfully. Redirecting...");
-          const resetToken = res.data?.resetToken || "";
-          const targetUrl = `/reset-password?token=${encodeURIComponent(
-            resetToken
-          )}${fromAdmin ? "&from=admin" : ""}`;
-          setTimeout(() => {
-            router.push(targetUrl);
-          }, 800);
-        },
-        onError: (err: any) => {
-          setErrorMessage(
-            err?.message ||
-              "Invalid or expired verification code. Please try again."
-          );
-        },
-      }
-    );
+    if (isRegistration) {
+      verifyEmailOtpMutation.mutate(
+        { email, otp: code },
+        {
+          onSuccess: (res) => {
+            const verificationToken = res.data?.verificationToken;
+            if (!verificationToken) {
+              setErrorMessage("Unable to verify OTP. Please try again.");
+              return;
+            }
+
+            let pendingData: any = null;
+            if (typeof window !== "undefined") {
+              const saved = sessionStorage.getItem("pending_registration");
+              if (saved) {
+                try {
+                  pendingData = JSON.parse(saved);
+                } catch {
+                  pendingData = null;
+                }
+              }
+            }
+
+            if (!pendingData) {
+              setErrorMessage(
+                "Registration session expired. Please fill out the registration form again."
+              );
+              setTimeout(() => {
+                router.push("/register");
+              }, 1500);
+              return;
+            }
+
+            registerMutation.mutate(
+              {
+                ...pendingData,
+                emailVerificationToken: verificationToken,
+              },
+              {
+                onSuccess: (regRes) => {
+                  if (typeof window !== "undefined") {
+                    sessionStorage.removeItem("pending_registration");
+                  }
+                  setInfoMessage(
+                    regRes.message ||
+                      "Account created successfully. Redirecting to login..."
+                  );
+                  setTimeout(() => {
+                    const loginUrl =
+                      callbackUrl !== "/"
+                        ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}`
+                        : "/login";
+                    router.push(loginUrl);
+                  }, 1000);
+                },
+                onError: (regErr: any) => {
+                  setErrorMessage(
+                    regErr?.message ||
+                      "Failed to create account. Please try again."
+                  );
+                },
+              }
+            );
+          },
+          onError: (err: any) => {
+            setErrorMessage(
+              err?.message || "Invalid or expired OTP. Please try again."
+            );
+          },
+        }
+      );
+    } else {
+      verifyOtpMutation.mutate(
+        { email, otp: code },
+        {
+          onSuccess: (res) => {
+            setInfoMessage("OTP verified successfully. Redirecting...");
+            const resetToken = res.data?.resetToken || "";
+            const targetUrl = `/reset-password?token=${encodeURIComponent(
+              resetToken
+            )}${fromAdmin ? "&from=admin" : ""}`;
+            setTimeout(() => {
+              router.push(targetUrl);
+            }, 800);
+          },
+          onError: (err: any) => {
+            setErrorMessage(
+              err?.message ||
+                "Invalid or expired verification code. Please try again."
+            );
+          },
+        }
+      );
+    }
   };
 
   const handleResend = () => {
@@ -127,29 +212,52 @@ function VerifyOtpForm() {
     setInfoMessage("");
     setErrorMessage("");
 
-    resendOtpMutation.mutate(
-      { email },
-      {
-        onSuccess: (res) => {
-          setInfoMessage(res.message || "A new code has been sent.");
-          setTimeLeft(59);
-          setOtp(["", "", "", "", "", ""]);
-          inputRefs.current[0]?.focus();
-        },
-        onError: (err: any) => {
-          setErrorMessage(
-            err?.message || "Failed to resend code. Please try again."
-          );
-        },
-      }
-    );
+    if (isRegistration) {
+      sendEmailOtpMutation.mutate(
+        { email },
+        {
+          onSuccess: (res) => {
+            setInfoMessage(res.message || "A new code has been sent.");
+            setTimeLeft(59);
+            setOtp(["", "", "", "", "", ""]);
+            inputRefs.current[0]?.focus();
+          },
+          onError: (err: any) => {
+            setErrorMessage(
+              err?.message || "Failed to resend code. Please try again."
+            );
+          },
+        }
+      );
+    } else {
+      resendOtpMutation.mutate(
+        { email },
+        {
+          onSuccess: (res) => {
+            setInfoMessage(res.message || "A new code has been sent.");
+            setTimeLeft(59);
+            setOtp(["", "", "", "", "", ""]);
+            inputRefs.current[0]?.focus();
+          },
+          onError: (err: any) => {
+            setErrorMessage(
+              err?.message || "Failed to resend code. Please try again."
+            );
+          },
+        }
+      );
+    }
   };
 
-  const isLoading = verifyOtpMutation.isPending || resendOtpMutation.isPending;
+  const isLoading = isRegistration
+    ? verifyEmailOtpMutation.isPending ||
+      registerMutation.isPending ||
+      sendEmailOtpMutation.isPending
+    : verifyOtpMutation.isPending || resendOtpMutation.isPending;
 
   return (
-    <div className="mx-auto w-full max-w-[300px] xs:max-w-[320px] sm:max-w-[360px] lg:max-w-[500px]">
-      <div className="rounded-2xl border border-neutral-200 bg-white px-6 py-8 shadow-sm sm:px-8 sm:py-10">
+    <div className="mx-auto w-full max-w-[480px]">
+      <div className="w-full rounded-2xl border border-neutral-200 bg-white px-5 py-7 shadow-sm sm:px-8 sm:py-10">
         {/* Logo */}
         <div className="mb-6 flex justify-center">
           <Image
@@ -165,15 +273,18 @@ function VerifyOtpForm() {
         {/* Heading */}
         <div className="text-center">
           <h1
-            className="text-[32px] font-bold text-neutral-900 sm:text-[38px]"
+            className="text-[28px] font-bold text-neutral-900 sm:text-[34px] md:text-[38px]"
             style={{ fontFamily: "var(--font-hanken)" }}
           >
             Verify Account
           </h1>
 
-          <p className="mt-3 text-[15px] leading-7 text-neutral-600 sm:text-base">
+          <p className="mt-3 text-sm leading-6 text-neutral-600 sm:text-[15px] sm:leading-7 md:text-base">
             We&apos;ve sent a 6-digit code to{" "}
-            <span className="font-semibold text-neutral-900">{email || "your email"}</span>.
+            <span className="font-semibold text-neutral-900">
+              {email || "your email"}
+            </span>
+            .
           </p>
         </div>
 
@@ -212,14 +323,13 @@ function VerifyOtpForm() {
                 className="
                   aspect-square
                   w-full
+                  min-w-0
                   rounded-xl
                   border
                   border-neutral-200
                   bg-white
                   text-center
                   text-base
-                  sm:text-lg
-                  md:text-xl
                   font-semibold
                   text-neutral-900
                   outline-none
@@ -228,6 +338,8 @@ function VerifyOtpForm() {
                   focus:ring-2
                   focus:ring-secondary-600/20
                   disabled:bg-neutral-100
+                  sm:text-lg
+                  md:text-xl
                 "
               />
             ))}
@@ -249,7 +361,7 @@ function VerifyOtpForm() {
             disabled={timeLeft !== 0 || isLoading}
             className={`font-medium transition-colors ${
               timeLeft === 0
-                ? "text-secondary-600 hover:underline cursor-pointer"
+                ? "cursor-pointer text-secondary-600 hover:underline"
                 : "cursor-not-allowed text-neutral-400"
             }`}
           >
@@ -261,7 +373,7 @@ function VerifyOtpForm() {
         <Button
           onClick={handleVerify}
           disabled={isLoading || otp.join("").length !== 6}
-          className="mt-8 h-14 w-full rounded-xl bg-secondary-600 text-white hover:bg-secondary-700 cursor-pointer disabled:opacity-50"
+          className="mt-8 h-14 w-full cursor-pointer rounded-xl bg-secondary-600 text-white hover:bg-secondary-700 disabled:opacity-50"
         >
           {isLoading ? (
             <Spinner size="sm" className="text-white" />
@@ -276,7 +388,13 @@ function VerifyOtpForm() {
         {/* Change Email */}
         <div className="mt-6 text-center">
           <Link
-            href={fromAdmin ? "/forgot-password?from=admin" : "/forgot-password"}
+            href={
+              isRegistration
+                ? "/register"
+                : fromAdmin
+                ? "/forgot-password?from=admin"
+                : "/forgot-password"
+            }
             className="text-sm font-medium text-secondary-600 hover:underline"
           >
             Change Email
