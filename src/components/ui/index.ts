@@ -12,7 +12,7 @@ export { Tabs, TabsList, TabsTrigger, TabsContent } from "./Tabs";
 export type { TabsProps, TabsListProps, TabsTriggerProps, TabsContentProps } from "./Tabs";
 export { Alert } from "./Alert";
 export type { AlertProps, AlertVariant } from "./Alert";
-export { ToastProvider, useToast } from "./Toast";
+export { ToastProvider, useToast, toast } from "./Toast";
 export type { Toast, ToastVariant } from "./Toast";
 export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent } from "./card";
 export { Badge, badgeVariants } from "./badge";

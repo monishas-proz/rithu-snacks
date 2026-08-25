@@ -197,6 +197,7 @@ export default function AdminOrdersPage() {
       />
 
       <AdminContent>
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <SearchInput
             placeholder="Search by order number, customer, product..."
             defaultValue={search}

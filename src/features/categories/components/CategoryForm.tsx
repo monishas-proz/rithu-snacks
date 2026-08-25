@@ -66,7 +66,7 @@ function CategoryForm({
           <FormInput
             name="slug"
             label="Slug"
-            placeholder="category-slug"
+            placeholder="e.g. SWEETS_SNACKS"
           />
         </div>
 
