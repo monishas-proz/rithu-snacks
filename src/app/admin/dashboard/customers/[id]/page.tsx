@@ -35,11 +35,11 @@ export default function AdminCustomerProfilePage() {
     label: string;
     icon: React.ComponentType<{ className?: string }>;
   }> = [
-    { id: "all", label: "All Sections", icon: Layers },
-    { id: "overview", label: "Profile Info", icon: User },
-    { id: "addresses", label: "Addresses", icon: MapPin },
-    { id: "cart", label: "Active Cart", icon: ShoppingCart },
-  ];
+      { id: "all", label: "All Sections", icon: Layers },
+      { id: "overview", label: "Profile Info", icon: User },
+      { id: "addresses", label: "Addresses", icon: MapPin },
+      { id: "cart", label: "Active Cart", icon: ShoppingCart },
+    ];
 
   if (isLoading) {
     return <LoadingState text="Loading customer profile..." />;
@@ -76,16 +76,14 @@ export default function AdminCustomerProfilePage() {
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={`inline-flex items-center gap-2 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
-                    isActive
+                  className={`inline-flex items-center gap-2 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0 ${isActive
                       ? "bg-neutral-900 text-white shadow-xs"
                       : "bg-neutral-50 text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 border border-neutral-200/80"
-                  }`}
+                    }`}
                 >
                   <Icon
-                    className={`h-3.5 w-3.5 ${
-                      isActive ? "text-white" : "text-neutral-500"
-                    }`}
+                    className={`h-3.5 w-3.5 ${isActive ? "text-white" : "text-neutral-500"
+                      }`}
                   />
                   <span>{tab.label}</span>
                 </button>

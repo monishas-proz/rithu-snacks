@@ -15,6 +15,7 @@ import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { SearchInput } from "@/components/ui/search-input";
 import {
   Users,
   UserCheck,
@@ -30,22 +31,11 @@ import type { ColumnDef } from "@tanstack/react-table";
 
 export default function AdminCustomersPage() {
   const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [genderFilter, setGenderFilter] = useState<string>("all");
   const [verificationFilter, setVerificationFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   const pageSize = 20;
-
-  // Debounce search input
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedSearch(search);
-      setPage(1);
-    }, 400);
-
-    return () => clearTimeout(handler);
-  }, [search]);
 
   // Reset pagination on filter changes
   useEffect(() => {
@@ -71,8 +61,8 @@ export default function AdminCustomersPage() {
       sortOrder: "desc",
     };
 
-    if (debouncedSearch.trim()) {
-      params.search = debouncedSearch.trim();
+    if (search.trim()) {
+      params.search = search.trim();
     }
 
     if (statusFilter !== "all") {
@@ -90,7 +80,7 @@ export default function AdminCustomersPage() {
     }
 
     return params;
-  }, [page, pageSize, debouncedSearch, statusFilter, genderFilter, verificationFilter]);
+  }, [page, pageSize, search, statusFilter, genderFilter, verificationFilter]);
 
   const { data, isLoading, error, refetch } = useAdminCustomers(queryParams);
 
@@ -367,24 +357,15 @@ export default function AdminCustomersPage() {
         {/* <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-neutral-200 bg-white p-4"> */}
           <div className="flex-shrink-0 mt-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             {/* Search Input */}
-            <div className="relative w-full max-w-md">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
-              <input
-                type="text"
-                placeholder="Search by name, email, phone, or customer ID..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="h-11 w-full rounded-xl border border-neutral-300 bg-white pl-10 pr-10 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-              />
-              {search && (
-                <button
-                  onClick={() => setSearch("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 p-1"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
+            <SearchInput
+              placeholder="Search by name, email, phone, or customer ID..."
+              defaultValue={search}
+              onSearch={(val) => {
+                setSearch(val);
+                setPage(1);
+              }}
+              className="w-full max-w-md"
+            />
 
             {/* Filter Dropdowns */}
             <div className="flex flex-wrap items-center gap-2">

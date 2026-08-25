@@ -96,12 +96,12 @@ export function CustomerProfileHeader({ customer }: CustomerProfileHeaderProps) 
             </div>
 
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-xs text-neutral-500 font-mono">
-              <span className="bg-neutral-100 px-2 py-0.5 rounded-md font-medium text-neutral-700">
+              {/* <span className="bg-neutral-100 px-2 py-0.5 rounded-md font-medium text-neutral-700">
                 {customer.customerId || `UUID: ${customer.id.slice(0, 8)}...`}
-              </span>
+              </span> */}
               {memberSince && (
                 <>
-                  <span>•</span>
+                  {/* <span>•</span> */}
                   <span className="font-sans text-neutral-500">
                     Member since {memberSince}
                   </span>

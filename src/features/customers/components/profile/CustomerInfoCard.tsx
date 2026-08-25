@@ -132,7 +132,7 @@ export function CustomerInfoCard({ customer }: CustomerInfoCardProps) {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
           {/* Customer ID */}
-          <div className="space-y-1">
+          {/* <div className="space-y-1">
             <div className="flex items-center gap-1.5 text-xs text-neutral-500">
               <Hash className="h-3.5 w-3.5" />
               <span>Customer ID</span>
@@ -140,10 +140,10 @@ export function CustomerInfoCard({ customer }: CustomerInfoCardProps) {
             <p className="font-mono text-xs font-semibold text-neutral-800 bg-neutral-100 px-2 py-1 rounded-md inline-block">
               {customer.customerId || "—"}
             </p>
-          </div>
+          </div> */}
 
           {/* Profile UUID */}
-          <div className="space-y-1">
+          {/* <div className="space-y-1">
             <div className="flex items-center gap-1.5 text-xs text-neutral-500">
               <Fingerprint className="h-3.5 w-3.5" />
               <span>Profile UUID</span>
@@ -151,10 +151,10 @@ export function CustomerInfoCard({ customer }: CustomerInfoCardProps) {
             <p className="font-mono text-xs text-neutral-700 truncate" title={customer.id}>
               {customer.id}
             </p>
-          </div>
+          </div> */}
 
           {/* User Auth UUID */}
-          <div className="space-y-1">
+          {/* <div className="space-y-1">
             <div className="flex items-center gap-1.5 text-xs text-neutral-500">
               <Shield className="h-3.5 w-3.5" />
               <span>User Auth ID</span>
@@ -162,7 +162,7 @@ export function CustomerInfoCard({ customer }: CustomerInfoCardProps) {
             <p className="font-mono text-xs text-neutral-700 truncate" title={customer.userId}>
               {customer.userId}
             </p>
-          </div>
+          </div> */}
 
           {/* Created Date */}
           <div className="space-y-1">

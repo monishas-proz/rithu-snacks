@@ -15,6 +15,8 @@ import {
 import { ChevronLeft, ChevronRight, ChevronsUpDown, ChevronUp, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+import { SearchInput } from "@/components/ui/search-input";
+
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
@@ -82,25 +84,16 @@ function DataTable<TData, TValue>({
     
   return (
     <div className={cn("space-y-4 h-full flex flex-col justify-between rounded-2xl", className)}>
-      {/* {searchKey && (
+      {searchKey && (
         <div className="flex items-center gap-2">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder={searchPlaceholder}
-              value={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ""}
-              onChange={(e) => table.getColumn(searchKey)?.setFilterValue(e.target.value)}
-              className={cn(
-                "flex h-11 w-full rounded-xl border border-[var(--color-neutral-300)] bg-white pl-10 pr-4 text-sm text-[var(--color-neutral-900)]",
-                "placeholder:text-[var(--color-neutral-400)]",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary-100)] focus-visible:border-[var(--color-primary-500)]",
-                "transition-all"
-              )}
-            />
-          </div>
+          <SearchInput
+            placeholder={searchPlaceholder}
+            defaultValue={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ""}
+            onSearch={(value) => table.getColumn(searchKey)?.setFilterValue(value)}
+            className="w-full max-w-sm"
+          />
         </div>
-      )} */}
+      )}
 
       <div className="min-h-0 flex-1 overflow-hidden rounded-2xl">
         <div className="h-full overflow-x-auto overflow-y-auto overscroll-x-contain">

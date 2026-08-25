@@ -56,11 +56,10 @@ export function CustomerAddressesSection({
           return (
             <div
               key={addr.id}
-              className={`rounded-2xl border p-5 transition-all relative flex flex-col justify-between ${
-                addr.isDefault
+              className={`rounded-2xl border p-5 transition-all relative flex flex-col justify-between ${addr.isDefault
                   ? "border-emerald-200 bg-gradient-to-br from-emerald-50/40 via-white to-white shadow-xs"
                   : "border-neutral-200 bg-white shadow-xs hover:border-neutral-300"
-              }`}
+                }`}
             >
               <div className="space-y-3">
                 {/* Header: Label & Badges */}
