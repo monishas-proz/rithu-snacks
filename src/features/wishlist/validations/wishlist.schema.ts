@@ -1,7 +1,9 @@
 import { z } from "zod";
 
-export const addToWishlistSchema = z.object({
-  productId: z.number().int().positive("Product ID must be a positive integer"),
-});
+export const addWishlistSchema = z
+  .object({
+    variantId: z.string().uuid("Invalid variant UUID"),
+  })
+  .strict();
 
-export type AddToWishlistSchema = z.infer<typeof addToWishlistSchema>;
+export type AddWishlistInput = z.infer<typeof addWishlistSchema>;

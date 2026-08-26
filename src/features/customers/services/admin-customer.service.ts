@@ -9,6 +9,7 @@ import type {
   AdminCustomerDetailDto,
   AdminCustomerAddressDto,
   AdminCustomerOrdersResponse,
+  AdminCustomerCartDto,
 } from "../types/admin-customer.types";
 
 export const adminCustomerService = {
@@ -48,5 +49,25 @@ export const adminCustomerService = {
       throw ApiError.notFound("Customer not found");
     }
     return result;
+  },
+
+  async getCustomerCart(
+    uuid: string
+  ): Promise<{ data: AdminCustomerCartDto | null; message: string }> {
+    const cart =
+      await adminCustomerRepository.findCustomerActiveCartByCustomerUuid(uuid);
+    if (cart === undefined) {
+      throw ApiError.notFound("Customer not found");
+    }
+    if (cart === null) {
+      return {
+        data: null,
+        message: "Customer has no active cart",
+      };
+    }
+    return {
+      data: cart,
+      message: "Customer current cart fetched successfully",
+    };
   },
 };

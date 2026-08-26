@@ -1,3 +1,5 @@
+import type { VariantMeasurement } from "@/features/variants/utils/measurement.util";
+
 export interface AdminCustomerListItemDto {
   id: string; // customer_profiles.uuid
   userId: string; // users.uuid
@@ -71,6 +73,30 @@ export interface AdminCustomerOrderItemDto {
   totalItems: number;
   placedAt: Date | null;
   createdAt: Date;
+}
+
+export interface AdminCustomerCartItemDto {
+  id: string; // cartItem.uuid
+  productId: string; // product.uuid
+  productName: string;
+  variantId: string; // variant.uuid
+  variantName: string;
+  sku: string;
+  measurement: VariantMeasurement;
+  primaryImage: string | null;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+}
+
+export interface AdminCustomerCartDto {
+  id: string; // cart.uuid
+  status: string;
+  totalItems: number;
+  subtotal: number;
+  createdAt: Date;
+  updatedAt: Date;
+  items: AdminCustomerCartItemDto[];
 }
 
 export interface AdminCustomerListPaginationMeta {

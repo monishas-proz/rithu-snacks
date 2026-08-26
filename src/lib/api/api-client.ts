@@ -71,10 +71,11 @@ const AUTH_BYPASS_ENDPOINTS = [
   "/api/auth/refresh",
   "/api/auth/register",
   "/api/auth/forgot-password",
+  "/api/auth/resend-forgot-password-otp",
   "/api/auth/verify-otp",
-  "/api/auth/resend-otp",
   "/api/auth/reset-password",
   "/api/auth/send-email-otp",
+  "/api/auth/resend-register-otp",
   "/api/auth/verify-email-otp",
 ];
 
