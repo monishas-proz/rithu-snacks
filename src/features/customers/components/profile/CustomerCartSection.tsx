@@ -15,7 +15,7 @@ export function CustomerCartSection({ cart }: CustomerCartSectionProps) {
 
   if (isEmpty) {
     return (
-      <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-xs">
+      <div className="p-8 text-center">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100 text-neutral-400">
           <ShoppingCart className="h-6 w-6" />
         </div>
@@ -30,107 +30,104 @@ export function CustomerCartSection({ cart }: CustomerCartSectionProps) {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Header & Subtotal Summary */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-neutral-200 shadow-xs">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-amber-50 text-amber-700">
-            <ShoppingCart className="h-4 w-4" />
-          </div>
-          <div>
-            <h2 className="text-sm font-bold uppercase tracking-wider text-neutral-800">
-              Active Cart Items
-            </h2>
-            <p className="text-xs text-neutral-500">
-              {cart?.totalItems || 0} total quantity across {items.length} unique variant{items.length === 1 ? "" : "s"}
-            </p>
-          </div>
+    <div className="w-full">
+      {/* Subtotal Summary Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4 border-b border-[#F2EFE9] bg-[#FAF8F5]">
+        <div>
+          <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-800 font-mono">
+            Active Cart Items
+          </h4>
+          <p className="text-xs text-neutral-500">
+            {cart?.totalItems || 0} total quantity across {items.length} unique variant{items.length === 1 ? "" : "s"}
+          </p>
         </div>
 
-        <div className="flex items-center gap-3 bg-neutral-50 px-4 py-2 rounded-xl border border-neutral-100 self-start sm:self-auto">
-          <span className="text-xs font-medium text-neutral-500">Cart Subtotal:</span>
-          <span className="text-base font-bold text-neutral-900 font-mono">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-neutral-500 font-medium">Cart Subtotal:</span>
+          <span className="text-base font-bold text-[#801B2B] font-mono">
             ₹{(cart?.subtotal || 0).toLocaleString("en-IN")}
           </span>
         </div>
       </div>
 
-      {/* Cart Items Table Container */}
-      <div className="rounded-2xl border border-neutral-200 bg-white shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[580px] text-left text-sm">
-            <thead className="bg-neutral-50/80 text-xs font-semibold uppercase tracking-wider text-neutral-500 border-b border-neutral-200">
-              <tr>
-                <th className="py-3.5 px-4">Item Details</th>
-                <th className="py-3.5 px-4">Measurement</th>
-                <th className="py-3.5 px-4 text-right">Unit Price</th>
-                <th className="py-3.5 px-4 text-center">Quantity</th>
-                <th className="py-3.5 px-4 text-right">Item Total</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-100">
-              {items.map((item) => (
-                <tr key={item.id} className="hover:bg-neutral-50/50 transition-colors">
-                  {/* Product & Variant */}
-                  <td className="py-3.5 px-4">
-                    <div className="flex items-center gap-3">
-                      <div className="relative h-12 w-12 rounded-xl border border-neutral-200 bg-neutral-100 overflow-hidden flex items-center justify-center shrink-0">
-                        {item.primaryImage ? (
-                          <Image
-                            src={item.primaryImage}
-                            alt={item.productName}
-                            fill
-                            className="object-cover"
-                          />
-                        ) : (
-                          <Package className="h-5 w-5 text-neutral-400" />
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-semibold text-neutral-900 leading-snug truncate">
-                          {item.productName}
-                        </p>
-                        <p className="text-xs text-neutral-500">
-                          Variant: <span className="font-medium text-neutral-700">{item.variantName}</span>
-                        </p>
-                        <p className="text-[10px] font-mono text-neutral-400">
-                          UUID: {item.variantId.slice(0, 8)}...
-                        </p>
-                      </div>
+      {/* Cart Items Table */}
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[580px] text-left text-sm">
+          <thead>
+            <tr className="border-b border-[#F2EFE9]">
+              <th className="py-4 px-6 text-xs font-semibold uppercase tracking-wider text-neutral-400 font-mono">
+                Item Details
+              </th>
+              <th className="py-4 px-6 text-xs font-semibold uppercase tracking-wider text-neutral-400 font-mono">
+                Measurement
+              </th>
+              <th className="py-4 px-6 text-right text-xs font-semibold uppercase tracking-wider text-neutral-400 font-mono">
+                Unit Price
+              </th>
+              <th className="py-4 px-6 text-center text-xs font-semibold uppercase tracking-wider text-neutral-400 font-mono">
+                Quantity
+              </th>
+              <th className="py-4 px-6 text-right text-xs font-semibold uppercase tracking-wider text-neutral-400 font-mono">
+                Item Total
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#F2EFE9]">
+            {items.map((item) => (
+              <tr key={item.id} className="hover:bg-neutral-50/60 transition-colors">
+                {/* Product & Variant */}
+                <td className="py-4 px-6">
+                  <div className="flex items-center gap-3">
+                    <div className="relative h-12 w-12 rounded-lg border border-[#EDE8E1] bg-[#FAF8F5] overflow-hidden flex items-center justify-center shrink-0">
+                      {item.primaryImage ? (
+                        <Image
+                          src={item.primaryImage}
+                          alt={item.productName}
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        <Package className="h-5 w-5 text-neutral-400" />
+                      )}
                     </div>
-                  </td>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-neutral-900 leading-snug truncate">
+                        {item.productName}
+                      </p>
+                      <p className="text-xs text-neutral-500">
+                        Variant: <span className="font-medium text-neutral-700">{item.variantName}</span>
+                      </p>
+                    </div>
+                  </div>
+                </td>
 
-                  {/* Measurement */}
-                  <td className="py-3.5 px-4 whitespace-nowrap">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-neutral-100 text-neutral-700">
-                      <span>{item.measurement.value} {item.measurement.unit}</span>
-                      <span className="text-[10px] uppercase text-neutral-400 font-semibold">
-                        ({item.measurement.type})
-                      </span>
-                    </span>
-                  </td>
+                {/* Measurement */}
+                <td className="py-4 px-6 whitespace-nowrap">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-medium bg-[#F8F6F2] text-neutral-700">
+                    <span>{item.measurement.value} {item.measurement.unit}</span>
+                  </span>
+                </td>
 
-                  {/* Unit Price */}
-                  <td className="py-3.5 px-4 text-right whitespace-nowrap font-medium text-neutral-700">
-                    ₹{item.currentPrice.toLocaleString("en-IN")}
-                  </td>
+                {/* Unit Price */}
+                <td className="py-4 px-6 text-right whitespace-nowrap font-medium text-neutral-700 font-mono">
+                  ₹{item.currentPrice.toLocaleString("en-IN")}
+                </td>
 
-                  {/* Quantity */}
-                  <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                    <span className="inline-flex items-center justify-center h-7 w-7 rounded-lg bg-neutral-100 text-xs font-bold text-neutral-800">
-                      {item.quantity}
-                    </span>
-                  </td>
+                {/* Quantity */}
+                <td className="py-4 px-6 text-center whitespace-nowrap">
+                  <span className="inline-flex items-center justify-center h-6 w-6 rounded bg-[#F8F6F2] text-xs font-bold text-neutral-800">
+                    {item.quantity}
+                  </span>
+                </td>
 
-                  {/* Total */}
-                  <td className="py-3.5 px-4 text-right whitespace-nowrap font-bold text-neutral-900 font-mono">
-                    ₹{item.itemTotal.toLocaleString("en-IN")}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                {/* Total */}
+                <td className="py-4 px-6 text-right whitespace-nowrap font-bold text-[#801B2B] font-mono">
+                  ₹{item.itemTotal.toLocaleString("en-IN")}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

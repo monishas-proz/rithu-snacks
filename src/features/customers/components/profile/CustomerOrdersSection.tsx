@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Package, ExternalLink, Clock, CheckCircle2, AlertTriangle, XCircle, RotateCcw } from "lucide-react";
+import { Package } from "lucide-react";
 import type {
   AdminCustomerOrderItemDto,
   AdminCustomerListPaginationMeta,
@@ -43,7 +43,7 @@ export function CustomerOrdersSection({
 
   if (!orders || orders.length === 0) {
     return (
-      <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-xs">
+      <div className="p-8 text-center">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100 text-neutral-400">
           <Package className="h-6 w-6" />
         </div>
@@ -58,199 +58,156 @@ export function CustomerOrdersSection({
   }
 
   const getOrderStatusBadge = (status: string) => {
-    switch (status?.toUpperCase()) {
-      case "DELIVERED":
-        return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-success-700 bg-success-50 px-2 py-0.5 rounded-full border border-success-200">
-            <CheckCircle2 className="h-3 w-3" />
-            Delivered
-          </span>
-        );
-      case "SHIPPED":
-        return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
-            Shipped
-          </span>
-        );
-      case "PROCESSING":
-      case "PACKED":
-      case "CONFIRMED":
-        return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 uppercase">
-            <Clock className="h-3 w-3" />
-            {status}
-          </span>
-        );
-      case "CANCELLED":
-        return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
-            <XCircle className="h-3 w-3" />
-            Cancelled
-          </span>
-        );
-      case "RETURNED":
-        return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
-            <RotateCcw className="h-3 w-3" />
-            Returned
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center text-[10px] font-semibold text-neutral-700 bg-neutral-100 px-2 py-0.5 rounded-md uppercase">
-            {status || "UNKNOWN"}
-          </span>
-        );
+    const s = status?.toUpperCase() || "";
+    if (s === "DELIVERED") {
+      return (
+        <span className="inline-flex items-center justify-center px-3.5 py-0.5 rounded-full text-xs font-medium bg-[#EAF7EE] text-[#1E833F]">
+          Delivered
+        </span>
+      );
     }
+    if (s === "RETURNED") {
+      return (
+        <span className="inline-flex items-center justify-center px-3.5 py-0.5 rounded-full text-xs font-medium bg-[#FEF7E7] text-[#9A6900]">
+          Returned
+        </span>
+      );
+    }
+    if (s === "CANCELLED") {
+      return (
+        <span className="inline-flex items-center justify-center px-3.5 py-0.5 rounded-full text-xs font-medium bg-[#FDE8E8] text-[#9B1C1C]">
+          Cancelled
+        </span>
+      );
+    }
+    if (s === "SHIPPED") {
+      return (
+        <span className="inline-flex items-center justify-center px-3.5 py-0.5 rounded-full text-xs font-medium bg-[#EBF3FF] text-[#1D63D6]">
+          Shipped
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center justify-center px-3.5 py-0.5 rounded-full text-xs font-medium bg-neutral-100 text-neutral-700 capitalize">
+        {status ? status.toLowerCase() : "Processing"}
+      </span>
+    );
   };
 
-  const getPaymentStatusBadge = (status: string) => {
-    switch (status?.toUpperCase()) {
-      case "PAID":
-        return (
-          <span className="inline-flex items-center text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
-            PAID
-          </span>
-        );
-      case "PENDING":
-        return (
-          <span className="inline-flex items-center text-[10px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md">
-            PENDING
-          </span>
-        );
-      case "FAILED":
-        return (
-          <span className="inline-flex items-center text-[10px] font-semibold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-md">
-            FAILED
-          </span>
-        );
-      case "REFUNDED":
-      case "PARTIALLY_REFUNDED":
-        return (
-          <span className="inline-flex items-center text-[10px] font-semibold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md">
-            REFUNDED
-          </span>
-        );
-      default:
-        return <span className="text-xs text-neutral-500">{status || "—"}</span>;
-    }
+  const formatDate = (date: Date | string | null | undefined) => {
+    if (!date) return "—";
+    return new Date(date).toLocaleDateString("en-US", {
+      month: "short",
+      day: "2-digit",
+      year: "numeric",
+    });
   };
 
-  const totalCount = meta?.total ?? orders.length;
+  const formatAmount = (amount: number) => {
+    return `₹${amount.toLocaleString("en-IN", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-blue-50 text-blue-700">
-            <Package className="h-4 w-4" />
-          </div>
-          <div>
-            <h2 className="text-sm font-bold uppercase tracking-wider text-neutral-800">
-              Customer Order History
-            </h2>
-            <p className="text-xs text-neutral-500">
-              {totalCount} order{totalCount === 1 ? "" : "s"} recorded on file
-            </p>
-          </div>
-        </div>
-      </div>
+    <div className="w-full">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[580px] text-left text-sm">
+          <thead>
+            <tr className="border-b border-[#F2EFE9]">
+              <th className="py-4 px-6 text-xs font-semibold uppercase tracking-wider text-neutral-400 font-mono">
+                Order ID
+              </th>
+              <th className="py-4 px-6 text-xs font-semibold uppercase tracking-wider text-neutral-400 font-mono">
+                Date
+              </th>
+              <th className="py-4 px-6 text-center text-xs font-semibold uppercase tracking-wider text-neutral-400 font-mono">
+                Status
+              </th>
+              <th className="py-4 px-6 text-right text-xs font-semibold uppercase tracking-wider text-neutral-400 font-mono">
+                Total
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#F2EFE9]">
+            {orders.map((order) => {
+              const formattedOrderNumber = order.orderNumber?.startsWith("#")
+                ? order.orderNumber
+                : `#${order.orderNumber}`;
 
-      <div className="rounded-2xl border border-neutral-200 bg-white shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[620px] text-left text-sm">
-            <thead className="bg-neutral-50/80 text-xs font-semibold uppercase tracking-wider text-neutral-500 border-b border-neutral-200">
-              <tr>
-                <th className="py-3.5 px-4">Order #</th>
-                <th className="py-3.5 px-4">Date</th>
-                <th className="py-3.5 px-4 text-center">Items</th>
-                <th className="py-3.5 px-4">Payment</th>
-                <th className="py-3.5 px-4">Status</th>
-                <th className="py-3.5 px-4 text-right">Total Amount</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-100">
-              {orders.map((order) => (
-                <tr key={order.id} className="hover:bg-neutral-50/50 transition-colors">
-                  {/* Order Number */}
-                  <td className="py-3.5 px-4 whitespace-nowrap">
-                    <span className="font-mono font-bold text-neutral-900">
-                      {order.orderNumber}
+              return (
+                <tr
+                  key={order.id}
+                  className="hover:bg-neutral-50/60 transition-colors"
+                >
+                  {/* Order ID */}
+                  <td className="py-4 px-6 whitespace-nowrap">
+                    <span className="font-semibold text-neutral-900 font-mono text-sm">
+                      {formattedOrderNumber}
                     </span>
-                    <p className="text-[10px] font-mono text-neutral-400">
-                      ID: {order.id.slice(0, 8)}...
-                    </p>
                   </td>
 
                   {/* Date */}
-                  <td className="py-3.5 px-4 whitespace-nowrap text-xs text-neutral-600">
-                    {new Date(order.placedAt || order.createdAt).toLocaleDateString(
-                      "en-IN",
-                      {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      }
-                    )}
-                  </td>
-
-                  {/* Items Count */}
-                  <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                    <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-md bg-neutral-100 text-xs font-medium text-neutral-700">
-                      {order.totalItems} item{order.totalItems === 1 ? "" : "s"}
-                    </span>
-                  </td>
-
-                  {/* Payment */}
-                  <td className="py-3.5 px-4 whitespace-nowrap">
-                    {getPaymentStatusBadge(order.paymentStatus)}
+                  <td className="py-4 px-6 whitespace-nowrap text-sm text-neutral-600">
+                    {formatDate(order.placedAt || order.createdAt)}
                   </td>
 
                   {/* Status */}
-                  <td className="py-3.5 px-4 whitespace-nowrap">
+                  <td className="py-4 px-6 whitespace-nowrap text-center">
                     {getOrderStatusBadge(order.status)}
                   </td>
 
                   {/* Total */}
-                  <td className="py-3.5 px-4 text-right whitespace-nowrap font-bold text-neutral-900 font-mono">
-                    ₹{order.totalAmount.toLocaleString("en-IN")}
+                  <td className="py-4 px-6 whitespace-nowrap text-right text-sm font-semibold text-neutral-900 font-mono">
+                    {formatAmount(order.totalAmount)}
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination Footer */}
-        {meta && meta.totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-neutral-100 px-4 py-3 bg-neutral-50/50">
-            <p className="text-xs text-neutral-500">
-              Page <span className="font-medium text-neutral-900">{meta.page}</span> of{" "}
-              <span className="font-medium text-neutral-900">{meta.totalPages}</span> ({meta.total} orders)
-            </p>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={meta.page <= 1}
-                onClick={() => onPageChange?.(meta.page - 1)}
-                className="h-8 text-xs px-3 rounded-lg"
-              >
-                Previous
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={meta.page >= meta.totalPages}
-                onClick={() => onPageChange?.(meta.page + 1)}
-                className="h-8 text-xs px-3 rounded-lg"
-              >
-                Next
-              </Button>
-            </div>
-          </div>
-        )}
+              );
+            })}
+          </tbody>
+        </table>
       </div>
+
+      {/* Footer: View All Orders Link matching screenshot */}
+      <div className="py-5 text-center border-t border-[#F2EFE9]">
+        <Link
+          href="/admin/dashboard/orders"
+          className="inline-block text-xs font-semibold uppercase tracking-wider text-[#801B2B] hover:underline"
+        >
+          View All Orders
+        </Link>
+      </div>
+
+      {/* Pagination Footer (if multi-page) */}
+      {meta && meta.totalPages > 1 && (
+        <div className="flex items-center justify-between border-t border-[#F2EFE9] px-6 py-3 bg-neutral-50/50">
+          <p className="text-xs text-neutral-500">
+            Page <span className="font-medium text-neutral-900">{meta.page}</span> of{" "}
+            <span className="font-medium text-neutral-900">{meta.totalPages}</span> ({meta.total} orders)
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={meta.page <= 1}
+              onClick={() => onPageChange?.(meta.page - 1)}
+              className="h-8 text-xs px-3 rounded-lg border-[#EDE8E1] hover:bg-neutral-100"
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={meta.page >= meta.totalPages}
+              onClick={() => onPageChange?.(meta.page + 1)}
+              className="h-8 text-xs px-3 rounded-lg border-[#EDE8E1] hover:bg-neutral-100"
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

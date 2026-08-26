@@ -4,11 +4,13 @@ import * as React from "react";
 import { useParams } from "next/navigation";
 import {
   CustomerProfileHeader,
+  CustomerTopBar,
   CustomerInfoCard,
   CustomerAddressesSection,
   CustomerOrdersSection,
   CustomerCartSection,
   CustomerWishlistSection,
+  CustomerActivityCard,
 } from "@/features/customers/components";
 import {
   useAdminCustomerDetail,
@@ -17,9 +19,8 @@ import {
 } from "@/features/customers/hooks";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
-import { User, MapPin, Package, ShoppingCart, Heart, Layers } from "lucide-react";
 
-type ProfileTab = "all" | "overview" | "addresses" | "orders" | "cart" | "wishlist";
+type ProfileTab = "orders" | "addresses" | "wishlist" | "cart";
 
 export default function AdminCustomerProfilePage() {
   const params = useParams<{ id: string }>();
@@ -59,23 +60,35 @@ export default function AdminCustomerProfilePage() {
     sortOrder: "desc",
   });
 
-  const [activeTab, setActiveTab] = React.useState<ProfileTab>("all");
+  // Default active tab to "orders" matching screenshot
+  const [activeTab, setActiveTab] = React.useState<ProfileTab>("orders");
 
-  const addressCount = addresses?.length ?? 0;
-  const orderCount = ordersResponse?.meta?.total ?? ordersResponse?.data?.length ?? 0;
+  const orderCount =
+    ordersResponse?.meta?.total ?? ordersResponse?.data?.length ?? 0;
+
+  const totalSpent = React.useMemo(() => {
+    return (ordersResponse?.data || []).reduce(
+      (sum, order) => sum + (Number(order.totalAmount) || 0),
+      0
+    );
+  }, [ordersResponse?.data]);
+
+  const defaultAddress = React.useMemo(() => {
+    return addresses?.find((a) => a.isDefault) || addresses?.[0];
+  }, [addresses]);
+
+  const locationString = defaultAddress
+    ? `${defaultAddress.city}${defaultAddress.state ? `, ${defaultAddress.state}` : ""}`
+    : "Seattle, WA";
 
   const tabs: Array<{
     id: ProfileTab;
     label: string;
-    count?: number;
-    icon: React.ComponentType<{ className?: string }>;
   }> = [
-    { id: "all", label: "All Sections", icon: Layers },
-    { id: "overview", label: "Profile Info", icon: User },
-    { id: "addresses", label: "Addresses", count: addressCount, icon: MapPin },
-    { id: "orders", label: "Order History", count: orderCount, icon: Package },
-    { id: "cart", label: "Active Cart", icon: ShoppingCart },
-    { id: "wishlist", label: "Wishlist", icon: Heart },
+    { id: "orders", label: "Orders" },
+    { id: "addresses", label: "Addresses" },
+    { id: "wishlist", label: "Wishlist" },
+    { id: "cart", label: "Cart" },
   ];
 
   if (isLoadingProfile && !customer) {
@@ -96,16 +109,34 @@ export default function AdminCustomerProfilePage() {
   }
 
   return (
-    <div className="w-full space-y-6 pb-12">
-      {/* Top Header & Overview Banner */}
-      <CustomerProfileHeader customer={customer} />
+    <div className="w-full max-w-6xl mx-auto space-y-6 pb-12">
+      {/* Top Header & Breadcrumb Actions */}
+      <CustomerTopBar customer={customer} />
 
-      {/* Navigation Tabs Bar Container */}
-      <div className="w-full rounded-2xl border border-neutral-200 bg-white p-2 shadow-xs">
-        <div className="w-full overflow-x-auto pb-0.5">
-          <div className="flex items-center gap-1.5 min-w-max">
+      {/* Top Row: Customer Profile Summary & Contact Information (2 Columns) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column: Customer Profile Card with Totals */}
+        <div className="lg:col-span-7">
+          <CustomerProfileHeader
+            customer={customer}
+            totalSpent={totalSpent}
+            totalOrders={orderCount}
+            location={locationString}
+          />
+        </div>
+
+        {/* Right Column: Contact Information Card */}
+        <div className="lg:col-span-5">
+          <CustomerInfoCard customer={customer} />
+        </div>
+      </div>
+
+      {/* Middle Section: Tabbed Container matching screenshot */}
+      <div className="rounded-2xl border border-[#EDE8E1] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.02)] overflow-hidden">
+        {/* Tab Navigation Header Bar */}
+        <div className="bg-[#F8F6F2] border-b border-[#EDE8E1] px-4 sm:px-6">
+          <div className="flex items-center gap-6 sm:gap-8 overflow-x-auto scrollbar-hide">
             {tabs.map((tab) => {
-              const Icon = tab.icon;
               const isActive = activeTab === tab.id;
 
               return (
@@ -113,81 +144,22 @@ export default function AdminCustomerProfilePage() {
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={`inline-flex items-center gap-2 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
+                  className={`py-3.5 px-1 font-mono text-xs sm:text-sm font-semibold tracking-wide transition-all border-b-2 whitespace-nowrap cursor-pointer ${
                     isActive
-                      ? "bg-neutral-900 text-white shadow-xs"
-                      : "bg-neutral-50 text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 border border-neutral-200/80"
+                      ? "border-[#801B2B] text-[#801B2B]"
+                      : "border-transparent text-neutral-500 hover:text-neutral-800"
                   }`}
                 >
-                  <Icon
-                    className={`h-3.5 w-3.5 ${
-                      isActive ? "text-white" : "text-neutral-500"
-                    }`}
-                  />
                   <span>{tab.label}</span>
-                  {tab.count !== undefined && tab.count > 0 && (
-                    <span
-                      className={`ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                        isActive
-                          ? "bg-white/20 text-white"
-                          : "bg-neutral-200 text-neutral-700"
-                      }`}
-                    >
-                      {tab.count}
-                    </span>
-                  )}
                 </button>
               );
             })}
           </div>
         </div>
-      </div>
 
-      {/* Tab Content Sections */}
-      <div className="space-y-8">
-        {/* Section 1: Overview / Personal Info */}
-        {(activeTab === "all" || activeTab === "overview") && (
-          <section id="section-overview" className="space-y-3">
-            {activeTab === "all" && (
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-neutral-400">
-                <span>Section 1</span>
-                <span>•</span>
-                <span>Customer Overview</span>
-              </div>
-            )}
-            <CustomerInfoCard customer={customer} />
-          </section>
-        )}
-
-        {/* Section 2: Addresses */}
-        {(activeTab === "all" || activeTab === "addresses") && (
-          <section id="section-addresses" className="space-y-3">
-            {activeTab === "all" && (
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-neutral-400 pt-4 border-t border-neutral-200">
-                <span>Section 2</span>
-                <span>•</span>
-                <span>Customer Addresses</span>
-              </div>
-            )}
-            <CustomerAddressesSection
-              addresses={addresses}
-              isLoading={isLoadingAddresses}
-              error={addressesError as Error | null}
-              onRetry={refetchAddresses}
-            />
-          </section>
-        )}
-
-        {/* Section 3: Order History */}
-        {(activeTab === "all" || activeTab === "orders") && (
-          <section id="section-orders" className="space-y-3">
-            {activeTab === "all" && (
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-neutral-400 pt-4 border-t border-neutral-200">
-                <span>Section 3</span>
-                <span>•</span>
-                <span>Customer Order History</span>
-              </div>
-            )}
+        {/* Active Tab Content */}
+        <div>
+          {activeTab === "orders" && (
             <CustomerOrdersSection
               orders={ordersResponse?.data}
               meta={ordersResponse?.meta}
@@ -196,37 +168,32 @@ export default function AdminCustomerProfilePage() {
               onRetry={refetchOrders}
               onPageChange={(page) => setOrderPage(page)}
             />
-          </section>
-        )}
+          )}
 
-        {/* Section 4: Current Cart */}
-        {(activeTab === "all" || activeTab === "cart") && (
-          <section id="section-cart" className="space-y-3">
-            {activeTab === "all" && (
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-neutral-400 pt-4 border-t border-neutral-200">
-                <span>Section 4</span>
-                <span>•</span>
-                <span>Current Cart</span>
-              </div>
-            )}
-            <CustomerCartSection />
-          </section>
-        )}
+          {activeTab === "addresses" && (
+            <CustomerAddressesSection
+              addresses={addresses}
+              isLoading={isLoadingAddresses}
+              error={addressesError as Error | null}
+              onRetry={refetchAddresses}
+            />
+          )}
 
-        {/* Section 5: Wishlist */}
-        {(activeTab === "all" || activeTab === "wishlist") && (
-          <section id="section-wishlist" className="space-y-3">
-            {activeTab === "all" && (
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-neutral-400 pt-4 border-t border-neutral-200">
-                <span>Section 5</span>
-                <span>•</span>
-                <span>Customer Wishlist</span>
-              </div>
-            )}
+          {activeTab === "wishlist" && (
             <CustomerWishlistSection />
-          </section>
-        )}
+          )}
+
+          {activeTab === "cart" && (
+            <CustomerCartSection />
+          )}
+        </div>
       </div>
+
+      {/* Bottom Section: Recent Activity Timeline Card */}
+      {/* <CustomerActivityCard
+        customer={customer}
+        orders={ordersResponse?.data}
+      /> */}
     </div>
   );
 }
