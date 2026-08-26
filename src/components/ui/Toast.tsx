@@ -33,18 +33,20 @@ function useToast() {
 
 const APP_TOAST_EVENT = "app-toast-event";
 const recentToasts = new Map<string, number>();
-const DEDUPE_TIME_MS = 2000;
+const DEDUPE_TIME_MS = 2500;
 
 export const toast = {
   show: (toastData: Omit<Toast, "id">) => {
     if (typeof window === "undefined") return;
 
-    const dedupeKey = `${toastData.variant}:${toastData.title}:${toastData.description || ""}`;
+    // Deduplicate based on message content to prevent dual toasts from MutationCache & components
+    const content = (toastData.description || toastData.title || "").trim().toLowerCase();
+    const dedupeKey = `${toastData.variant}:${content}`;
     const now = Date.now();
     const lastShown = recentToasts.get(dedupeKey);
 
     if (lastShown && now - lastShown < DEDUPE_TIME_MS) {
-      return; // Skip duplicate toast within 2-second window
+      return; // Skip duplicate toast within dedupe window
     }
 
     recentToasts.set(dedupeKey, now);
@@ -77,13 +79,25 @@ export const toast = {
 function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = React.useState<Toast[]>([]);
 
-  const addToast = React.useCallback((toast: Omit<Toast, "id">) => {
-    const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-    setToasts((prev) => [...prev, { ...toast, id }]);
+  const addToast = React.useCallback((newToast: Omit<Toast, "id">) => {
+    const newContent = (newToast.description || newToast.title || "").trim().toLowerCase();
 
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, toast.duration ?? 5000);
+    setToasts((prev) => {
+      const alreadyActive = prev.some((t) => {
+        const existingContent = (t.description || t.title || "").trim().toLowerCase();
+        return t.variant === newToast.variant && existingContent === newContent;
+      });
+      if (alreadyActive) {
+        return prev;
+      }
+
+      const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+      setTimeout(() => {
+        setToasts((current) => current.filter((t) => t.id !== id));
+      }, newToast.duration ?? 5000);
+
+      return [...prev, { ...newToast, id }];
+    });
   }, []);
 
   const removeToast = React.useCallback((id: string) => {

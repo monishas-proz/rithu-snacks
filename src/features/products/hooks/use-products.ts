@@ -11,6 +11,7 @@ export function useProducts(params?: GetAdminProductsParams) {
   if (params?.pageSize) queryParams.pageSize = params.pageSize;
   if (params?.search) queryParams.search = params.search;
 
+
   return useQuery({
     queryKey: productKeys.list(queryParams),
     queryFn: () => getAdminProducts(queryParams),

@@ -21,7 +21,8 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FormModal } from "@/components/common/FormModal";
 import { SearchInput } from "@/components/ui/search-input";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { Plus, Pencil, Trash2, Eye } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { AdminProductResponse } from "@/features/products/types";
 import { ProductForm } from "@/features/products/components/ProductForm";
@@ -215,7 +216,15 @@ export default function AdminProductsPage() {
       id: "actions",
       header: "Actions",
       cell: ({ row }) => (
-        <div className="flex gap-2">
+        <div className="flex items-center gap-1">
+          <Link
+            href={`/admin/dashboard/products/${row.original.id}`}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md text-[var(--color-neutral-500)] hover:text-secondary-600 hover:bg-neutral-100 transition-colors"
+            title="View Product Details"
+          >
+            <Eye className="h-4 w-4" />
+          </Link>
+
           <Button
             variant="ghost"
             size="icon"
@@ -223,6 +232,7 @@ export default function AdminProductsPage() {
               setSelectedProduct(row.original);
               setIsEditOpen(true);
             }}
+            title="Edit Product"
           >
             <Pencil className="h-4 w-4 text-[var(--color-neutral-500)]" />
           </Button>
@@ -231,6 +241,7 @@ export default function AdminProductsPage() {
             variant="ghost"
             size="icon"
             onClick={() => setDeleteId(row.original.id)}
+            title="Delete Product"
           >
             <Trash2 className="h-4 w-4 text-[var(--color-error-600)]" />
           </Button>
