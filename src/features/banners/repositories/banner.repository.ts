@@ -1,63 +1,296 @@
-import { Prisma } from "@/generated/prisma";
+import crypto from "crypto";
 import { db } from "@/lib/db/prisma";
-import { GetBannersParams } from "../types";
+import { Prisma } from "@/generated/prisma";
+import type {
+  CreateBannerInput,
+  UpdateBannerInput,
+  BannerListQueryInput,
+  CustomerBannerQueryInput,
+} from "../validations/banner.schema";
+import type {
+  BannerDto,
+  BannerListResponse,
+  CustomerBannerDto,
+} from "../types/banner.types";
+
+export const bannerIncludePosition = Prisma.validator<Prisma.BannerInclude>()({
+  banner_positions: {
+    select: {
+      id: true,
+      uuid: true,
+      name: true,
+      slug: true,
+      page: true,
+      is_active: true,
+    },
+  },
+});
+
+export function formatBanner(
+  record: Prisma.BannerGetPayload<{ include: typeof bannerIncludePosition }>
+): BannerDto {
+  const position = record.banner_positions;
+  return {
+    id: record.uuid || String(record.id),
+    title: record.title,
+    imageUrl: record.image_url,
+    linkUrl: record.link_url,
+    sortOrder: record.sortOrder,
+    isActive: Boolean(record.isActive),
+    startsAt: record.startsAt,
+    endsAt: record.ends_at,
+    bannerPosition: {
+      id: position.uuid || String(position.id),
+      name: position.name,
+      slug: position.slug,
+      page: position.page,
+    },
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
+  };
+}
+
+export function formatCustomerBanner(
+  record: Prisma.BannerGetPayload<{ include: typeof bannerIncludePosition }>
+): CustomerBannerDto {
+  const position = record.banner_positions;
+  return {
+    id: record.uuid || String(record.id),
+    title: record.title,
+    imageUrl: record.image_url,
+    linkUrl: record.link_url,
+    sortOrder: record.sortOrder,
+    bannerPosition: {
+      id: position.uuid || String(position.id),
+      name: position.name,
+      slug: position.slug,
+      page: position.page,
+    },
+  };
+}
 
 export const bannerRepository = {
-  async findAll(params: GetBannersParams & { page: number; limit: number }) {
-    const { page, limit, search, isActive } = params;
+  async findByUuid(uuid: string) {
+    return db.banner.findFirst({
+      where: { uuid },
+      include: bannerIncludePosition,
+    });
+  },
+
+  async findById(id: bigint) {
+    return db.banner.findUnique({
+      where: { id },
+      include: bannerIncludePosition,
+    });
+  },
+
+  async create(
+    data: CreateBannerInput & { positionInternalId: bigint },
+    userInternalId?: bigint
+  ): Promise<BannerDto> {
+    const created = await db.banner.create({
+      data: {
+        uuid: crypto.randomUUID(),
+        banner_position_id: data.positionInternalId,
+        title: data.title ? data.title.trim() : null,
+        image_url: data.imageUrl.trim(),
+        link_url: data.linkUrl ? data.linkUrl.trim() : null,
+        sortOrder: data.sortOrder ?? 0,
+        isActive: data.isActive ?? true,
+        startsAt: data.startsAt ?? null,
+        ends_at: data.endsAt ?? null,
+        created_by: userInternalId ?? null,
+        updated_by: userInternalId ?? null,
+      },
+      include: bannerIncludePosition,
+    });
+
+    return formatBanner(created);
+  },
+
+  async update(
+    id: bigint,
+    data: UpdateBannerInput & { positionInternalId?: bigint },
+    userInternalId?: bigint
+  ): Promise<BannerDto> {
+    const updateData: Prisma.BannerUpdateInput = {
+      updatedAt: new Date(),
+    };
+
+    if (data.positionInternalId !== undefined) {
+      updateData.banner_positions = {
+        connect: { id: data.positionInternalId },
+      };
+    }
+
+    if (data.title !== undefined) {
+      updateData.title = data.title ? data.title.trim() : null;
+    }
+
+    if (data.imageUrl !== undefined) {
+      updateData.image_url = data.imageUrl.trim();
+    }
+
+    if (data.linkUrl !== undefined) {
+      updateData.link_url = data.linkUrl ? data.linkUrl.trim() : null;
+    }
+
+    if (data.sortOrder !== undefined) {
+      updateData.sortOrder = data.sortOrder;
+    }
+
+    if (data.isActive !== undefined) {
+      updateData.isActive = data.isActive;
+    }
+
+    if (data.startsAt !== undefined) {
+      updateData.startsAt = data.startsAt;
+    }
+
+    if (data.endsAt !== undefined) {
+      updateData.ends_at = data.endsAt;
+    }
+
+    if (userInternalId) {
+      updateData.users_banners_updated_byTousers = {
+        connect: { id: userInternalId },
+      };
+    }
+
+    const updated = await db.banner.update({
+      where: { id },
+      data: updateData,
+      include: bannerIncludePosition,
+    });
+
+    return formatBanner(updated);
+  },
+
+  async findAll(
+    params: BannerListQueryInput,
+    resolvedPositionId?: bigint
+  ): Promise<BannerListResponse> {
+    const page = params.page ?? 1;
+    const limit = params.limit ?? 10;
+    const skip = (page - 1) * limit;
 
     const where: Prisma.BannerWhereInput = {};
 
-    if (search) {
-      where.title = { contains: search };
+    if (resolvedPositionId !== undefined) {
+      where.banner_position_id = resolvedPositionId;
+    } else if (params.positionSlug) {
+      where.banner_positions = {
+        slug: params.positionSlug.trim().toLowerCase(),
+      };
     }
 
-    if (isActive !== undefined) {
-      where.isActive = isActive;
+    if (params.isActive !== undefined) {
+      where.isActive = params.isActive;
     }
 
-    const [data, total] = await Promise.all([
+    if (params.search) {
+      const search = params.search.trim();
+      where.OR = [
+        { title: { contains: search } },
+        { link_url: { contains: search } },
+        { image_url: { contains: search } },
+        {
+          banner_positions: {
+            OR: [
+              { name: { contains: search } },
+              { slug: { contains: search } },
+              { page: { contains: search } },
+            ],
+          },
+        },
+      ];
+    }
+
+    const sortField = params.sortBy ?? "createdAt";
+    const sortDirection = params.sortOrder ?? "desc";
+
+    let orderBy: Prisma.BannerOrderByWithRelationInput = {
+      createdAt: sortDirection,
+    };
+
+    if (sortField === "title") {
+      orderBy = { title: sortDirection };
+    } else if (sortField === "sortOrder") {
+      orderBy = { sortOrder: sortDirection };
+    } else if (sortField === "startsAt") {
+      orderBy = { startsAt: sortDirection };
+    } else if (sortField === "endsAt") {
+      orderBy = { ends_at: sortDirection };
+    } else if (sortField === "updatedAt") {
+      orderBy = { updatedAt: sortDirection };
+    }
+
+    const [records, total] = await Promise.all([
       db.banner.findMany({
         where,
-        orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
-        skip: (page - 1) * limit,
+        skip,
         take: limit,
+        orderBy,
+        include: bannerIncludePosition,
       }),
       db.banner.count({ where }),
     ]);
 
-    return { data, total };
+    return {
+      data: records.map(formatBanner),
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+    };
   },
 
-  async count(params: GetBannersParams & { page: number; limit: number }) {
-    const { search, isActive } = params;
+  async findActiveCustomerBanners(
+    params: CustomerBannerQueryInput,
+    now: Date = new Date()
+  ): Promise<CustomerBannerDto[]> {
+    const where: Prisma.BannerWhereInput = {
+      isActive: true,
+      banner_positions: {
+        is_active: true,
+      },
+      AND: [
+        {
+          OR: [{ startsAt: null }, { startsAt: { lte: now } }],
+        },
+        {
+          OR: [{ ends_at: null }, { ends_at: { gte: now } }],
+        },
+      ],
+    };
 
-    const where: Prisma.BannerWhereInput = {};
-
-    if (search) {
-      where.title = { contains: search };
+    if (params.position) {
+      where.banner_positions = {
+        is_active: true,
+        slug: params.position.trim().toLowerCase(),
+      };
+    } else if (params.page) {
+      where.banner_positions = {
+        is_active: true,
+        page: params.page.trim().toLowerCase(),
+      };
     }
 
-    if (isActive !== undefined) {
-      where.isActive = isActive;
-    }
+    const records = await db.banner.findMany({
+      where,
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+      include: bannerIncludePosition,
+    });
 
-    return db.banner.count({ where });
+    return records.map(formatCustomerBanner);
   },
 
-  async findById(id: number) {
-    return db.banner.findUnique({ where: { id } });
-  },
-
-  async create(data: Prisma.BannerCreateInput) {
-    return db.banner.create({ data });
-  },
-
-  async update(id: number, data: Prisma.BannerUpdateInput) {
-    return db.banner.update({ where: { id }, data });
-  },
-
-  async delete(id: number) {
-    return db.banner.delete({ where: { id } });
+  async delete(id: bigint): Promise<void> {
+    await db.banner.delete({
+      where: { id },
+    });
   },
 };
+

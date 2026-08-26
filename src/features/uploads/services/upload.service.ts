@@ -9,6 +9,7 @@ export const ALLOWED_FOLDERS = [
   "products",
   "variants",
   "customers",
+  "banners",
 ] as const;
 
 export type AllowedFolder = (typeof ALLOWED_FOLDERS)[number];
