@@ -93,8 +93,11 @@ export interface UpdateProductInput extends Partial<CreateProductInput> {}
 export interface AdminProductResponse {
   id: string; // Public Product UUID
   categoryId: string | null; // Public Category UUID
+  categoryName: string | null;
   brandId: string | null; // Public Brand UUID
+  brandName: string | null;
   hsnCodeId: string | null; // Public HSN Code UUID
+  hsnCodeName: string | null;
   name: string;
   slug: string;
   shortDescription: string | null;
@@ -113,6 +116,22 @@ export interface GetAdminProductsParams {
   search?: string;
 }
 
+export interface AdminProductListParams {
+  page?: number;
+  limit?: number;
+  pageSize?: number;
+  search?: string;
+  isActive?: boolean;
+  categoryId?: string;
+  brandId?: string;
+  hsnCodeId?: string;
+  vegType?: VegType;
+  isFeatured?: boolean;
+  status?: boolean;
+  sortBy?: "name" | "slug" | "createdAt" | "updatedAt" | "isFeatured" | "status" | "isActive";
+  sortOrder?: "asc" | "desc";
+}
+
 export interface GetAdminProductsResult {
   data: AdminProductResponse[];
   meta?: {
@@ -123,3 +142,4 @@ export interface GetAdminProductsResult {
     totalPages: number;
   };
 }
+

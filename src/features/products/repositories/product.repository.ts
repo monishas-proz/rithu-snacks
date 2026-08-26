@@ -1,6 +1,6 @@
 import { db } from "@/lib/db/prisma";
 import { Prisma } from "@/generated/prisma";
-import type { GetAdminProductsParams } from "../types";
+import type { GetAdminProductsParams, AdminProductListParams } from "../types";
 
 const productAdminInclude = Prisma.validator<Prisma.ProductInclude>()({
   brand: {
@@ -17,6 +17,7 @@ const productAdminInclude = Prisma.validator<Prisma.ProductInclude>()({
       id: true,
       uuid: true,
       code: true,
+      description: true,
       is_active: true,
     },
   },
@@ -99,6 +100,90 @@ export const productRepository = {
       },
     };
   },
+
+  async findAdminList(
+    params: AdminProductListParams,
+    resolvedCategoryInternalId?: bigint,
+    resolvedBrandInternalId?: bigint,
+    resolvedHsnCodeInternalId?: bigint
+  ) {
+    const page = params.page ?? 1;
+    const limit = params.limit ?? params.pageSize ?? 10;
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.ProductWhereInput = {
+      deleted_at: null,
+    };
+
+    if (params.isActive !== undefined) {
+      where.isActive = params.isActive;
+    }
+
+    if (resolvedCategoryInternalId !== undefined) {
+      where.categoryId = resolvedCategoryInternalId;
+    }
+
+    if (resolvedBrandInternalId !== undefined) {
+      where.brandId = resolvedBrandInternalId;
+    }
+
+    if (resolvedHsnCodeInternalId !== undefined) {
+      where.hsn_code_id = resolvedHsnCodeInternalId;
+    }
+
+    if (params.vegType !== undefined) {
+      where.veg_type = params.vegType;
+    }
+
+    if (params.isFeatured !== undefined) {
+      where.isFeatured = params.isFeatured;
+    }
+
+    if (params.status !== undefined) {
+      where.status = params.status;
+    }
+
+    if (params.search) {
+      const search = params.search.trim();
+      where.OR = [
+        { name: { contains: search } },
+        { slug: { contains: search } },
+        { shortDescription: { contains: search } },
+        { description: { contains: search } },
+        { sku: { contains: search } },
+      ];
+    }
+
+    const sortField = params.sortBy ?? "createdAt";
+    const sortOrder = params.sortOrder ?? "desc";
+
+    const orderBy: Prisma.ProductOrderByWithRelationInput = {
+      [sortField]: sortOrder,
+    };
+
+    const [data, total] = await Promise.all([
+      db.product.findMany({
+        where,
+        include: productAdminInclude,
+        orderBy,
+        skip,
+        take: limit,
+      }),
+      db.product.count({ where }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        page,
+        limit,
+        pageSize: limit,
+        total,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+    };
+  },
+
 
   async create(data: Prisma.ProductUncheckedCreateInput) {
     return db.product.create({
