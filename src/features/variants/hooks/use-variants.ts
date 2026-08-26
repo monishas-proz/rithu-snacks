@@ -6,8 +6,32 @@ import {
   getAdminVariants,
   getAdminProductVariants,
   getAdminVariant,
+  getCustomerVariants,
 } from "../api/get-variants";
-import type { GetAdminVariantsParams } from "../types";
+import type {
+  GetAdminVariantsParams,
+  CustomerGlobalVariantListParams,
+} from "../types";
+
+export function useCustomerVariants(params?: CustomerGlobalVariantListParams) {
+  const queryParams: Record<string, string | number | boolean | undefined> = {
+    page: params?.page ?? 1,
+    pageSize: params?.pageSize ?? 20,
+    search: params?.search,
+    categoryIds: params?.categoryIds?.length ? params.categoryIds.join(",") : undefined,
+    brandIds: params?.brandIds?.length ? params.brandIds.join(",") : undefined,
+    productIds: params?.productIds?.length ? params.productIds.join(",") : undefined,
+    sortBy: params?.sortBy ?? "createdAt",
+    sortOrder: params?.sortOrder ?? "desc",
+  };
+
+  return useQuery({
+    queryKey: variantKeys.list({ ...queryParams, type: "customer" }),
+    queryFn: () => getCustomerVariants(params),
+    placeholderData: keepPreviousData,
+    staleTime: 5 * 60 * 1000,
+  });
+}
 
 export function useVariants(params?: GetAdminVariantsParams) {
   const queryParams: Record<string, string | number | boolean | undefined> = {};

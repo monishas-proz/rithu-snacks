@@ -64,7 +64,7 @@ export interface CreateCategoryInput {
   metaDescription?: string;
 }
 
-export interface UpdateCategoryInput extends Partial<CreateCategoryInput> {}
+export type UpdateCategoryInput = Partial<CreateCategoryInput>;
 
 export interface AdminCategoryResponse {
   id: string; // Public UUID
@@ -83,4 +83,18 @@ export interface GetAdminCategoriesParams {
   page?: number;
   pageSize?: number;
   search?: string;
+}
+
+export interface CustomerCategoryDto {
+  id: string;
+  name: string;
+  image: string | null;
+}
+
+export interface CustomerCategoryListParams {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  sortBy?: "name" | "createdAt";
+  sortOrder?: "asc" | "desc";
 }

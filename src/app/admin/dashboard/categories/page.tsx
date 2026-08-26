@@ -197,7 +197,7 @@ console.log("Categories received from API:", categories.length);
       <AdminContent className="flex-1 min-h-0 overflow-hidden">
         <div className="flex h-full flex-col overflow-hidden bg-[var(--color-background)] py-1 rounded-2xl">
           {/* Stats Cards */}
-          <div className="flex-shrink-0 flex gap-4 overflow-x-auto overscroll-x-contain pb-2">
+          {/* <div className="flex-shrink-0 flex gap-4 overflow-x-auto overscroll-x-contain pb-2">
             <StatsCard
               title="Total Categories"
               value={totalCategories}
@@ -221,7 +221,7 @@ console.log("Categories received from API:", categories.length);
               description="Across all categories"
               className="min-w-64 flex-1"
             />
-          </div>
+          </div> */}
 
           {/* Search + Filter */}
           <div className="flex-shrink-0 mt-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">

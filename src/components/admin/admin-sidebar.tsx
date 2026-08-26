@@ -100,6 +100,7 @@ const sidebarItems: SidebarItem[] = [
       { label: "Users", href: "/admin/dashboard/users", icon: Users },
       { label: "Roles", href: "/admin/dashboard/roles", icon: Shield },
       { label: "Permissions", href: "/admin/dashboard/permissions", icon: Shield },
+      // { label: "Customers", href: "/admin/dashboard/customers", icon: Users },
     ],
   },
   { label: "Reports", href: "/admin/dashboard/reports", icon: BarChart3 },

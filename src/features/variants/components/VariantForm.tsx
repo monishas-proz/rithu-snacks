@@ -76,7 +76,7 @@ interface VariantFormProps {
 
 function VariantForm({
   initialData,
-  isEditing = false,
+  isEditing: _isEditing = false,
   fixedProductId,
   products = [],
   units = [],

@@ -1,6 +1,25 @@
 import { apiClient } from "@/lib/api/api-client";
-import type { ApiResponse } from "@/lib/api/api-response";
-import type { CategoryListItem, CategoryDetail } from "../types";
+import type {
+  CategoryListItem,
+  CategoryDetail,
+  CustomerCategoryDto,
+  CustomerCategoryListParams,
+} from "../types";
+
+export async function getCustomerCategories(params?: CustomerCategoryListParams) {
+  const response = await apiClient.post<CustomerCategoryDto[]>(
+    "/api/customer/categories",
+    params ?? { page: 1, pageSize: 20, sortBy: "name", sortOrder: "asc" }
+  );
+  return response;
+}
+
+export async function getCustomerCategory(uuid: string) {
+  const response = await apiClient.get<CustomerCategoryDto>(
+    `/api/customer/categories/${uuid}`
+  );
+  return response;
+}
 
 export async function getCategories(params?: Record<string, string | number | boolean | undefined | null>) {
   const response = await apiClient.get<CategoryListItem[]>("/api/admin/categories", { params });

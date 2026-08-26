@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useSession } from "next-auth/react";
 import { ShoppingCart } from "lucide-react";
 import { cn } from "@/lib/utils";
 
