@@ -4,6 +4,8 @@ export type {
   ForgotPasswordInput,
   VerifyOtpInput,
   ResendOtpInput,
+  ResendRegisterOtpInput,
+  ResendForgotPasswordOtpInput,
   ResetPasswordInput,
   SendEmailOtpInput,
   VerifyEmailOtpInput,

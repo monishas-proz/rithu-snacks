@@ -1,5 +1,6 @@
 import { db } from "@/lib/db/prisma";
 import { Prisma } from "@/generated/prisma";
+import { formatVariantMeasurement } from "@/features/variants/utils/measurement.util";
 import type {
   AdminCustomerListInput,
   AdminCustomerOrdersInput,
@@ -11,6 +12,8 @@ import type {
   AdminCustomerAddressDto,
   AdminCustomerOrderItemDto,
   AdminCustomerOrdersResponse,
+  AdminCustomerCartDto,
+  AdminCustomerCartItemDto,
 } from "../types/admin-customer.types";
 
 const adminCustomerInclude = Prisma.validator<Prisma.customer_profilesInclude>()({
@@ -199,6 +202,7 @@ export const adminCustomerRepository = {
           { customer_profiles_customer_profiles_user_idTousers: { uuid } },
         ],
         deleted_at: null,
+        is_active: true,
         role: {
           slug: "customer",
         },
@@ -374,6 +378,135 @@ export const adminCustomerRepository = {
         total,
         totalPages: Math.ceil(total / pageSize),
       },
+    };
+  },
+
+  async findCustomerActiveCartByCustomerUuid(
+    uuid: string
+  ): Promise<AdminCustomerCartDto | null | undefined> {
+    const user = await this.findCustomerUserByUuid(uuid);
+    if (!user) return undefined;
+
+    const cart = await db.cart.findFirst({
+      where: {
+        userId: user.id,
+        status: "active",
+        is_active: true,
+      },
+      include: {
+        items: {
+          where: {
+            is_active: true,
+            variant: {
+              isActive: true,
+              deleted_at: null,
+            },
+            product: {
+              isActive: true,
+              deleted_at: null,
+            },
+          },
+          include: {
+            product: {
+              select: {
+                id: true,
+                uuid: true,
+                name: true,
+                images: {
+                  where: { is_active: true },
+                  orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }],
+                  take: 1,
+                  select: { image_url: true },
+                },
+              },
+            },
+            variant: {
+              select: {
+                id: true,
+                uuid: true,
+                variant_name: true,
+                sku: true,
+                base_price: true,
+                sale_price: true,
+                unit_value: true,
+                product_units: {
+                  select: {
+                    name: true,
+                    code: true,
+                    type: true,
+                  },
+                },
+                product_variant_images: {
+                  where: { is_active: true },
+                  orderBy: [{ is_primary: "desc" }, { sort_order: "asc" }],
+                  take: 1,
+                  select: { image_url: true },
+                },
+              },
+            },
+          },
+          orderBy: { createdAt: "desc" },
+        },
+      },
+    });
+
+    if (!cart) return null;
+
+    let subtotal = 0;
+    let totalItems = 0;
+
+    const items: AdminCustomerCartItemDto[] = [];
+
+    for (const item of cart.items) {
+      if (!item.variant || !item.product || !item.is_active) continue;
+
+      const salePrice =
+        item.variant.sale_price !== null && item.variant.sale_price !== undefined
+          ? Number(item.variant.sale_price)
+          : 0;
+      const basePrice =
+        item.variant.base_price !== null && item.variant.base_price !== undefined
+          ? Number(item.variant.base_price)
+          : 0;
+      const unitPrice = salePrice > 0 ? salePrice : basePrice;
+      const totalPrice = item.quantity * unitPrice;
+
+      subtotal += totalPrice;
+      totalItems += item.quantity;
+
+      const primaryImage =
+        item.variant.product_variant_images?.[0]?.image_url ||
+        item.product.images?.[0]?.image_url ||
+        null;
+
+      const measurement = formatVariantMeasurement(
+        item.variant.product_units,
+        item.variant.unit_value
+      );
+
+      items.push({
+        id: item.uuid || String(item.id),
+        productId: item.product.uuid || String(item.product.id),
+        productName: item.product.name,
+        variantId: item.variant.uuid || String(item.variant.id),
+        variantName: item.variant.variant_name,
+        sku: item.variant.sku,
+        measurement,
+        primaryImage,
+        quantity: item.quantity,
+        unitPrice,
+        totalPrice,
+      });
+    }
+
+    return {
+      id: cart.uuid || String(cart.id),
+      status: cart.status,
+      totalItems,
+      subtotal,
+      createdAt: cart.createdAt,
+      updatedAt: cart.updatedAt,
+      items,
     };
   },
 };

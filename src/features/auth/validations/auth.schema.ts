@@ -13,6 +13,9 @@ export const sendEmailOtpSchema = z
 
 export type SendEmailOtpInput = z.infer<typeof sendEmailOtpSchema>;
 
+export const resendRegisterOtpSchema = sendEmailOtpSchema;
+export type ResendRegisterOtpInput = z.infer<typeof resendRegisterOtpSchema>;
+
 export const verifyEmailOtpSchema = z
   .object({
     email: z
@@ -50,29 +53,44 @@ export const refreshTokenSchema = z.object({
 
 export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;
 
-export const forgotPasswordSchema = z.object({
-  email: z
-    .string()
-    .min(1, "Email is required")
-    .email("Please enter a valid email address"),
-});
+export const forgotPasswordSchema = z
+  .object({
+    email: z
+      .string({ message: "Email is required" })
+      .trim()
+      .min(1, "Email is required")
+      .email("Please enter a valid email address")
+      .transform((val) => val.toLowerCase()),
+  })
+  .strict();
 
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 
-export const verifyOtpSchema = z.object({
-  email: z
-    .string()
-    .min(1, "Email is required")
-    .email("Please enter a valid email address"),
-  otp: z
-    .string()
-    .min(6, "OTP must be 6 digits")
-    .max(6, "OTP must be 6 digits")
-    .regex(/^\d{6}$/, "OTP must contain only numbers"),
-});
+export const resendForgotPasswordOtpSchema = forgotPasswordSchema;
+export type ResendForgotPasswordOtpInput = z.infer<
+  typeof resendForgotPasswordOtpSchema
+>;
+
+export const verifyOtpSchema = z
+  .object({
+    email: z
+      .string({ message: "Email is required" })
+      .trim()
+      .min(1, "Email is required")
+      .email("Please enter a valid email address")
+      .transform((val) => val.toLowerCase()),
+    otp: z
+      .string({ message: "OTP is required" })
+      .trim()
+      .min(6, "OTP must be 6 digits")
+      .max(6, "OTP must be 6 digits")
+      .regex(/^\d{6}$/, "OTP must contain only numbers"),
+  })
+  .strict();
 
 export type VerifyOtpInput = z.infer<typeof verifyOtpSchema>;
 
+// Deprecated alias
 export const resendOtpSchema = forgotPasswordSchema;
 export type ResendOtpInput = z.infer<typeof resendOtpSchema>;
 

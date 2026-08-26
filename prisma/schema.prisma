@@ -2371,3 +2371,4 @@ model variant_price_history {
   @@index([updated_by], map: "fk_vph_updated_by")
   @@map("variant_price_history")
 }
+

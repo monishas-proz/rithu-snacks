@@ -2,9 +2,10 @@ import { db } from "@/lib/db/prisma";
 import type { Prisma } from "@/generated/prisma";
 
 type DbClient = typeof db | Prisma.TransactionClient;
+export type OtpPurpose = "register" | "reset_password";
 
 export const otpRepository = {
-  async deleteByEmail(email: string, purpose: "reset_password" | "register" = "reset_password") {
+  async deleteByEmail(email: string, purpose: OtpPurpose) {
     return db.otp_verifications.deleteMany({
       where: {
         identifier: email.toLowerCase().trim(),
@@ -23,17 +24,24 @@ export const otpRepository = {
     });
   },
 
-  async createEmailOtp(data: { email: string; otpCode: string; expiresAt: Date }) {
+  async createOtp(data: {
+    email: string;
+    otpCode: string;
+    purpose: OtpPurpose;
+    expiresAt: Date;
+  }) {
     const normalizedEmail = data.email.toLowerCase().trim();
-    // Invalidate existing unused registration OTPs for this email
+
+    // Invalidate existing unused OTPs for this email and this purpose only
     await db.otp_verifications.updateMany({
       where: {
         identifier: normalizedEmail,
-        purpose: "register",
+        purpose: data.purpose,
         is_used: false,
       },
       data: {
         is_used: true,
+        updated_at: new Date(),
       },
     });
 
@@ -41,7 +49,7 @@ export const otpRepository = {
       data: {
         identifier: normalizedEmail,
         otp_code: data.otpCode,
-        purpose: "register",
+        purpose: data.purpose,
         expires_at: data.expiresAt,
         is_used: false,
         is_token_used: false,
@@ -49,11 +57,11 @@ export const otpRepository = {
     });
   },
 
-  async findLatestValidEmailOtp(email: string) {
+  async findLatestValidOtp(email: string, purpose: OtpPurpose) {
     const record = await db.otp_verifications.findFirst({
       where: {
         identifier: email.toLowerCase().trim(),
-        purpose: "register",
+        purpose,
         is_used: false,
       },
       orderBy: { created_at: "desc" },
@@ -65,9 +73,20 @@ export const otpRepository = {
       id: record.id,
       email: record.identifier,
       otpCode: record.otp_code,
+      purpose: record.purpose as OtpPurpose,
       expiresAt: record.expires_at,
       createdAt: record.created_at,
     };
+  },
+
+  async markOtpConsumed(id: bigint) {
+    return db.otp_verifications.update({
+      where: { id },
+      data: {
+        is_used: true,
+        updated_at: new Date(),
+      },
+    });
   },
 
   async markOtpConsumedAndIssueToken(
@@ -82,6 +101,7 @@ export const otpRepository = {
         verification_token_hash: jti,
         token_expires_at: tokenExpiresAt,
         is_token_used: false,
+        updated_at: new Date(),
       },
     });
   },
@@ -112,41 +132,25 @@ export const otpRepository = {
       where: { id },
       data: {
         is_token_used: true,
+        updated_at: new Date(),
       },
     });
   },
 
-  // Existing methods for forgot password
+  // Backward-compatible delegates
+  async createEmailOtp(data: { email: string; otpCode: string; expiresAt: Date }) {
+    return this.createOtp({ ...data, purpose: "register" });
+  },
+
+  async findLatestValidEmailOtp(email: string) {
+    return this.findLatestValidOtp(email, "register");
+  },
+
   async create(data: { email: string; otpCode: string; expiresAt: Date }) {
-    return db.otp_verifications.create({
-      data: {
-        identifier: data.email.toLowerCase().trim(),
-        otp_code: data.otpCode,
-        purpose: "reset_password",
-        expires_at: data.expiresAt,
-        is_used: false,
-      },
-    });
+    return this.createOtp({ ...data, purpose: "reset_password" });
   },
 
   async findLatestByEmail(email: string) {
-    const record = await db.otp_verifications.findFirst({
-      where: {
-        identifier: email.toLowerCase().trim(),
-        purpose: "reset_password",
-        is_used: false,
-      },
-      orderBy: { created_at: "desc" },
-    });
-
-    if (!record) return null;
-
-    return {
-      id: record.id,
-      email: record.identifier,
-      otpCode: record.otp_code,
-      expiresAt: record.expires_at,
-      createdAt: record.created_at,
-    };
+    return this.findLatestValidOtp(email, "reset_password");
   },
 };

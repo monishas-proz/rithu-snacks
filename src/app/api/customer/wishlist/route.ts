@@ -1,0 +1,45 @@
+import { createApiHandler } from "@/lib/api/api-handler";
+import { apiSuccess } from "@/lib/api/api-response";
+import { ApiError } from "@/lib/api/api-error";
+import { wishlistService } from "@/features/wishlist/services/wishlist.service";
+import {
+  addWishlistSchema,
+  type AddWishlistInput,
+} from "@/features/wishlist/validations/wishlist.schema";
+
+export const GET = createApiHandler(
+  {
+    GET: async (_request, context) => {
+      const sessionUserId = context.session?.user?.id;
+      if (!sessionUserId) {
+        throw ApiError.unauthorized("Please login to view your wishlist");
+      }
+
+      const result = await wishlistService.getCustomerWishlist(sessionUserId);
+      return apiSuccess(result, "Wishlist fetched successfully", 200);
+    },
+  },
+  {
+    requireAuth: true,
+  }
+);
+
+export const POST = createApiHandler(
+  {
+    POST: async (_request, context) => {
+      const sessionUserId = context.session?.user?.id;
+      if (!sessionUserId) {
+        throw ApiError.unauthorized("Please login to add to your wishlist");
+      }
+
+      const body = context.body as AddWishlistInput;
+      const result = await wishlistService.addToWishlist(sessionUserId, body);
+
+      return apiSuccess(result, "Added to wishlist successfully", 200);
+    },
+  },
+  {
+    requireAuth: true,
+    bodySchema: addWishlistSchema,
+  }
+);
