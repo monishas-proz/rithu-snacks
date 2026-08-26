@@ -55,3 +55,49 @@ export const adminProductsQuerySchema = z.object({
 });
 
 export type AdminProductsQueryInput = z.infer<typeof adminProductsQuerySchema>;
+
+const optionalUuidFilter = z.preprocess((val) => {
+  if (val === "" || val === null || val === undefined) return undefined;
+  return val;
+}, z.string().uuid("Invalid UUID format").optional());
+
+export const adminProductListSchema = z
+  .object({
+    page: z.number().int().min(1, "page must be at least 1").default(1),
+    limit: z
+      .number()
+      .int()
+      .min(1, "limit must be at least 1")
+      .max(100, "limit cannot exceed 100")
+      .default(10),
+    pageSize: z
+      .number()
+      .int()
+      .min(1)
+      .max(100)
+      .optional(),
+    search: z.string().trim().optional(),
+    isActive: z.boolean().optional(),
+    categoryId: optionalUuidFilter,
+    brandId: optionalUuidFilter,
+    hsnCodeId: optionalUuidFilter,
+    vegType: vegTypeEnum.optional(),
+    isFeatured: z.boolean().optional(),
+    status: z.boolean().optional(),
+    sortBy: z
+      .enum([
+        "name",
+        "slug",
+        "createdAt",
+        "updatedAt",
+        "isFeatured",
+        "status",
+        "isActive",
+      ])
+      .default("createdAt"),
+    sortOrder: z.enum(["asc", "desc"]).default("desc"),
+  })
+  .strict();
+
+export type AdminProductListInput = z.infer<typeof adminProductListSchema>;
+
