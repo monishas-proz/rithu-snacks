@@ -94,3 +94,73 @@ export interface OrderListResponse<T = OrderListItemResponse> {
   data: T[];
   meta: OrderPaginationMeta;
 }
+
+export type DeliveryMethod = "standard" | "express";
+
+export interface GetOrdersParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+}
+
+export interface OrderListItem {
+  id: number;
+  orderNumber: string;
+  status: OrderStatus;
+  paymentStatus: PaymentStatus;
+  totalAmount: number;
+  itemCount: number;
+  createdAt: Date | string;
+  items?: OrderItemResponse[];
+  customer?: OrderCustomerDto;
+}
+
+export interface OrderDetail extends OrderListItem {
+  shippingAddress?: OrderAddressResponse | null;
+  billingAddress?: OrderAddressResponse | null;
+  subtotal: number;
+  taxAmount: number;
+  discountAmount: number;
+  shippingCharge: number;
+  notes?: string | null;
+}
+
+export interface GetOrdersResult {
+  orders: OrderListItem[];
+  pagination?: OrderPaginationMeta;
+  total?: number;
+}
+
+export interface PlaceOrderInput {
+  addressId: string;
+  billingAddressId?: string;
+  notes?: string;
+}
+
+export interface UpdateOrderStatusInput {
+  status: OrderStatus;
+  note?: string;
+}
+
+export interface CheckoutSummary {
+  subtotal: number;
+  discountAmount: number;
+  taxAmount: number;
+  shippingCharge: number;
+  totalAmount: number;
+  couponCode?: string | null;
+  appliedCoupon?: unknown;
+}
+
+export const ORDER_STATUSES = [
+  "PENDING",
+  "CONFIRMED",
+  "PROCESSING",
+  "PACKED",
+  "SHIPPED",
+  "DELIVERED",
+  "CANCELLED",
+  "RETURNED",
+] as const;
+

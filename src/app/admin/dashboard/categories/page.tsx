@@ -29,6 +29,7 @@ import { ErrorState } from "@/components/ui/error-state";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { SearchInput } from "@/components/ui/search-input";
 import { Plus, Pencil, Trash2, Eye } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { CategoryListItem } from "@/features/categories/types";
@@ -49,10 +50,6 @@ export default function AdminCategoriesPage() {
     pageSize,
     search: search || undefined,
   });
-
-  useEffect(() => {
-  setPage(1);
-}, [search]);
 
 
 
@@ -225,16 +222,15 @@ console.log("Categories received from API:", categories.length);
 
           {/* Search + Filter */}
           <div className="flex-shrink-0 mt-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="relative w-full max-w-md">
-              <Search className="absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-[var(--color-neutral-400)]" />
-              <input
-                type="text"
-                placeholder="Search categories..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="h-11 w-full rounded-xl border border-[var(--color-neutral-300)] bg-white pr-4 pl-11 text-sm text-[var(--color-neutral-900)] transition-all outline-none focus:border-[var(--color-primary-500)] focus:ring-2 focus:ring-[var(--color-primary-100)]"
-              />
-            </div>
+            <SearchInput
+              placeholder="Search categories..."
+              defaultValue={search}
+              onSearch={(val) => {
+                setSearch(val);
+                setPage(1);
+              }}
+              className="w-full max-w-md"
+            />
 
             <Button
               type="button"

@@ -34,16 +34,9 @@ export function useCustomerVariants(params?: CustomerGlobalVariantListParams) {
 }
 
 export function useVariants(params?: GetAdminVariantsParams) {
-  const queryParams: Record<string, string | number | boolean | undefined> = {};
-  if (params?.page) queryParams.page = params.page;
-  if (params?.pageSize) queryParams.pageSize = params.pageSize;
-  if (params?.search) queryParams.search = params.search;
-  if (params?.productId) queryParams.productId = params.productId;
-  if (params?.productUuid) queryParams.productUuid = params.productUuid;
-
   return useQuery({
-    queryKey: variantKeys.list(queryParams),
-    queryFn: () => getAdminVariants(queryParams),
+    queryKey: variantKeys.list((params ?? {}) as Record<string, unknown>),
+    queryFn: () => getAdminVariants(params),
     placeholderData: keepPreviousData,
   });
 }
@@ -52,19 +45,17 @@ export function useProductVariants(
   productUuid: string | null,
   params?: GetAdminVariantsParams
 ) {
-  const queryParams: Record<string, string | number | boolean | undefined> = {};
-  if (params?.page) queryParams.page = params.page;
-  if (params?.pageSize) queryParams.pageSize = params.pageSize;
-  if (params?.search) queryParams.search = params.search;
-
   return useQuery({
     queryKey: productUuid
-      ? ([...variantKeys.all, "product", productUuid, queryParams] as const)
-      : variantKeys.list(queryParams),
+      ? ([...variantKeys.all, "product", productUuid, params ?? {}] as const)
+      : variantKeys.list((params ?? {}) as Record<string, unknown>),
     queryFn: () =>
       productUuid
-        ? getAdminProductVariants(productUuid, queryParams)
-        : getAdminVariants(queryParams),
+        ? getAdminProductVariants(
+            productUuid,
+            params as Record<string, string | number | boolean | undefined | null>
+          )
+        : getAdminVariants(params),
     enabled: !!productUuid,
     placeholderData: keepPreviousData,
   });

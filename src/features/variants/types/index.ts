@@ -1,6 +1,30 @@
+import type { PaginationMeta } from "@/lib/api/api-response";
 import type { VariantMeasurement } from "../utils/measurement.util";
 
 export * from "../utils/measurement.util";
+export type {
+  CustomerVariantListItemDto,
+  CustomerVariantDetailDto,
+  CustomerVariantImageDto,
+} from "@/features/customers/types";
+
+export interface CustomerGlobalVariantListParams {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  productIds?: string[];
+  brandIds?: string[];
+  categoryIds?: string[];
+  minPrice?: number | null;
+  maxPrice?: number | null;
+  sortBy?:
+    | "variantName"
+    | "salePrice"
+    | "basePrice"
+    | "createdAt"
+    | "productName";
+  sortOrder?: "asc" | "desc";
+}
 
 export interface UnitOption {
   id: string;
@@ -29,6 +53,11 @@ export interface AdminVariantResponse {
   unitCode?: string;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface GetAdminVariantsResult {
+  data: AdminVariantResponse[];
+  meta?: PaginationMeta;
 }
 
 export interface AdminVariantImageResponse {

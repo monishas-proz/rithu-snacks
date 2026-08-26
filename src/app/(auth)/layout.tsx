@@ -7,19 +7,16 @@ interface AuthLayoutProps {
 
 export default function AuthLayout({ children }: AuthLayoutProps) {
   return (
-    <div className="grid h-screen overflow-hidden lg:grid-cols-[43%_57%]">
-      {/* Left Banner */}
-      <div className="hidden min-h-0 lg:block">
+    <div className="grid h-screen w-full overflow-hidden lg:grid-cols-[43%_57%]">
+      {/* Left Banner - strictly fixed & non-scrollable on desktop */}
+      <div className="hidden h-screen min-h-0 w-full overflow-hidden lg:block">
         <AuthBanner />
       </div>
 
-      {/* Right Side */}
-      <main
-        className="min-h-0 overflow-y-auto"
-        style={{ backgroundColor: "var(--background)" }}
-      >
-        <div className="flex min-h-full w-full items-center justify-center px-4 py-6 sm:px-6 lg:px-8">
-          <div className="w-full max-w-[560px]">
+      {/* Right Side - independently scrollable */}
+      <main className="h-screen min-h-0 w-full overflow-y-auto bg-background">
+        <div className="flex min-h-full w-full items-center justify-center px-4 py-8 sm:px-6 md:px-8 lg:px-10">
+          <div className="my-auto w-full max-w-[520px]">
             {children}
           </div>
         </div>

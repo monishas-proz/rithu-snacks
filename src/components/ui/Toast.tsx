@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { CheckCircle2, XCircle, AlertTriangle, Info, X } from "lucide-react";
+import { createPortal } from "react-dom";
+import { Check, AlertTriangle, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type ToastVariant = "success" | "error" | "warning" | "info";
@@ -113,30 +114,49 @@ function ToastProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-const toastVariantStyles: Record<ToastVariant, { container: string; iconColor: string }> = {
+const toastVariantStyles: Record<
+  ToastVariant,
+  { progressTrack: string; progressBar: string }
+> = {
   success: {
-    container: "bg-white border-green-200",
-    iconColor: "text-green-500",
+    progressTrack: "bg-[#EAE4DF]",
+    progressBar: "bg-[#2E1E16]",
   },
   error: {
-    container: "bg-white border-red-200",
-    iconColor: "text-red-500",
+    progressTrack: "bg-[#FCE8E8]",
+    progressBar: "bg-[#C92A2A]",
   },
   warning: {
-    container: "bg-white border-yellow-200",
-    iconColor: "text-yellow-500",
+    progressTrack: "bg-[#F7F0E1]",
+    progressBar: "bg-[#8D6508]",
   },
   info: {
-    container: "bg-white border-blue-200",
-    iconColor: "text-blue-500",
+    progressTrack: "bg-[#F7E6EA]",
+    progressBar: "bg-[#6B1124]",
   },
 };
 
 const toastIcons: Record<ToastVariant, React.ReactNode> = {
-  success: <CheckCircle2 className="h-5 w-5" />,
-  error: <XCircle className="h-5 w-5" />,
-  warning: <AlertTriangle className="h-5 w-5" />,
-  info: <Info className="h-5 w-5" />,
+  success: (
+    <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#2E1E16] text-white">
+      <Check className="h-3 w-3 stroke-[3]" />
+    </div>
+  ),
+  error: (
+    <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#C92A2A] text-white">
+      <span className="text-[11px] font-black leading-none select-none">!</span>
+    </div>
+  ),
+  warning: (
+    <div className="flex h-5 w-5 shrink-0 items-center justify-center text-[#8D6508]">
+      <AlertTriangle className="h-5 w-5 fill-[#8D6508] text-white" />
+    </div>
+  ),
+  info: (
+    <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#6B1124] text-white">
+      <span className="font-serif italic font-bold text-[11px] leading-none select-none">i</span>
+    </div>
+  ),
 };
 
 interface ToastContainerProps {
@@ -145,44 +165,96 @@ interface ToastContainerProps {
 }
 
 function ToastContainer({ toasts, removeToast }: ToastContainerProps) {
-  if (toasts.length === 0) return null;
+  const [mounted, setMounted] = React.useState(false);
 
-  return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none">
-      {toasts.map((t) => {
-        const styles = toastVariantStyles[t.variant];
-        return (
-          <div
-            key={t.id}
-            role="alert"
-            className={cn(
-              "pointer-events-auto flex items-start gap-3 rounded-lg border p-4 shadow-lg",
-              "animate-in slide-in-from-bottom-5 fade-in duration-300",
-              styles.container
-            )}
-          >
-            <div className={cn("mt-0.5 shrink-0", styles.iconColor)}>
-              {toastIcons[t.variant]}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-900">{t.title}</p>
-              {t.description && (
-                <p className="mt-1 text-sm text-gray-600">{t.description}</p>
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted || toasts.length === 0) return null;
+
+  const content = (
+    <>
+      <style>{`
+        @keyframes toastProgressDrain {
+          from {
+            width: 100%;
+          }
+          to {
+            width: 0%;
+          }
+        }
+      `}</style>
+      <div
+        aria-live="polite"
+        aria-label="Notifications"
+        className="fixed top-4 right-4 sm:top-5 sm:right-5 z-[100000] flex flex-col gap-3 max-w-[calc(100vw-2rem)] sm:max-w-[380px] w-full pointer-events-none items-end"
+      >
+        {toasts.map((t) => {
+          const styles = toastVariantStyles[t.variant];
+          const duration = t.duration ?? 5000;
+
+          return (
+            <div
+              key={t.id}
+              role="alert"
+              className={cn(
+                "pointer-events-auto relative w-full rounded-xl sm:rounded-2xl bg-white p-4 pb-4.5 shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-neutral-100/90 overflow-hidden transition-all",
+                "animate-in slide-in-from-top-2 fade-in duration-200"
               )}
-            </div>
-            <button
-              onClick={() => removeToast(t.id)}
-              className="shrink-0 rounded-md p-1 text-gray-400 hover:text-gray-600 transition-colors"
-              aria-label="Close"
             >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        );
-      })}
-    </div>
+              <div className="flex items-start gap-3">
+                {/* Left Status Icon */}
+                <div className="mt-0.5 shrink-0">
+                  {toastIcons[t.variant]}
+                </div>
+
+                {/* Center Content */}
+                <div className="flex-1 min-w-0 pr-1">
+                  <h4 className="text-[14px] font-bold text-neutral-900 tracking-[-0.01em] leading-snug">
+                    {t.title}
+                  </h4>
+                  {t.description && (
+                    <p className="mt-1 text-[13px] font-normal text-neutral-600 leading-relaxed break-words">
+                      {t.description}
+                    </p>
+                  )}
+                </div>
+
+                {/* Right Close Button */}
+                <button
+                  type="button"
+                  onClick={() => removeToast(t.id)}
+                  className="shrink-0 p-1 text-neutral-400 hover:text-neutral-700 transition-colors rounded-md cursor-pointer -mr-1 -mt-0.5"
+                  aria-label="Close notification"
+                >
+                  <X className="h-4 w-4 stroke-[1.5]" />
+                </button>
+              </div>
+
+              {/* Bottom Progress Timer Bar */}
+              <div
+                className={cn(
+                  "absolute bottom-0 left-0 right-0 h-[3.5px] w-full overflow-hidden",
+                  styles.progressTrack
+                )}
+              >
+                <div
+                  className={cn("h-full origin-left", styles.progressBar)}
+                  style={{
+                    animation: `toastProgressDrain ${duration}ms linear forwards`,
+                  }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </>
   );
+
+  return createPortal(content, document.body);
 }
 
-export { ToastProvider, useToast };
+export { ToastProvider, useToast, toast };
 export type { Toast, ToastVariant };

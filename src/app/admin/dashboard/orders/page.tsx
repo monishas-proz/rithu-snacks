@@ -39,16 +39,12 @@ import {
   PaymentStatusBadge,
   ORDER_STATUS_LABELS,
 } from "@/features/orders/components/OrderStatusBadge";
-import { ORDER_STATUSES } from "@/features/orders/types";
-import type {
-  OrderListItem,
-  OrderStatus,
-} from "@/features/orders/types";
+import { ORDER_STATUSES, type OrderListItem, type OrderStatus } from "@/features/orders/types";
+import { SearchInput } from "@/components/ui/search-input";
 
 export default function AdminOrdersPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const [searchInput, setSearchInput] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [viewOrderId, setViewOrderId] = useState<number | null>(null);
   const [cancelOrderId, setCancelOrderId] = useState<number | null>(null);
@@ -75,11 +71,6 @@ export default function AdminOrdersPage() {
       setDraftStatus(orderDetail.status);
     }
   }, [orderDetail]);
-
-  const applySearch = () => {
-    setSearch(searchInput.trim());
-    setPage(1);
-  };
 
   const changeStatusFilter = (value: string) => {
     setStatusFilter(value);
@@ -206,18 +197,16 @@ export default function AdminOrdersPage() {
       />
 
       <AdminContent>
-        <div className="mb-4 flex flex-wrap items-center gap-3">
-          <div className="relative max-w-sm flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && applySearch()}
-              placeholder="Search by order number, customer, product..."
-              className="flex h-10 w-full rounded-lg border border-gray-300 bg-white pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-            />
-          </div>
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <SearchInput
+            placeholder="Search by order number, customer, product..."
+            defaultValue={search}
+            onSearch={(val) => {
+              setSearch(val.trim());
+              setPage(1);
+            }}
+            className="max-w-sm flex-1"
+          />
           <div className="w-48">
             <Select
               value={statusFilter}
@@ -228,10 +217,6 @@ export default function AdminOrdersPage() {
               )}
             />
           </div>
-          <Button variant="outline" onClick={applySearch}>
-            <Search className="mr-2 h-4 w-4" />
-            Search
-          </Button>
         </div>
 
         {isLoading ? (

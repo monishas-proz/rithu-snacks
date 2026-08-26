@@ -21,11 +21,11 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FormModal } from "@/components/common/FormModal";
+import { SearchInput } from "@/components/ui/search-input";
 import {
   Plus,
   Pencil,
   Trash2,
-  Search,
   Package,
   Check,
   ImageIcon,
@@ -38,7 +38,6 @@ import {
 } from "@/features/variants/components";
 
 export default function AdminVariantsPage() {
-  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [selectedProductFilter, setSelectedProductFilter] =
     useState<string>("");
@@ -65,14 +64,6 @@ export default function AdminVariantsPage() {
   const [editTab, setEditTab] = useState<"details" | "images">("details");
   const [selectedVariant, setSelectedVariant] =
     useState<AdminVariantResponse | null>(null);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setSearch(searchInput);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [searchInput]);
 
   useEffect(() => {
     setPage(1);
@@ -270,16 +261,15 @@ export default function AdminVariantsPage() {
         <div className="flex h-full flex-col overflow-hidden bg-[var(--color-background)] py-1 rounded-2xl">
           <div className="flex-shrink-0 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="relative w-full max-w-md">
-                <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-neutral-400)] pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Search variants by name, SKU..."
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  className="h-11 w-full rounded-xl border border-[var(--color-neutral-200)] bg-white pl-11 pr-4 text-sm text-[var(--color-neutral-900)] placeholder:text-[var(--color-neutral-400)] outline-none transition-all focus:outline-none focus:border-secondary-600 focus:ring-2 focus:ring-secondary-600/20 hover:border-neutral-300"
-                />
-              </div>
+              <SearchInput
+                placeholder="Search variants by name, SKU..."
+                defaultValue={search}
+                onSearch={(val) => {
+                  setSearch(val);
+                  setPage(1);
+                }}
+                className="w-full max-w-md"
+              />
 
               <div className="w-full sm:w-64">
                 <Select

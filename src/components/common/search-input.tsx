@@ -18,32 +18,46 @@ function SearchInput({
   placeholder = "Search...",
   ...props
 }: SearchInputProps) {
-  const [value, setValue] = React.useState(props.defaultValue || "");
+  const [value, setValue] = React.useState(
+    props.value !== undefined ? props.value : (props.defaultValue || "")
+  );
+  const onSearchRef = React.useRef(onSearch);
+
+  React.useEffect(() => {
+    if (props.value !== undefined) {
+      setValue(props.value);
+    }
+  }, [props.value]);
+
+  React.useEffect(() => {
+    onSearchRef.current = onSearch;
+  }, [onSearch]);
 
   React.useEffect(() => {
     const timer = setTimeout(() => {
-      onSearch?.(value as string);
+      onSearchRef.current?.(value as string);
     }, debounceMs);
     return () => clearTimeout(timer);
-  }, [value, debounceMs, onSearch]);
+  }, [value, debounceMs]);
 
   return (
-    <div className={cn("relative", className)}>
-      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+    <div className={cn("relative w-full", className)}>
       <Input
-        className="pl-9 pr-9"
+        leftIcon={<Search className="h-4 w-4 text-neutral-400" />}
         placeholder={placeholder}
         value={value}
         onChange={(e) => setValue(e.target.value)}
+        className={cn("h-11 rounded-xl border-neutral-300", value ? "pr-10" : "")}
         {...props}
       />
       {value && (
         <button
+          type="button"
           onClick={() => {
             setValue("");
-            onSearch?.("");
+            onSearchRef.current?.("");
           }}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 cursor-pointer p-1 z-10"
         >
           <X className="h-4 w-4" />
         </button>
