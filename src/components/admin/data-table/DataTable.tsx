@@ -23,6 +23,8 @@ interface DataTableProps<TData, TValue> {
   searchKey?: string;
   searchPlaceholder?: string;
   pageSize?: number;
+  pageSizeOptions?: number[];
+  onPageSizeChange?: (pageSize: number) => void;
   page?: number;
   totalPages?: number;
   totalItems?: number;
@@ -36,7 +38,9 @@ function DataTable<TData, TValue>({
   data,
   searchKey,
   searchPlaceholder = "Search...",
-  pageSize = 10,
+  pageSize: controlledPageSize,
+  pageSizeOptions = [10, 20, 30, 50],
+  onPageSizeChange,
   page = 1,
   totalPages,
   totalItems,
@@ -44,6 +48,18 @@ function DataTable<TData, TValue>({
   className,
   emptyMessage = "No results found.",
 }: DataTableProps<TData, TValue>) {
+  const [internalPageSize, setInternalPageSize] = React.useState<number>(
+    controlledPageSize ?? 10
+  );
+
+  const effectivePageSize = controlledPageSize ?? internalPageSize;
+
+  const handlePageSizeChange = (newSize: number) => {
+    setInternalPageSize(newSize);
+    onPageSizeChange?.(newSize);
+    onPageChange?.(1);
+  };
+
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
@@ -73,12 +89,12 @@ function DataTable<TData, TValue>({
 
   const startEntry =
     totalItems && totalItems > 0
-      ? (page - 1) * pageSize + 1
+      ? (page - 1) * effectivePageSize + 1
       : 0;
 
   const endEntry =
     totalItems && totalItems > 0
-      ? Math.min(page * pageSize, totalItems)
+      ? Math.min(page * effectivePageSize, totalItems)
       : 0;
 
     
@@ -183,11 +199,30 @@ function DataTable<TData, TValue>({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-5">
-        <p className="text-sm text-[var(--color-neutral-500)]">
-          Showing {startEntry}–{endEntry} of {totalItems ?? data.length} entries
-        </p>
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 sm:px-5 py-2">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-sm text-[var(--color-neutral-500)]">
+          <p>
+            Showing {startEntry}–{endEntry} of {totalItems ?? data.length} entries
+          </p>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-[var(--color-neutral-600)] whitespace-nowrap">
+              Rows per page:
+            </span>
+            <select
+              value={effectivePageSize}
+              onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+              aria-label="Rows per page"
+              className="h-8 rounded-lg border border-[var(--color-neutral-300)] bg-white px-2.5 py-1 text-xs font-semibold text-[var(--color-neutral-700)] shadow-xs transition-colors hover:border-[var(--color-neutral-400)] focus:border-[#801B2B] focus:outline-hidden cursor-pointer"
+            >
+              {pageSizeOptions.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 self-end sm:self-auto">
           <button
             onClick={() => onPageChange?.(page - 1)}
             disabled={page <= 1}
@@ -196,10 +231,11 @@ function DataTable<TData, TValue>({
               "bg-white text-[var(--color-neutral-700)] transition-colors hover:bg-[var(--color-neutral-50)]",
               "disabled:cursor-not-allowed disabled:opacity-50"
             )}
+            aria-label="Previous page"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
-          <span className="text-sm text-[var(--color-neutral-700)]">
+          <span className="text-sm font-medium text-[var(--color-neutral-700)] px-1">
             {page} / {totalPages ?? 1}
           </span>
           <button
@@ -210,6 +246,7 @@ function DataTable<TData, TValue>({
               "bg-white text-[var(--color-neutral-700)] transition-colors hover:bg-[var(--color-neutral-50)]",
               "disabled:cursor-not-allowed disabled:opacity-50"
             )}
+            aria-label="Next page"
           >
             <ChevronRight className="h-4 w-4" />
           </button>

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +15,12 @@ interface ModalProps {
 }
 
 function Modal({ open, onClose, children, title, description, className }: ModalProps) {
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
   React.useEffect(() => {
     if (open) {
       document.body.style.overflow = "hidden";
@@ -25,34 +32,42 @@ function Modal({ open, onClose, children, title, description, className }: Modal
     };
   }, [open]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
-    <div className="fixed inset-0 z-50">
-      <div className="fixed inset-0 bg-black/80" onClick={onClose} />
-      <div className="fixed inset-0 flex items-center justify-center p-4">
-        <div
-          className={cn(
-            "relative w-full max-w-lg rounded-lg border bg-background p-6 shadow-lg animate-in zoom-in-95",
-            className
-          )}
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in-0"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+
+      {/* Modal Dialog Card */}
+      <div
+        className={cn(
+          "relative z-10 w-full max-w-md rounded-2xl border border-[#EDE4D9] bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-150 my-auto",
+          className
+        )}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 p-1 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors cursor-pointer"
+          aria-label="Close dialog"
         >
-          <button
-            onClick={onClose}
-            className="absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 outline-none focus:outline-none focus:ring-2 focus:ring-secondary-600/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary-600/20 cursor-pointer"
-          >
-            <X className="h-4 w-4" />
-          </button>
-          {title && (
-            <div className="mb-4">
-              <h2 className="text-lg font-semibold">{title}</h2>
-              {description && <p className="text-sm text-muted-foreground">{description}</p>}
-            </div>
-          )}
-          {children}
-        </div>
+          <X className="h-4 w-4" />
+        </button>
+        {title && (
+          <div className="mb-4">
+            <h2 className="text-lg font-bold text-[#211C1A] tracking-tight">{title}</h2>
+            {description && <p className="mt-1 text-sm text-[#7C7169]">{description}</p>}
+          </div>
+        )}
+        {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

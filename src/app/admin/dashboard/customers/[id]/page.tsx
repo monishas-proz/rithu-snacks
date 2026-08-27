@@ -16,6 +16,8 @@ import {
   useAdminCustomerDetail,
   useAdminCustomerAddresses,
   useAdminCustomerOrders,
+  useAdminCustomerWishlist,
+  useAdminCustomerCart,
 } from "@/features/customers/hooks";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
@@ -35,30 +37,46 @@ export default function AdminCustomerProfilePage() {
     refetch: refetchProfile,
   } = useAdminCustomerDetail(customerId);
 
-  // Use the canonical customer UUID for related entities
-  const targetUuid = customer?.id || customerId;
+  // Extract canonical customer identifier strictly from Profile API response
+  const profileId = customer?.id;
 
-  // 2. Customer Addresses Query
+  // 2. Customer Addresses Query (strictly depends on profileId)
   const {
     data: addresses,
     isLoading: isLoadingAddresses,
     error: addressesError,
     refetch: refetchAddresses,
-  } = useAdminCustomerAddresses(targetUuid);
+  } = useAdminCustomerAddresses(profileId);
 
-  // 3. Customer Orders Query (with pagination)
+  // 3. Customer Orders Query (strictly depends on profileId)
   const [orderPage, setOrderPage] = React.useState(1);
   const {
     data: ordersResponse,
     isLoading: isLoadingOrders,
     error: ordersError,
     refetch: refetchOrders,
-  } = useAdminCustomerOrders(targetUuid, {
+  } = useAdminCustomerOrders(profileId, {
     page: orderPage,
     pageSize: 10,
     sortBy: "createdAt",
     sortOrder: "desc",
   });
+
+  // 4. Customer Wishlist Query (strictly depends on profileId)
+  const {
+    data: wishlistResponse,
+    isLoading: isLoadingWishlist,
+    error: wishlistError,
+    refetch: refetchWishlist,
+  } = useAdminCustomerWishlist(profileId);
+
+  // 5. Customer Cart Query (strictly depends on profileId)
+  const {
+    data: cartResponse,
+    isLoading: isLoadingCart,
+    error: cartError,
+    refetch: refetchCart,
+  } = useAdminCustomerCart(profileId);
 
   // Default active tab to "orders" matching screenshot
   const [activeTab, setActiveTab] = React.useState<ProfileTab>("orders");
@@ -180,11 +198,21 @@ export default function AdminCustomerProfilePage() {
           )}
 
           {activeTab === "wishlist" && (
-            <CustomerWishlistSection />
+            <CustomerWishlistSection
+              wishlist={wishlistResponse?.items}
+              isLoading={isLoadingWishlist}
+              error={wishlistError as Error | null}
+              onRetry={refetchWishlist}
+            />
           )}
 
           {activeTab === "cart" && (
-            <CustomerCartSection />
+            <CustomerCartSection
+              cart={cartResponse}
+              isLoading={isLoadingCart}
+              error={cartError as Error | null}
+              onRetry={refetchCart}
+            />
           )}
         </div>
       </div>

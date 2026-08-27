@@ -31,7 +31,7 @@ export default function AdminProductsPage() {
   const [search, setSearch] = useState("");
 
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const [pageSize, setPageSize] = useState(10);
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -46,10 +46,20 @@ export default function AdminProductsPage() {
     search: search || undefined,
   });
 
-  // Reference queries for relations
-  const { data: categoriesData } = useCategories({ pageSize: 100 });
-  const { data: brandsData } = useBrands({ limit: 100 });
-  const { data: hsnData } = useHsnCodes({ pageSize: 100 });
+  // Reference queries for modal form dropdowns (lazy-loaded only when modal opens)
+  const isModalOpen = isCreateOpen || isEditOpen;
+  const { data: categoriesData } = useCategories(
+    { pageSize: 100 },
+    { enabled: isModalOpen }
+  );
+  const { data: brandsData } = useBrands(
+    { limit: 100 },
+    { enabled: isModalOpen }
+  );
+  const { data: hsnData } = useHsnCodes(
+    { pageSize: 100 },
+    { enabled: isModalOpen }
+  );
 
   const createMutation = useCreateProduct();
   const updateMutation = useUpdateProduct();
@@ -60,26 +70,7 @@ export default function AdminProductsPage() {
   const brands = brandsData?.data ?? [];
   const hsnCodes = hsnData?.data ?? [];
 
-  // Mappings for table lookup
-  const categoryMap = useMemo(() => {
-    return new Map(
-      categories.map((c) => [String(c.id), c.name])
-    );
-  }, [categories]);
-
-  const brandMap = useMemo(() => {
-    return new Map(
-      brands.map((b) => [b.uuid || String(b.id), b.name])
-    );
-  }, [brands]);
-
-  const hsnMap = useMemo(() => {
-    return new Map(
-      hsnCodes.map((h) => [h.id, h.code])
-    );
-  }, [hsnCodes]);
-
-  // Options for form dropdowns
+  // Options for form dropdowns (used only when modal is open)
   const categoryOptions = useMemo(() => {
     return categories.map((c) => ({
       value: String(c.id),
@@ -117,46 +108,31 @@ export default function AdminProductsPage() {
       ),
     },
     {
-      accessorKey: "categoryId",
+      accessorKey: "categoryName",
       header: "Category",
-      cell: ({ row }) => {
-        const catName = row.original.categoryId
-          ? categoryMap.get(row.original.categoryId)
-          : null;
-        return (
-          <span className="text-[var(--color-neutral-700)]">
-            {catName || "—"}
-          </span>
-        );
-      },
+      cell: ({ row }) => (
+        <span className="text-[var(--color-neutral-700)]">
+          {row.original.categoryName || "—"}
+        </span>
+      ),
     },
     {
-      accessorKey: "brandId",
+      accessorKey: "brandName",
       header: "Brand",
-      cell: ({ row }) => {
-        const brandName = row.original.brandId
-          ? brandMap.get(row.original.brandId)
-          : null;
-        return (
-          <span className="text-[var(--color-neutral-700)]">
-            {brandName || "—"}
-          </span>
-        );
-      },
+      cell: ({ row }) => (
+        <span className="text-[var(--color-neutral-700)]">
+          {row.original.brandName || "—"}
+        </span>
+      ),
     },
     {
-      accessorKey: "hsnCodeId",
+      accessorKey: "hsnCodeName",
       header: "HSN Code",
-      cell: ({ row }) => {
-        const hsnCode = row.original.hsnCodeId
-          ? hsnMap.get(row.original.hsnCodeId)
-          : null;
-        return (
-          <span className="font-medium text-[var(--color-neutral-700)]">
-            {hsnCode || "—"}
-          </span>
-        );
-      },
+      cell: ({ row }) => (
+        <span className="font-medium text-[var(--color-neutral-700)]">
+          {row.original.hsnCodeName || "—"}
+        </span>
+      ),
     },
     {
       accessorKey: "vegType",
@@ -301,6 +277,10 @@ export default function AdminProductsPage() {
               totalPages={data?.meta?.totalPages ?? 1}
               totalItems={data?.meta?.total ?? 0}
               onPageChange={setPage}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                setPage(1);
+              }}
               className="bg-white"
             />
           </div>

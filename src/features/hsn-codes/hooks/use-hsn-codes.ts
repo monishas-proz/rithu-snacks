@@ -5,7 +5,10 @@ import { hsnCodeKeys } from "@/lib/api/query-keys";
 import { getHsnCodes, getHsnCode } from "../api/get-hsn-codes";
 import type { GetAdminHsnCodesParams } from "../types";
 
-export function useHsnCodes(params?: GetAdminHsnCodesParams) {
+export function useHsnCodes(
+  params?: GetAdminHsnCodesParams,
+  options?: { enabled?: boolean }
+) {
   const queryParams: Record<
     string,
     string | number | boolean | undefined
@@ -19,6 +22,7 @@ export function useHsnCodes(params?: GetAdminHsnCodesParams) {
     queryKey: hsnCodeKeys.list(queryParams),
     queryFn: () => getHsnCodes(queryParams),
     placeholderData: keepPreviousData,
+    enabled: options?.enabled,
   });
 }
 

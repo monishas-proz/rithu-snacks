@@ -35,7 +35,7 @@ export default function AdminCustomersPage() {
   const [genderFilter, setGenderFilter] = useState<string>("all");
   const [verificationFilter, setVerificationFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
-  const pageSize = 20;
+  const [pageSize, setPageSize] = useState(10);
 
   // Reset pagination on filter changes
   useEffect(() => {
@@ -430,6 +430,10 @@ export default function AdminCustomersPage() {
             totalPages={meta?.totalPages ?? 1}
             totalItems={meta?.total ?? 0}
             onPageChange={setPage}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setPage(1);
+            }}
             className="bg-white"
             emptyMessage="No customers found matching your criteria."
           />

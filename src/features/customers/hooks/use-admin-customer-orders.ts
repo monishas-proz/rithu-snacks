@@ -6,10 +6,10 @@ import { getAdminCustomerOrders } from "../api/admin-customers.api";
 import type { AdminCustomerOrdersInput } from "../validations/admin-customer.schema";
 
 export function useAdminCustomerOrders(
-  uuid: string,
+  uuid?: string | null,
   params?: Partial<AdminCustomerOrdersInput>
 ) {
-  const cleanUuid = uuid?.trim();
+  const cleanUuid = uuid?.trim() || "";
 
   return useQuery({
     queryKey: [...adminCustomerKeys.detail(cleanUuid), "orders", params] as const,

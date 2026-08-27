@@ -33,11 +33,15 @@ export function useCustomerVariants(params?: CustomerGlobalVariantListParams) {
   });
 }
 
-export function useVariants(params?: GetAdminVariantsParams) {
+export function useVariants(
+  params?: GetAdminVariantsParams,
+  options?: { enabled?: boolean }
+) {
   return useQuery({
     queryKey: variantKeys.list((params ?? {}) as Record<string, unknown>),
     queryFn: () => getAdminVariants(params),
     placeholderData: keepPreviousData,
+    ...options,
   });
 }
 

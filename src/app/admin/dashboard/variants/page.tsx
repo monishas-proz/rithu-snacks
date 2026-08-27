@@ -371,11 +371,11 @@ export default function AdminVariantsPage() {
                 unitValue: Number(formData.unitValue),
                 basePrice: Number(formData.basePrice),
                 salePrice: Number(formData.salePrice),
-                weightGrams:
-                  formData.weightGrams !== null &&
-                  formData.weightGrams !== undefined
-                    ? Number(formData.weightGrams)
-                    : null,
+                // weightGrams:
+                //   formData.weightGrams !== null &&
+                //   formData.weightGrams !== undefined
+                //     ? Number(formData.weightGrams)
+                //     : null,
               };
 
               const res = await createMutation.mutateAsync({
@@ -488,12 +488,12 @@ export default function AdminVariantsPage() {
                     unitValue: Number(formData.unitValue),
                     basePrice: Number(formData.basePrice),
                     salePrice: Number(formData.salePrice),
-                    weightGrams:
-                      formData.weightGrams !== null &&
-                      formData.weightGrams !== undefined
-                        ? Number(formData.weightGrams)
-                        : null,
-                  };
+                    // weightGrams:
+                    //   formData.weightGrams !== null &&
+                    //   formData.weightGrams !== undefined
+                    //     ? Number(formData.weightGrams)
+                    //     : null,
+                  }; 
 
                   await updateMutation.mutateAsync({
                     productUuid: selectedVariant.productId,

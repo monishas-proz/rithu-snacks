@@ -10,7 +10,9 @@ import type {
   AdminCustomerOrderItemDto,
   AdminCustomerListResponse,
   AdminCustomerOrdersResponse,
+  AdminCustomerCartDto,
 } from "../types/admin-customer.types";
+import type { CustomerWishlistResponse } from "@/features/wishlist/types/wishlist.types";
 
 export async function getAdminCustomers(
   params?: Partial<AdminCustomerListInput>
@@ -72,7 +74,10 @@ export async function getAdminCustomerDetail(
     throw new Error(`Customer with ID '${idOrUuid}' not found.`);
   }
 
-  return match;
+  return {
+    ...match,
+    id: match.userId || match.id,
+  };
 }
 
 export async function getAdminCustomerAddresses(
@@ -111,4 +116,24 @@ export async function getAdminCustomerOrders(
       totalPages: 1,
     },
   };
+}
+
+export async function getAdminCustomerWishlist(
+  uuid: string
+): Promise<CustomerWishlistResponse> {
+  const cleanUuid = uuid.trim();
+  const response = await apiClient.get<CustomerWishlistResponse>(
+    `/api/admin/customers/${encodeURIComponent(cleanUuid)}/wishlist`
+  );
+  return response.data ?? { items: [], totalItems: 0 };
+}
+
+export async function getAdminCustomerCart(
+  uuid: string
+): Promise<AdminCustomerCartDto | null> {
+  const cleanUuid = uuid.trim();
+  const response = await apiClient.get<AdminCustomerCartDto | null>(
+    `/api/admin/customers/${encodeURIComponent(cleanUuid)}/cart`
+  );
+  return response.data ?? null;
 }
