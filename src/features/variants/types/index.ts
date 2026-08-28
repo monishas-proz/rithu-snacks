@@ -40,6 +40,7 @@ export interface AdminVariantResponse {
   productId: string; // Public Product UUID
   productName: string;
   variantName: string; // Stored DB variant_name e.g. "1 kg"
+  slug: string;
   measurement: VariantMeasurement;
   sku: string;
   basePrice: number;
@@ -48,7 +49,6 @@ export interface AdminVariantResponse {
   isActive: boolean;
   unitId?: string;
   unitValue?: number;
-  weightGrams?: number | null;
   unitName?: string;
   unitCode?: string;
   createdAt: Date;

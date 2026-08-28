@@ -6,7 +6,8 @@ export const createAdminHsnCodeSchema = z
       .string({ message: "HSN code is required" })
       .trim()
       .min(1, "HSN code cannot be empty")
-      .max(20, "HSN code cannot exceed 20 characters"),
+      .max(20, "HSN code cannot exceed 20 characters")
+      .regex(/^\d+$/, "HSN code must contain only numbers"),
     description: z
       .string()
       .trim()

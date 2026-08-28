@@ -40,6 +40,7 @@ export const orderItemInclude = Prisma.validator<Prisma.OrderItemInclude>()({
       product_units: {
         select: {
           id: true,
+          uuid: true,
           name: true,
           code: true,
           type: true,

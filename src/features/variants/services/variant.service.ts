@@ -18,6 +18,17 @@ import type {
   UpdateAdminVariantInput,
 } from "../validations/admin-variant.schema";
 
+function slugify(text: string): string {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/&/g, "-and-")
+    .replace(/[^\w\-]+/g, "")
+    .replace(/\-\-+/g, "-");
+}
+
 function formatAdminVariantResponse(
   variant: {
     id: bigint;
@@ -25,11 +36,11 @@ function formatAdminVariantResponse(
     productId: bigint;
     variant_name?: string | null;
     sku: string;
+    slug?: string | null;
     unit_value: Prisma.Decimal | number;
     unit_id: bigint;
     base_price: Prisma.Decimal | number;
     sale_price: Prisma.Decimal | number;
-    weight_grams?: Prisma.Decimal | number | null;
     isActive: boolean;
     createdAt: Date;
     updatedAt: Date;
@@ -57,9 +68,15 @@ function formatAdminVariantResponse(
     variant.product_variant_images?.[0];
   const primaryImage = primaryImgObj ? primaryImgObj.image_url : null;
 
+  const unitUuid =
+    cachedUnitUuid ||
+    variant.product_units?.uuid ||
+    (variant.unit_id ? String(variant.unit_id) : null);
+
   const measurement = formatVariantMeasurement(
-    { type: unitType, code: unitCode },
-    variant.unit_value
+    { type: unitType, code: unitCode, uuid: unitUuid },
+    variant.unit_value,
+    unitUuid
   );
 
   return {
@@ -67,6 +84,7 @@ function formatAdminVariantResponse(
     productId: productUuid,
     productName,
     variantName,
+    slug: variant.slug || "",
     measurement,
     sku: variant.sku,
     basePrice: Number(variant.base_price),
@@ -141,8 +159,15 @@ export const variantService = {
       throw ApiError.conflict(`An active variant with SKU '${data.sku}' already exists`);
     }
 
-    // 4. Derive variant_name if not provided
+    // 4. Derive variant_name & Validate Slug
     const variantName = data.variantName || `${data.unitValue} ${unit.code}`;
+    const variantSlug = slugify(data.slug).substring(0, 250);
+
+    // Check slug uniqueness
+    const existingSlug = await variantRepository.findBySlug(variantSlug);
+    if (existingSlug) {
+      throw ApiError.conflict(`An active variant with slug '${data.slug}' already exists`);
+    }
 
     // 5. Create Variant
     const variant = await variantRepository.create({
@@ -150,11 +175,11 @@ export const variantService = {
       productId: product.id,
       variant_name: variantName,
       sku: data.sku,
+      slug: variantSlug,
       unit_value: data.unitValue,
       unit_id: unit.id,
       base_price: data.basePrice,
       sale_price: data.salePrice,
-      weight_grams: data.weightGrams ?? null,
       isActive: true,
       created_by: adminId,
       updated_by: adminId,
@@ -270,6 +295,15 @@ export const variantService = {
       updateData.sku = data.sku;
     }
 
+    if (data.slug !== undefined) {
+      const normalizedSlug = slugify(data.slug).substring(0, 250);
+      const slugConflict = await variantRepository.findBySlug(normalizedSlug, variantUuid);
+      if (slugConflict) {
+        throw ApiError.conflict(`A variant with slug '${data.slug}' already exists`);
+      }
+      updateData.slug = normalizedSlug;
+    }
+
     if (data.unitValue !== undefined) {
       updateData.unit_value = data.unitValue;
     }
@@ -280,10 +314,6 @@ export const variantService = {
 
     if (data.salePrice !== undefined) {
       updateData.sale_price = data.salePrice;
-    }
-
-    if (data.weightGrams !== undefined) {
-      updateData.weight_grams = data.weightGrams;
     }
 
     const updated = await variantRepository.updateByUuid(variantUuid, updateData, adminId);

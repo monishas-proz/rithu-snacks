@@ -37,6 +37,8 @@ export const wishlistItemInclude = Prisma.validator<Prisma.WishlistItemInclude>(
       deleted_at: true,
       product_units: {
         select: {
+          id: true,
+          uuid: true,
           name: true,
           code: true,
           type: true,
