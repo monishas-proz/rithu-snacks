@@ -6,6 +6,7 @@ import {
   useQueryClient,
   keepPreviousData,
 } from "@tanstack/react-query";
+import { toast } from "@/components/ui/Toast";
 import { bannerApi } from "../api/get-banners";
 import type {
   BannerListQueryInput,
@@ -58,8 +59,12 @@ export function useCreateBanner() {
 
   return useMutation({
     mutationFn: (data: CreateBannerInput) => bannerApi.createBanner(data),
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: BANNER_KEYS.all });
+      toast.success("Success", result.message || "Banner created successfully");
+    },
+    onError: (error: any) => {
+      toast.error("Error", error?.message || "Failed to create banner");
     },
   });
 }
@@ -70,8 +75,15 @@ export function useUpdateBanner() {
   return useMutation({
     mutationFn: ({ uuid, data }: { uuid: string; data: UpdateBannerInput }) =>
       bannerApi.updateBanner(uuid, data),
-    onSuccess: () => {
+    onSuccess: (result, variables) => {
       queryClient.invalidateQueries({ queryKey: BANNER_KEYS.all });
+      queryClient.invalidateQueries({
+        queryKey: BANNER_KEYS.detail(variables.uuid),
+      });
+      toast.success("Success", result.message || "Banner updated successfully");
+    },
+    onError: (error: any) => {
+      toast.error("Error", error?.message || "Failed to update banner");
     },
   });
 }
@@ -81,8 +93,12 @@ export function useDeleteBanner() {
 
   return useMutation({
     mutationFn: (uuid: string) => bannerApi.deleteBanner(uuid),
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: BANNER_KEYS.all });
+      toast.success("Success", result.message || "Banner deleted successfully");
+    },
+    onError: (error: any) => {
+      toast.error("Error", error?.message || "Failed to delete banner");
     },
   });
 }

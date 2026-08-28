@@ -111,7 +111,7 @@ export function ImageCropperModal({
     <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 overflow-y-auto">
       {/* Backdrop with high z-index overlay */}
       <div
-        className="fixed inset-0 bg-black/75 backdrop-blur-xs transition-opacity animate-in fade-in-0"
+        className="fixed inset-0 bg-black/75 backdrop-blur-sm transition-all duration-200"
         onClick={onCancel}
         aria-hidden="true"
       />

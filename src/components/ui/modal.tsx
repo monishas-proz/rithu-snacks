@@ -35,10 +35,10 @@ function Modal({ open, onClose, children, title, description, className }: Modal
   if (!open || !mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
-      {/* Backdrop */}
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-y-auto">
+      {/* Backdrop with persistent background blur */}
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in-0"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-all duration-200"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -46,7 +46,7 @@ function Modal({ open, onClose, children, title, description, className }: Modal
       {/* Modal Dialog Card */}
       <div
         className={cn(
-          "relative z-10 w-full max-w-md rounded-2xl border border-[#EDE4D9] bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-150 my-auto",
+          "relative z-10 w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200 my-auto",
           className
         )}
         onClick={(e) => e.stopPropagation()}

@@ -39,24 +39,35 @@ export const bannerApi = {
     return response.data!;
   },
 
-  async createBanner(data: CreateBannerInput): Promise<BannerDto> {
+  async createBanner(
+    data: CreateBannerInput
+  ): Promise<BannerDto & { message?: string }> {
     const response = await apiClient.post<BannerDto>("/api/admin/banners", data);
-    return response.data!;
+    return {
+      ...response.data!,
+      message: response.message,
+    };
   },
 
   async updateBanner(
     uuid: string,
     data: UpdateBannerInput
-  ): Promise<BannerDto> {
+  ): Promise<BannerDto & { message?: string }> {
     const response = await apiClient.put<BannerDto>(
       `/api/admin/banners/${uuid}`,
       data
     );
-    return response.data!;
+    return {
+      ...response.data!,
+      message: response.message,
+    };
   },
 
-  async deleteBanner(uuid: string): Promise<void> {
-    await apiClient.delete(`/api/admin/banners/${uuid}`);
+  async deleteBanner(uuid: string): Promise<{ message?: string }> {
+    const response = await apiClient.delete(`/api/admin/banners/${uuid}`);
+    return {
+      message: response.message,
+    };
   },
 
   // Admin Banner Positions
