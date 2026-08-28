@@ -3,6 +3,7 @@ export type MeasurementType = "weight" | "volume" | "count";
 export interface VariantMeasurement {
   type: MeasurementType;
   unit: string;
+  unitId: string | null;
   value: number;
 }
 
@@ -16,8 +17,9 @@ export interface MeasurementFieldConfig {
 }
 
 export function formatVariantMeasurement(
-  unit: { type?: string | null; code?: string | null } | null | undefined,
-  unitValue: number | bigint | unknown
+  unit: { id?: string | bigint | number | null; uuid?: string | null; type?: string | null; code?: string | null } | null | undefined,
+  unitValue: number | bigint | unknown,
+  explicitUnitId?: string | null
 ): VariantMeasurement {
   const rawType = unit?.type ? String(unit.type).toLowerCase() : "count";
   const type: MeasurementType =
@@ -25,9 +27,12 @@ export function formatVariantMeasurement(
       ? (rawType as MeasurementType)
       : "count";
 
+  const resolvedUnitId = explicitUnitId ?? (unit?.uuid || (unit?.id ? String(unit.id) : null));
+
   return {
     type,
     unit: unit?.code || "",
+    unitId: resolvedUnitId,
     value: unitValue !== null && unitValue !== undefined ? Number(unitValue) : 0,
   };
 }
@@ -93,24 +98,5 @@ export function getMeasurementFieldConfig(
         validationMessage: "Measurement value is required and must be greater than 0",
       };
   }
-}
-
-export function calculateWeightGrams(
-  unitValue: number,
-  unit?: { type?: string | null; code?: string | null; conversionFactor?: number | null } | null
-): number | null {
-  if (!unit || !unit.type) return null;
-  const rawType = String(unit.type).toLowerCase();
-  if (rawType !== "weight") {
-    // Non-weight units (Volume, Count) have no direct weight in grams without density.
-    return null;
-  }
-
-  const factor =
-    typeof unit.conversionFactor === "number" && unit.conversionFactor > 0
-      ? unit.conversionFactor
-      : 1;
-
-  return Number((unitValue * factor).toFixed(2));
 }
 

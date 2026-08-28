@@ -64,6 +64,17 @@ export const variantRepository = {
     });
   },
 
+  async findBySlug(slug: string, excludeUuid?: string) {
+    return db.productVariant.findFirst({
+      where: {
+        slug,
+        deleted_at: null,
+        ...(excludeUuid ? { uuid: { not: excludeUuid } } : {}),
+      },
+      include: variantInclude,
+    });
+  },
+
   async findAdminAll(
     params: GetAdminVariantsParams = {},
     productId?: bigint

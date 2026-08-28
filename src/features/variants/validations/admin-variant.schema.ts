@@ -12,6 +12,11 @@ export const createAdminVariantSchema = z
       .trim()
       .min(1, "SKU cannot be empty")
       .max(100, "SKU cannot exceed 100 characters"),
+    slug: z
+      .string({ message: "Slug is required" })
+      .trim()
+      .min(1, "Slug cannot be empty")
+      .max(255, "Slug cannot exceed 255 characters"),
     unitValue: z
       .number({ message: "Unit value is required" })
       .gt(0, "Unit value must be greater than 0"),
@@ -24,11 +29,6 @@ export const createAdminVariantSchema = z
     salePrice: z
       .number({ message: "Sale price is required" })
       .min(0, "Sale price cannot be negative"),
-    weightGrams: z
-      .number()
-      .min(0, "Weight in grams cannot be negative")
-      .optional()
-      .nullable(),
   })
   .strict();
 

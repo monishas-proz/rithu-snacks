@@ -1,31 +1,39 @@
-import { NextRequest } from "next/server";
-import { db } from "@/lib/db/prisma";
-import { apiSuccess, apiNotFound, apiError } from "@/lib/api/api-response";
+import { createApiHandler } from "@/lib/api/api-handler";
+import { apiSuccess } from "@/lib/api/api-response";
+import { ApiError } from "@/lib/api/api-error";
+import { reviewService } from "@/features/reviews/services/review.service";
+import {
+  publicReviewQuerySchema,
+  type PublicReviewQueryInput,
+} from "@/features/reviews/validations/review.schema";
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id } = await params;
+export const GET = createApiHandler(
+  {
+    GET: async (_request, context) => {
+      const identifier = context.params?.id;
+      if (!identifier) {
+        throw ApiError.badRequest("Product identifier is required");
+      }
 
-    const reviews = await db.review.findMany({
-      where: {
-        productId: parseInt(id),
-        isApproved: true,
-      },
-      include: {
-        user: {
-          select: { id: true, name: true, image: true },
+      const query = (context.query || {}) as PublicReviewQueryInput;
+      const result = await reviewService.getPublicProductReviews(
+        identifier,
+        query
+      );
+
+      return apiSuccess(
+        {
+          reviews: result.reviews,
+          ratingSummary: result.ratingSummary,
         },
-        images: true,
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    return apiSuccess(reviews, "Reviews fetched successfully");
-  } catch (error) {
-    console.error("Get reviews error:", error);
-    return apiError("Failed to fetch reviews", 500);
+        "Reviews fetched successfully",
+        200,
+        result.meta
+      );
+    },
+  },
+  {
+    requireAuth: false,
+    querySchema: publicReviewQuerySchema,
   }
-}
+);
