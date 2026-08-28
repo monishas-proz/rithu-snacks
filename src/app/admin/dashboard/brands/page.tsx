@@ -22,7 +22,7 @@ export default function AdminBrandsPage() {
   const [search, setSearch] = useState("");
 
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const [pageSize, setPageSize] = useState(10);
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -64,6 +64,17 @@ export default function AdminBrandsPage() {
       <div>
         <p className="font-semibold text-[var(--color-neutral-900)]">
           {row.original.name}
+        </p>
+      </div>
+    ),
+  },
+  {
+    accessorKey: "slug",
+    header: "SLUG",
+    cell: ({ row }) => (
+      <div>
+        <p className="text-sm text-[var(--color-neutral-600)]">
+          {row.original.slug || "—"}
         </p>
       </div>
     ),
@@ -176,6 +187,10 @@ export default function AdminBrandsPage() {
               totalPages={data?.meta?.totalPages ?? 1}
               totalItems={data?.meta?.total ?? 0}
               onPageChange={setPage}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                setPage(1);
+              }}
               className="bg-white"
             />
           </div>

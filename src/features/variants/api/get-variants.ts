@@ -47,7 +47,7 @@ export async function getCustomerVariants(
 }
 
 export async function getAdminVariants(
-  params?: GetAdminVariantsParams | AdminVariantListParams
+  params?: AdminVariantListParams
 ): Promise<GetAdminVariantsResult> {
   const body: Record<string, unknown> = {
     page: params?.page ?? 1,
@@ -60,12 +60,11 @@ export async function getAdminVariants(
     body.search = params.search.trim();
   }
 
-  if (params?.productIds && params.productIds.length > 0) {
-    body.productIds = params.productIds.filter(Boolean);
-  } else if (params?.productId) {
-    body.productIds = [params.productId];
-  } else if (params?.productUuid) {
-    body.productIds = [params.productUuid];
+  const rawProductIds =
+    params?.productIds ??
+    ((params as any)?.productId ? [String((params as any).productId)] : undefined);
+  if (rawProductIds && rawProductIds.length > 0) {
+    body.productIds = rawProductIds.filter(Boolean);
   }
 
   if (params?.brandIds && params.brandIds.length > 0) {
@@ -197,6 +196,16 @@ export async function updateAdminVariantImage(
   return apiClient.put<AdminVariantImageResponse>(
     `/api/admin/products/${productUuid}/variants/${variantUuid}/images/${imageUuid}`,
     data
+  );
+}
+
+export async function setPrimaryAdminVariantImage(
+  productUuid: string,
+  variantUuid: string,
+  imageUuid: string
+) {
+  return apiClient.put<AdminVariantImageResponse>(
+    `/api/admin/products/${productUuid}/variants/${variantUuid}/images/${imageUuid}/primary`
   );
 }
 

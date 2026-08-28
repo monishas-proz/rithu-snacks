@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   useVariants,
   useCreateVariant,
@@ -29,6 +30,7 @@ import {
   Package,
   Check,
   ImageIcon,
+  Eye,
 } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { AdminVariantResponse } from "@/features/variants/types";
@@ -43,7 +45,7 @@ export default function AdminVariantsPage() {
     useState<string>("");
 
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const [pageSize, setPageSize] = useState(10);
 
   const [deleteTarget, setDeleteTarget] = useState<{
     productUuid: string;
@@ -74,7 +76,7 @@ export default function AdminVariantsPage() {
     page,
     pageSize,
     search: search || undefined,
-    productId: selectedProductFilter || undefined,
+    productIds: selectedProductFilter ? [selectedProductFilter] : undefined,
   });
 
   // Reference queries
@@ -204,6 +206,20 @@ export default function AdminVariantsPage() {
           <Button
             variant="ghost"
             size="icon"
+            asChild
+            title="View Variant"
+          >
+            <Link
+              href={`/admin/dashboard/variants/${row.original.id}?productId=${row.original.productId}`}
+            >
+              <Eye className="h-4 w-4 text-[var(--color-neutral-500)]" />
+            </Link>
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            title="Edit Variant"
             onClick={() => {
               setSelectedVariant(row.original);
               setEditTab("details");
@@ -216,6 +232,7 @@ export default function AdminVariantsPage() {
           <Button
             variant="ghost"
             size="icon"
+            title="Delete Variant"
             onClick={() =>
               setDeleteTarget({
                 productUuid: row.original.productId,
@@ -304,6 +321,10 @@ export default function AdminVariantsPage() {
               totalPages={data?.meta?.totalPages ?? 1}
               totalItems={data?.meta?.total ?? 0}
               onPageChange={setPage}
+              onPageSizeChange={(newPageSize) => {
+                setPageSize(newPageSize);
+                setPage(1);
+              }}
               className="bg-white"
             />
           </div>

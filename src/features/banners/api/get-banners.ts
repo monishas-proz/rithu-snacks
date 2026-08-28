@@ -1,40 +1,125 @@
 import { apiClient } from "@/lib/api/api-client";
-import { GetBannersParams, GetBannersResult, CreateBannerInput, UpdateBannerInput } from "../types";
-
-const BASE_URL = "/api/banners";
+import type {
+  BannerDto,
+  BannerListResponse,
+  CreateBannerInput,
+  UpdateBannerInput,
+  BannerListQueryInput,
+  BannerPositionDto,
+  BannerPositionListResponse,
+  CreateBannerPositionInput,
+  UpdateBannerPositionInput,
+  BannerPositionListQueryInput,
+} from "../types";
 
 export const bannerApi = {
-  async getBanners(params?: GetBannersParams) {
-    const searchParams = new URLSearchParams();
-    if (params?.page) searchParams.set("page", String(params.page));
-    if (params?.limit) searchParams.set("limit", String(params.limit));
-    if (params?.search) searchParams.set("search", params.search);
-    if (params?.isActive !== undefined) searchParams.set("isActive", String(params.isActive));
+  // Admin Banners
+  async getBanners(params?: BannerListQueryInput): Promise<BannerListResponse> {
+    const response = await apiClient.get<BannerDto[]>("/api/admin/banners", {
+      params: params as Record<
+        string,
+        string | number | boolean | undefined | null
+      >,
+    });
+    return {
+      data: response.data ?? [],
+      meta: response.meta ?? {
+        page: params?.page ?? 1,
+        limit: params?.limit ?? 10,
+        total: (response.data ?? []).length,
+        totalPages: 1,
+      },
+    };
+  },
 
-    const queryString = searchParams.toString();
-    const url = queryString ? `${BASE_URL}?${queryString}` : BASE_URL;
-
-    const response = await apiClient.get<GetBannersResult>(url);
+  async getBanner(uuid: string): Promise<BannerDto> {
+    const response = await apiClient.get<BannerDto>(
+      `/api/admin/banners/${uuid}`
+    );
     return response.data!;
   },
 
-  async getBanner(id: number) {
-    const response = await apiClient.get(`${BASE_URL}/${id}`);
+  async createBanner(data: CreateBannerInput): Promise<BannerDto> {
+    const response = await apiClient.post<BannerDto>("/api/admin/banners", data);
     return response.data!;
   },
 
-  async createBanner(data: CreateBannerInput) {
-    const response = await apiClient.post(BASE_URL, data);
+  async updateBanner(
+    uuid: string,
+    data: UpdateBannerInput
+  ): Promise<BannerDto> {
+    const response = await apiClient.put<BannerDto>(
+      `/api/admin/banners/${uuid}`,
+      data
+    );
     return response.data!;
   },
 
-  async updateBanner(id: number, data: UpdateBannerInput) {
-    const response = await apiClient.put(`${BASE_URL}/${id}`, data);
+  async deleteBanner(uuid: string): Promise<void> {
+    await apiClient.delete(`/api/admin/banners/${uuid}`);
+  },
+
+  // Admin Banner Positions
+  async getBannerPositions(
+    params?: BannerPositionListQueryInput
+  ): Promise<BannerPositionListResponse> {
+    const response = await apiClient.get<BannerPositionDto[]>(
+      "/api/admin/banner-positions",
+      {
+        params: params as Record<
+          string,
+          string | number | boolean | undefined | null
+        >,
+      }
+    );
+    return {
+      data: response.data ?? [],
+      meta: response.meta ?? {
+        page: params?.page ?? 1,
+        limit: params?.limit ?? 10,
+        total: (response.data ?? []).length,
+        totalPages: 1,
+      },
+    };
+  },
+
+  async getBannerPosition(uuid: string): Promise<BannerPositionDto> {
+    const response = await apiClient.get<BannerPositionDto>(
+      `/api/admin/banner-positions/${uuid}`
+    );
     return response.data!;
   },
 
-  async deleteBanner(id: number) {
-    const response = await apiClient.delete(`${BASE_URL}/${id}`);
+  async createBannerPosition(
+    data: CreateBannerPositionInput
+  ): Promise<BannerPositionDto> {
+    const response = await apiClient.post<BannerPositionDto>(
+      "/api/admin/banner-positions",
+      data
+    );
     return response.data!;
+  },
+
+  async updateBannerPosition(
+    uuid: string,
+    data: UpdateBannerPositionInput
+  ): Promise<BannerPositionDto> {
+    const response = await apiClient.put<BannerPositionDto>(
+      `/api/admin/banner-positions/${uuid}`,
+      data
+    );
+    return response.data!;
+  },
+
+  async deleteBannerPosition(uuid: string): Promise<void> {
+    await apiClient.delete(`/api/admin/banner-positions/${uuid}`);
   },
 };
+
+export const getBanners = bannerApi.getBanners;
+export const getBanner = bannerApi.getBanner;
+export const createBanner = bannerApi.createBanner;
+export const updateBanner = bannerApi.updateBanner;
+export const deleteBanner = bannerApi.deleteBanner;
+export const getBannerPositions = bannerApi.getBannerPositions;
+

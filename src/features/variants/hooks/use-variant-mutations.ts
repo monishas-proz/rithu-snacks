@@ -120,6 +120,34 @@ export function useUpdateVariantImage() {
   });
 }
 
+export function useSetPrimaryVariantImage() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      productUuid,
+      variantUuid,
+      imageUuid,
+    }: {
+      productUuid: string;
+      variantUuid: string;
+      imageUuid: string;
+    }) => {
+      const { setPrimaryAdminVariantImage } = await import("../api/get-variants");
+      return setPrimaryAdminVariantImage(productUuid, variantUuid, imageUuid);
+    },
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: variantKeys.all });
+      queryClient.invalidateQueries({
+        queryKey: [...variantKeys.all, "images", variables.variantUuid],
+      });
+      queryClient.invalidateQueries({
+        queryKey: variantKeys.detail(variables.variantUuid),
+      });
+    },
+  });
+}
+
 export function useDeleteVariantImage() {
   const queryClient = useQueryClient();
 

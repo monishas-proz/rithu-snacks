@@ -11,6 +11,7 @@ import {
 import type {
   GetAdminVariantsParams,
   CustomerGlobalVariantListParams,
+  AdminVariantListParams,
 } from "../types";
 
 export function useCustomerVariants(params?: CustomerGlobalVariantListParams) {
@@ -23,6 +24,7 @@ export function useCustomerVariants(params?: CustomerGlobalVariantListParams) {
     productIds: params?.productIds?.length ? params.productIds.join(",") : undefined,
     sortBy: params?.sortBy ?? "createdAt",
     sortOrder: params?.sortOrder ?? "desc",
+    isActive:false
   };
 
   return useQuery({
@@ -34,7 +36,7 @@ export function useCustomerVariants(params?: CustomerGlobalVariantListParams) {
 }
 
 export function useVariants(
-  params?: GetAdminVariantsParams,
+  params?: AdminVariantListParams,
   options?: { enabled?: boolean }
 ) {
   return useQuery({

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { FormProvider, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -97,6 +97,21 @@ function VariantForm({
       weightGrams: initialData?.weightGrams ?? null,
     },
   });
+
+  useEffect(() => {
+    if (initialData) {
+      methods.reset({
+        productId: fixedProductId || initialData.productId || "",
+        variantName: initialData.variantName || "",
+        sku: initialData.sku || "",
+        unitId: initialData.unitId || "",
+        unitValue: initialData.unitValue,
+        basePrice: initialData.basePrice,
+        salePrice: initialData.salePrice,
+        weightGrams: initialData.weightGrams ?? null,
+      });
+    }
+  }, [initialData, fixedProductId, methods]);
 
   const selectedUnitId = useWatch({
     control: methods.control,

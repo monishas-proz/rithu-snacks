@@ -8,3 +8,5 @@ export { ImageWithFallback } from "./ImageWithFallback";
 export type { ImageWithFallbackProps } from "./ImageWithFallback";
 export { FormModal } from "./FormModal";
 export type { FormModalProps } from "./FormModal";
+export { ImageCropperModal } from "./ImageCropperModal";
+export type { ImageCropperModalProps } from "./ImageCropperModal";

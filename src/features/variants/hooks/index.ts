@@ -14,5 +14,6 @@ export {
   useDeleteVariant,
   useCreateVariantImages,
   useUpdateVariantImage,
+  useSetPrimaryVariantImage,
   useDeleteVariantImage,
 } from "./use-variant-mutations";

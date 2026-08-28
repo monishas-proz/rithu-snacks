@@ -1,12 +1,51 @@
 import { apiClient } from "@/lib/api/api-client";
-import type { AdminProductResponse, GetAdminProductsResult } from "../types";
+import type {
+  AdminProductResponse,
+  GetAdminProductsResult,
+  AdminProductListParams,
+  GetAdminProductsParams,
+} from "../types";
 
 export async function getAdminProducts(
-  params?: Record<string, string | number | boolean | undefined | null>
+  params?: AdminProductListParams | GetAdminProductsParams
 ): Promise<GetAdminProductsResult> {
-  const response = await apiClient.get<AdminProductResponse[]>(
-    "/api/admin/products",
-    { params }
+  const body: Record<string, unknown> = {};
+
+  if (params?.page) body.page = Number(params.page);
+  const limitValue =
+    (params as AdminProductListParams)?.limit ?? params?.pageSize;
+  if (limitValue !== undefined) {
+    body.limit = Number(limitValue);
+    body.pageSize = Number(limitValue);
+  }
+  if (
+    params?.search !== undefined &&
+    params?.search !== null &&
+    params?.search !== ""
+  ) {
+    body.search = String(params.search).trim();
+  }
+
+  const p = params as AdminProductListParams | undefined;
+  if (p?.isActive !== undefined && p?.isActive !== null) {
+    body.isActive = Boolean(p.isActive);
+  }
+  if (p?.categoryId) body.categoryId = String(p.categoryId);
+  if (p?.brandId) body.brandId = String(p.brandId);
+  if (p?.hsnCodeId) body.hsnCodeId = String(p.hsnCodeId);
+  if (p?.vegType) body.vegType = p.vegType;
+  if (p?.isFeatured !== undefined && p?.isFeatured !== null) {
+    body.isFeatured = Boolean(p.isFeatured);
+  }
+  if (p?.status !== undefined && p?.status !== null) {
+    body.status = Boolean(p.status);
+  }
+  if (p?.sortBy) body.sortBy = String(p.sortBy);
+  if (p?.sortOrder) body.sortOrder = String(p.sortOrder);
+
+  const response = await apiClient.post<AdminProductResponse[]>(
+    "/api/admin/products/list",
+    body
   );
 
   return {

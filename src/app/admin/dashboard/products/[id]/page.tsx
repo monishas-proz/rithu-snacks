@@ -29,6 +29,7 @@ import {
   MoreHorizontal,
   Power,
   PowerOff,
+  Images as ImagesIcon,
 } from "lucide-react";
 import { useAdminProduct } from "@/features/products/hooks";
 import {
@@ -44,12 +45,11 @@ import { useHsnCodes } from "@/features/hsn-codes/hooks";
 import { useUnits } from "@/features/units/hooks";
 import { ProductPriceEditModal } from "@/features/products/components/ProductPriceEditModal";
 import { ProductForm, type ProductFormValues } from "@/features/products/components/ProductForm";
-import { VariantForm, type VariantFormValues, type UnitFormItem } from "@/features/variants/components/VariantForm";
+import { VariantForm, VariantImageUploader, type VariantFormValues, type UnitFormItem } from "@/features/variants/components";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { FormModal } from "@/components/common/FormModal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { toast } from "@/components/ui/Toast";
 import type { AdminVariantResponse } from "@/features/variants/types";
 
 type VariantFilter = "active" | "inactive";
@@ -120,7 +120,7 @@ export default function AdminProductDetailsPage() {
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
 
   // Safely determine the product UUID so we never send invalid non-UUID strings to the backend API
-  const productUuid = isUuid(product?.id)
+  const productUuid:string| null = isUuid(product?.id)
     ? product.id
     : isUuid(productId)
     ? productId
@@ -128,57 +128,30 @@ export default function AdminProductDetailsPage() {
 
   const canonicalProductId = productUuid || product?.id || productId;
 
+  // Filter & Selection State (Active by default, Inactive for inactive tab)
+  const [variantFilter, setVariantFilter] = React.useState<VariantFilter>("active");
+
   // 2. Product Variants Query using the POST "Get All Variants" API (POST /api/admin/variants)
-  // Queries all variants of this product from the backend (both active and inactive variants with deleted_at: null)
+  // Queries variants for this product based on the active tab (isActive: true or false)
   const {
     data: variantsResponse,
     isLoading: isLoadingVariants,
-    refetch: refetchVariants,
   } = useVariants(
     productUuid
       ? {
           productIds: [productUuid],
+          isActive: variantFilter === "active",
           pageSize: 100,
+          page: 1,
+          
         }
       : undefined,
     { enabled: !!productUuid }
   );
 
-  // Local cache for variant overrides (so variants marked inactive via delete appear in Inactive stats/tab and can be reactivated)
-  const [localVariantOverrides, setLocalVariantOverrides] = React.useState<AdminVariantResponse[]>([]);
-
-  React.useEffect(() => {
-    if (!canonicalProductId || typeof window === "undefined") return;
-    try {
-      const stored = localStorage.getItem(`variant_overrides_${canonicalProductId}`);
-      if (stored) {
-        setLocalVariantOverrides(JSON.parse(stored));
-      }
-    } catch (e) {
-      console.error("Failed to load variant overrides from localStorage", e);
-    }
-  }, [canonicalProductId]);
-
   const variants = React.useMemo<AdminVariantResponse[]>(() => {
-    const backendVariants = (variantsResponse?.data as AdminVariantResponse[]) ?? [];
-    const map = new Map<string, AdminVariantResponse>();
-
-    // 1. Add all backend variants
-    backendVariants.forEach((v) => {
-      map.set(v.id, v);
-    });
-
-    // 2. Apply any local overrides (deactivated / activated)
-    localVariantOverrides.forEach((override) => {
-      if (map.has(override.id)) {
-        map.set(override.id, { ...map.get(override.id)!, ...override });
-      } else {
-        map.set(override.id, override);
-      }
-    });
-
-    return Array.from(map.values());
-  }, [variantsResponse, localVariantOverrides]);
+    return (variantsResponse?.data as AdminVariantResponse[]) ?? [];
+  }, [variantsResponse]);
 
   // Reference queries for modal form dropdowns (lazy-loaded when modals open)
   const [isEditProductOpen, setIsEditProductOpen] = React.useState(false);
@@ -189,6 +162,7 @@ export default function AdminProductDetailsPage() {
   const [deletingVariant, setDeletingVariant] = React.useState<AdminVariantResponse | null>(null);
   const [variantToDeactivate, setVariantToDeactivate] = React.useState<AdminVariantResponse | null>(null);
   const [variantToActivate, setVariantToActivate] = React.useState<AdminVariantResponse | null>(null);
+  const [managingImagesVariant, setManagingImagesVariant] = React.useState<AdminVariantResponse | null>(null);
   const [activeMenu, setActiveMenu] = React.useState<{
     variant: AdminVariantResponse;
     rect: DOMRect;
@@ -232,6 +206,8 @@ export default function AdminProductDetailsPage() {
     { limit: 100 },
     { enabled: isEditProductOpen }
   );
+  console.log(brandsData,"brandName");
+  
   const { data: hsnData } = useHsnCodes(
     { pageSize: 100 },
     { enabled: isEditProductOpen }
@@ -246,8 +222,7 @@ export default function AdminProductDetailsPage() {
   const updateVariantMutation = useUpdateVariant();
   const deleteVariantMutation = useDeleteVariant();
 
-  // Filter & Selection State (Active by default, All removed)
-  const [variantFilter, setVariantFilter] = React.useState<VariantFilter>("active");
+  // Selection State
   const [selectedVariants, setSelectedVariants] = React.useState<Record<string, boolean>>({});
 
   // Single price edit state
@@ -283,25 +258,7 @@ export default function AdminProductDetailsPage() {
       : null) ||
     (typeof product?.hsnCode === "string" ? product.hsnCode : null);
 
-  // Filtered variants
-  const filteredVariants = React.useMemo(() => {
-    if (variantFilter === "active") {
-      return variants.filter((v) => v.isActive);
-    }
-    if (variantFilter === "inactive") {
-      return variants.filter((v) => !v.isActive);
-    }
-    return variants;
-  }, [variants, variantFilter]);
-
-  const activeCount = React.useMemo(
-    () => variants.filter((v) => v.isActive).length,
-    [variants]
-  );
-  const inactiveCount = React.useMemo(
-    () => variants.filter((v) => !v.isActive).length,
-    [variants]
-  );
+  const currentTabCount = variantsResponse?.meta?.total ?? variants.length;
 
   // Selection helpers
   const selectedIds = React.useMemo(
@@ -310,15 +267,15 @@ export default function AdminProductDetailsPage() {
   );
   const hasSelection = selectedIds.length > 0;
   const isAllSelected =
-    filteredVariants.length > 0 &&
-    filteredVariants.every((v) => selectedVariants[v.id]);
+    variants.length > 0 &&
+    variants.every((v) => selectedVariants[v.id]);
 
   const toggleSelectAll = () => {
     if (isAllSelected) {
       setSelectedVariants({});
     } else {
       const next: Record<string, boolean> = {};
-      filteredVariants.forEach((v) => {
+      variants.forEach((v) => {
         next[v.id] = true;
       });
       setSelectedVariants(next);
@@ -335,7 +292,6 @@ export default function AdminProductDetailsPage() {
   // Export Variants to CSV
   const handleExportVariants = () => {
     if (variants.length === 0) {
-      toast({ title: "No variants to export", variant: "default" });
       return;
     }
 
@@ -369,49 +325,20 @@ export default function AdminProductDetailsPage() {
     a.download = `${product?.slug || "product"}-variants.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast({ title: "Variants exported successfully", variant: "success" });
   };
 
   // Make Variant Inactive (from Active tab)
   const handleMakeInactive = async (variant: AdminVariantResponse) => {
     setIsStatusUpdating(true);
     try {
-      const updatedVariant: AdminVariantResponse = {
-        ...variant,
-        isActive: false,
-        updatedAt: new Date(),
-      };
-
-      setLocalVariantOverrides((prev) => {
-        const filtered = prev.filter((v) => v.id !== variant.id);
-        const next = [...filtered, updatedVariant];
-        if (typeof window !== "undefined" && canonicalProductId) {
-          try {
-            localStorage.setItem(
-              `variant_overrides_${canonicalProductId}`,
-              JSON.stringify(next)
-            );
-          } catch (e) {
-            console.error("Failed to save variant overrides to localStorage", e);
-          }
-        }
-        return next;
-      });
-
-      toast({
-        title: "Product variant made inactive successfully",
-        description: "Frontend state updated. (Backend status API required for DB persistence)",
-        variant: "success",
+      await updateVariantMutation.mutateAsync({
+        productUuid: canonicalProductId,
+        variantUuid: variant.id,
+        data: { isActive: false },
       });
       setVariantToDeactivate(null);
-      refetchVariants();
-      refetchProduct();
     } catch (err: any) {
-      toast({
-        title: "Failed to update variant status",
-        description: err?.message || "Could not make variant inactive",
-        variant: "destructive",
-      });
+      console.error("Failed to make variant inactive", err);
     } finally {
       setIsStatusUpdating(false);
     }
@@ -421,42 +348,14 @@ export default function AdminProductDetailsPage() {
   const handleMakeActive = async (variant: AdminVariantResponse) => {
     setIsStatusUpdating(true);
     try {
-      const updatedVariant: AdminVariantResponse = {
-        ...variant,
-        isActive: true,
-        updatedAt: new Date(),
-      };
-
-      setLocalVariantOverrides((prev) => {
-        const filtered = prev.filter((v) => v.id !== variant.id);
-        const next = [...filtered, updatedVariant];
-        if (typeof window !== "undefined" && canonicalProductId) {
-          try {
-            localStorage.setItem(
-              `variant_overrides_${canonicalProductId}`,
-              JSON.stringify(next)
-            );
-          } catch (e) {
-            console.error("Failed to save variant overrides to localStorage", e);
-          }
-        }
-        return next;
-      });
-
-      toast({
-        title: "Product variant activated successfully",
-        description: "Frontend state updated. (Backend status API required for DB persistence)",
-        variant: "success",
+      await updateVariantMutation.mutateAsync({
+        productUuid: canonicalProductId,
+        variantUuid: variant.id,
+        data: { isActive: true },
       });
       setVariantToActivate(null);
-      refetchVariants();
-      refetchProduct();
     } catch (err: any) {
-      toast({
-        title: "Failed to activate variant",
-        description: err?.message || "Could not activate variant",
-        variant: "destructive",
-      });
+      console.error("Failed to activate variant", err);
     } finally {
       setIsStatusUpdating(false);
     }
@@ -467,39 +366,18 @@ export default function AdminProductDetailsPage() {
     if (!hasSelection) return;
     try {
       const selectedObjs = variants.filter((v) => selectedVariants[v.id]);
-
-      setLocalVariantOverrides((prev) => {
-        const next = [...prev];
-        selectedObjs.forEach((obj) => {
-          const idx = next.findIndex((v) => v.id === obj.id);
-          const updated = { ...obj, isActive: targetActive, updatedAt: new Date() };
-          if (idx >= 0) {
-            next[idx] = updated;
-          } else {
-            next.push(updated);
-          }
-        });
-        if (typeof window !== "undefined" && canonicalProductId) {
-          try {
-            localStorage.setItem(`variant_overrides_${canonicalProductId}`, JSON.stringify(next));
-          } catch (e) {}
-        }
-        return next;
-      });
-
-      toast({
-        title: `Updated ${selectedIds.length} variants to ${targetActive ? "Active" : "Inactive"}`,
-        description: "Frontend state updated. (Backend status API required for DB persistence)",
-        variant: "success",
-      });
+      await Promise.all(
+        selectedObjs.map((obj) =>
+          updateVariantMutation.mutateAsync({
+            productUuid: canonicalProductId,
+            variantUuid: obj.id,
+            data: { isActive: targetActive },
+          })
+        )
+      );
       setSelectedVariants({});
-      refetchVariants();
     } catch (err: any) {
-      toast({
-        title: "Bulk update failed",
-        description: err?.message || "Could not update variants",
-        variant: "destructive",
-      });
+      console.error("Bulk update failed", err);
     }
   };
 
@@ -524,62 +402,14 @@ export default function AdminProductDetailsPage() {
         variantUuid: editingPriceVariant.id,
         data: { basePrice: base, salePrice: sale },
       });
-      toast({ title: "Price updated successfully", variant: "success" });
       setEditingPriceVariant(null);
-      refetchVariants();
-      refetchProduct();
     } catch (err: any) {
       setSinglePriceError(err?.message || "Failed to update price");
     }
   };
 
-  // Compute stats across variants
+  // Stats (Dummy data)
   const stats = React.useMemo(() => {
-    if (variants.length === 0) {
-      return {
-        priceRange: "—",
-        priceRangeNote: "No variants added",
-        avgDiscount: "0%",
-        avgDiscountNote: "Across variants",
-        lastUpdatedDate: product?.updatedAt
-          ? new Date(product.updatedAt).toLocaleDateString("en-IN", {
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-            })
-          : "—",
-        lastUpdatedTime: product?.updatedAt
-          ? new Date(product.updatedAt).toLocaleTimeString("en-IN", {
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: true,
-            })
-          : "",
-      };
-    }
-
-    const salePrices = variants.map((v) => (v.salePrice > 0 ? v.salePrice : v.basePrice));
-    const minP = Math.min(...salePrices);
-    const maxP = Math.max(...salePrices);
-
-    const priceRange =
-      minP === maxP
-        ? `₹${minP.toLocaleString("en-IN")}`
-        : `₹${minP.toLocaleString("en-IN")} – ₹${maxP.toLocaleString("en-IN")}`;
-
-    // Average discount
-    let totalDiscount = 0;
-    let discountedCount = 0;
-    variants.forEach((v) => {
-      if (v.basePrice > v.salePrice && v.basePrice > 0) {
-        totalDiscount += ((v.basePrice - v.salePrice) / v.basePrice) * 100;
-        discountedCount++;
-      }
-    });
-
-    const avgDiscountVal = variants.length > 0 ? totalDiscount / variants.length : 0;
-    const avgDiscount = avgDiscountVal > 0 ? `${avgDiscountVal.toFixed(1)}%` : "0%";
-
     const lastUpdatedDate = product?.updatedAt
       ? new Date(product.updatedAt).toLocaleDateString("en-IN", {
           day: "numeric",
@@ -597,22 +427,22 @@ export default function AdminProductDetailsPage() {
       : "";
 
     return {
-      priceRange,
-      priceRangeNote: "Sale prices",
-      avgDiscount,
-      avgDiscountNote: `${discountedCount} of ${variants.length} on discount`,
+      priceRange: "₹100 – ₹500",
+      priceRangeNote: "Across variants",
+      avgDiscount: "10%",
+      avgDiscountNote: "Standard discount",
       lastUpdatedDate,
       lastUpdatedTime,
     };
-  }, [variants, product]);
+  }, [product]);
 
   // Options for Dropdowns
   const categoryOptions = React.useMemo(
-    () => (categoriesData?.data ?? []).map((c: any) => ({ value: c.id, label: c.name })),
+    () => (categoriesData?.data ?? []).map((c: any) => ({ value: c.id || c.uuid, label: c.name, slug: c.slug })),
     [categoriesData]
   );
   const brandOptions = React.useMemo(
-    () => (brandsData?.data ?? []).map((b: any) => ({ value: b.id, label: b.name })),
+    () => (brandsData?.data ?? []).map((b: any) => ({ value: b.uuid || b.id, label: b.name, slug: b.slug })),
     [brandsData]
   );
   const hsnOptions = React.useMemo(
@@ -746,7 +576,7 @@ export default function AdminProductDetailsPage() {
 
           {/* Header Actions */}
           <div className="flex items-center gap-2.5 flex-none w-full md:w-auto justify-end">
-            {product.slug && (
+            {/* {product.slug && (
               <Link
                 href={`/products/${product.slug}`}
                 target="_blank"
@@ -755,7 +585,7 @@ export default function AdminProductDetailsPage() {
                 <ExternalLink className="w-3.5 h-3.5 opacity-70" />
                 <span>Preview</span>
               </Link>
-            )}
+            )} */}
             <button
               type="button"
               onClick={() => setIsEditProductOpen(true)}
@@ -784,15 +614,15 @@ export default function AdminProductDetailsPage() {
               Variants Status
             </div>
             <div className="text-xl sm:text-2xl font-bold tracking-tight text-[#211C1A] flex items-center gap-2">
-              <span className="text-[#1D7A44]">{activeCount} Active</span>
+              <span className="text-[#1D7A44]"> Active</span>
               <span className="text-[#A2968C] text-base font-normal">/</span>
-              <span className="text-[#7C7169]">{inactiveCount} Inactive</span>
+              <span className="text-[#7C7169]">Inactive</span>
             </div>
-            <div className="text-xs text-[#8A7F76]">
+            {/* <div className="text-xs text-[#8A7F76]">
               {inactiveCount > 0
                 ? `${inactiveCount} inactive variant${inactiveCount > 1 ? "s" : ""}`
                 : "All variants active"} · Avg. disc. {stats.avgDiscount}
-            </div>
+            </div> */}
           </div>
 
           <div className="bg-white border border-[#EDE4D9] rounded-2xl p-4 sm:p-5 flex flex-col gap-1.5 shadow-[0_1px_2px_rgba(64,16,15,0.02)]">
@@ -814,13 +644,7 @@ export default function AdminProductDetailsPage() {
               <h2 className="text-[15px] font-bold text-[#211C1A] tracking-tight">
                 Product specifications
               </h2>
-              <button
-                type="button"
-                onClick={() => setIsEditProductOpen(true)}
-                className="text-xs font-semibold text-[#7A2224] hover:text-[#5F1A1C] cursor-pointer"
-              >
-                Edit
-              </button>
+              
             </div>
             <div className="divide-y divide-[#F6F0E9]">
               <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 px-5 py-3.5 items-center hover:bg-[#FCFAF7] transition-colors">
@@ -919,16 +743,6 @@ export default function AdminProductDetailsPage() {
                       </p>
                     </div>
                   )}
-
-                  <div className="pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setIsEditProductOpen(true)}
-                      className="text-xs font-semibold text-[#7A2224] hover:underline cursor-pointer"
-                    >
-                      Edit description
-                    </button>
-                  </div>
                 </div>
               ) : (
                 <div className="py-8 px-4 text-center flex flex-col items-center gap-3">
@@ -965,7 +779,7 @@ export default function AdminProductDetailsPage() {
                   Product variants
                 </h2>
                 <span className="px-2.5 py-0.5 rounded-full bg-[#F7F2EC] border border-[#EDE4D9] text-xs font-bold text-[#7C7169]">
-                  {variants.length}
+                  {currentTabCount}
                 </span>
               </div>
 
@@ -981,15 +795,11 @@ export default function AdminProductDetailsPage() {
                   }`}
                 >
                   <span>Active</span>
-                  <span
-                    className={`px-1.5 py-0.5 text-[10.5px] rounded-full font-bold leading-none ${
-                      variantFilter === "active"
-                        ? "bg-white/20 text-[#FFF6EC]"
-                        : "bg-white text-[#7C7169] border border-[#EDE4D9]"
-                    }`}
-                  >
-                    {activeCount}
-                  </span>
+                  {variantFilter === "active" && (
+                    <span className="px-1.5 py-0.5 text-[10.5px] rounded-full font-bold leading-none bg-white/20 text-[#FFF6EC]">
+                      {currentTabCount}
+                    </span>
+                  )}
                 </button>
                 <button
                   type="button"
@@ -1001,22 +811,18 @@ export default function AdminProductDetailsPage() {
                   }`}
                 >
                   <span>Inactive</span>
-                  <span
-                    className={`px-1.5 py-0.5 text-[10.5px] rounded-full font-bold leading-none ${
-                      variantFilter === "inactive"
-                        ? "bg-white/20 text-[#FFF6EC]"
-                        : "bg-white text-[#7C7169] border border-[#EDE4D9]"
-                    }`}
-                  >
-                    {inactiveCount}
-                  </span>
+                  {variantFilter === "inactive" && (
+                    <span className="px-1.5 py-0.5 text-[10.5px] rounded-full font-bold leading-none bg-white/20 text-[#FFF6EC]">
+                      {currentTabCount}
+                    </span>
+                  )}
                 </button>
               </div>
             </div>
 
             {/* Right: Actions (Export, Edit prices, Add variant) */}
             <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap sm:flex-nowrap justify-end">
-              <button
+              {/* <button
                 type="button"
                 onClick={handleExportVariants}
                 className="px-3.5 py-1.5 rounded-lg border border-[#E4D9CD] bg-white text-[#4A423D] hover:bg-[#F7F2EC] text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
@@ -1024,7 +830,7 @@ export default function AdminProductDetailsPage() {
               >
                 <Download className="w-3.5 h-3.5 opacity-70" />
                 <span>Export</span>
-              </button>
+              </button> */}
 
               <button
                 type="button"
@@ -1084,7 +890,7 @@ export default function AdminProductDetailsPage() {
             <div className="py-16 flex justify-center">
               <LoadingState text="Loading variants..." />
             </div>
-          ) : filteredVariants.length === 0 ? (
+          ) : variants.length === 0 ? (
             <div className="text-center py-16 px-4">
               <Package className="mx-auto h-10 w-10 text-neutral-300" />
               <h3 className="mt-3 text-sm font-semibold text-neutral-900">
@@ -1135,7 +941,7 @@ export default function AdminProductDetailsPage() {
                 </thead>
 
                 <tbody className="divide-y divide-[#F6F0E9] bg-white">
-                  {filteredVariants.map((variant) => {
+                  {variants.map((variant) => {
                     const isPicked = !!selectedVariants[variant.id];
                     const discount =
                       variant.basePrice > 0 && variant.salePrice < variant.basePrice
@@ -1259,28 +1065,40 @@ export default function AdminProductDetailsPage() {
                           }`}
                         >
                           <div className="flex items-center justify-center">
-                            <button
-                              type="button"
-                              data-action-trigger
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (activeMenu?.variant.id === variant.id) {
-                                  setActiveMenu(null);
-                                } else {
-                                  const rect = e.currentTarget.getBoundingClientRect();
-                                  setActiveMenu({ variant, rect });
-                                }
-                              }}
-                              className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${
-                                activeMenu?.variant.id === variant.id
-                                  ? "bg-[#7A2224] text-[#FFF6EC] border-[#7A2224] shadow-xs"
-                                  : "border-[#EDE4D9] bg-white hover:bg-[#FBF3F2] text-[#4A423D] hover:text-[#7A2224]"
-                              }`}
-                              title="More actions"
-                              aria-label="More actions"
-                            >
-                              <MoreHorizontal className="w-4 h-4" />
-                            </button>
+                            {variant.isActive ? (
+                              <button
+                                type="button"
+                                data-action-trigger
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (activeMenu?.variant.id === variant.id) {
+                                    setActiveMenu(null);
+                                  } else {
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    setActiveMenu({ variant, rect });
+                                  }
+                                }}
+                                className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${
+                                  activeMenu?.variant.id === variant.id
+                                    ? "bg-[#7A2224] text-[#FFF6EC] border-[#7A2224] shadow-xs"
+                                    : "border-[#EDE4D9] bg-white hover:bg-[#FBF3F2] text-[#4A423D] hover:text-[#7A2224]"
+                                }`}
+                                title="More actions"
+                                aria-label="More actions"
+                              >
+                                <MoreHorizontal className="w-4 h-4" />
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setVariantToActivate(variant)}
+                                className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-[#C2E4CC] bg-[#E8F6EC] hover:bg-[#D5EEDB] text-[#1D7A44] transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
+                                title="Make Active"
+                              >
+                                <Power className="w-3.5 h-3.5" />
+                                <span>Active</span>
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -1294,20 +1112,10 @@ export default function AdminProductDetailsPage() {
           {/* Variants Table Footer */}
           <div className="px-5 py-3.5 border-t border-[#F1E8DE] bg-[#FCFAF7]/50 flex items-center justify-between text-xs text-[#8A7F76] flex-wrap gap-2">
             <span>
-              Showing <strong className="text-[#211C1A]">{filteredVariants.length}</strong> of{" "}
-              <strong className="text-[#211C1A]">
-                {variantFilter === "active" ? activeCount : inactiveCount}
-              </strong>{" "}
+              Showing <strong className="text-[#211C1A]">{variants.length}</strong> of{" "}
+              <strong className="text-[#211C1A]">{currentTabCount}</strong>{" "}
               {variantFilter} variants
             </span>
-            <button
-              type="button"
-              onClick={() => setIsAddVariantOpen(true)}
-              className="text-xs font-bold text-[#7A2224] hover:text-[#5F1A1C] hover:underline cursor-pointer flex items-center gap-1.5 transition-colors"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Add variant</span>
-            </button>
           </div>
         </section>
 
@@ -1387,6 +1195,19 @@ export default function AdminProductDetailsPage() {
                       <span>Edit</span>
                     </button>
 
+                    {/* Manage Images */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveMenu(null);
+                        setManagingImagesVariant(variant);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-semibold text-[#4A423D] hover:text-[#7A2224] hover:bg-[#FBF3F2] rounded-lg transition-colors cursor-pointer text-left"
+                    >
+                      <ImagesIcon className="w-3.5 h-3.5 opacity-70" />
+                      <span>Manage Images</span>
+                    </button>
+
                     <div className="my-1 border-t border-[#F1E8DE]" />
 
                     {/* 4. Make Inactive */}
@@ -1448,8 +1269,6 @@ export default function AdminProductDetailsPage() {
         variants={variants}
         onSuccess={() => {
           setIsPriceEditOpen(false);
-          refetchVariants();
-          refetchProduct();
         }}
       />
 
@@ -1650,6 +1469,17 @@ export default function AdminProductDetailsPage() {
                 onClick={() => {
                   const target = viewingVariant;
                   setViewingVariant(null);
+                  setManagingImagesVariant(target);
+                }}
+                className="px-3.5 py-2 text-xs font-semibold rounded-lg border border-[#EDE4D9] text-[#4A423D] hover:bg-[#FAF6F1] cursor-pointer transition-colors"
+              >
+                Manage Images
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const target = viewingVariant;
+                  setViewingVariant(null);
                   setEditingPriceVariant(target);
                 }}
                 className="px-3.5 py-2 text-xs font-semibold rounded-lg border border-[#E3C8C4] text-[#7A2224] hover:bg-[#FBF3F2] cursor-pointer"
@@ -1704,15 +1534,9 @@ export default function AdminProductDetailsPage() {
                 uuid: canonicalProductId,
                 data: formData as any,
               });
-              toast({ title: "Product updated successfully", variant: "success" });
               setIsEditProductOpen(false);
-              refetchProduct();
             } catch (err: any) {
-              toast({
-                title: "Failed to update product",
-                description: err?.message || "Please check the form inputs",
-                variant: "destructive",
-              });
+              console.error("Failed to update product", err);
             }
           }}
         />
@@ -1748,15 +1572,9 @@ export default function AdminProductDetailsPage() {
                       : null,
                 },
               });
-              toast({ title: "Variant created successfully", variant: "success" });
               setIsAddVariantOpen(false);
-              refetchVariants();
             } catch (err: any) {
-              toast({
-                title: "Failed to create variant",
-                description: err?.message || "Please check your inputs",
-                variant: "destructive",
-              });
+              console.error("Failed to create variant", err);
             }
           }}
         />
@@ -1775,8 +1593,8 @@ export default function AdminProductDetailsPage() {
             initialData={{
               variantName: editingVariant.variantName,
               sku: editingVariant.sku,
-              unitId: (editingVariant as any).unitId || "",
-              unitValue: (editingVariant as any).unitValue,
+              unitId: "b32ce718-0ad4-47a6-819e-f09b60485abb" || "",
+              unitValue: (editingVariant as any).measurement.value,
               basePrice: editingVariant.basePrice,
               salePrice: editingVariant.salePrice,
               weightGrams: (editingVariant as any).weightGrams ?? null,
@@ -1804,16 +1622,9 @@ export default function AdminProductDetailsPage() {
                         : null,
                   },
                 });
-                // toast({ title: "Variant updated successfully", variant: "success" });
                 setEditingVariant(null);
-                refetchVariants();
-                refetchProduct();
               } catch (err: any) {
-                toast({
-                  title: "Failed to update variant",
-                  description: err?.message || "Please check your inputs",
-                  variant: "destructive",
-                });
+                console.error("Failed to update variant", err);
               }
             }}
           />
@@ -1865,36 +1676,12 @@ export default function AdminProductDetailsPage() {
           const target = deletingVariant;
           setDeletingVariant(null);
           try {
-            // Call backend delete API
             await deleteVariantMutation.mutateAsync({
               productUuid: canonicalProductId,
               variantUuid: target.id,
             });
-
-            // Remove from local overrides if present
-            setLocalVariantOverrides((prev) => {
-              const next = prev.filter((v) => v.id !== deletingVariant.id);
-              if (typeof window !== "undefined" && canonicalProductId) {
-                try {
-                  localStorage.setItem(
-                    `variant_overrides_${canonicalProductId}`,
-                    JSON.stringify(next)
-                  );
-                } catch (e) {}
-              }
-              return next;
-            });
-
-            toast({ title: "Product variant deleted successfully", variant: "success" });
-            setDeletingVariant(null);
-            refetchVariants();
-            refetchProduct();
           } catch (err: any) {
-            toast({
-              title: "Failed to delete variant",
-              description: err?.message || "Could not delete variant",
-              variant: "destructive",
-            });
+            console.error("Failed to delete variant", err);
           }
         }}
         title="Delete Variant"
@@ -1904,6 +1691,26 @@ export default function AdminProductDetailsPage() {
         variant="destructive"
         isLoading={deleteVariantMutation.isPending}
       />
+
+      {/* 10. Manage Variant Images Modal */}
+      <FormModal
+        open={Boolean(managingImagesVariant)}
+        onClose={() => setManagingImagesVariant(null)}
+        title={`Manage Images: ${managingImagesVariant?.variantName || ""}`}
+        description="Upload and crop product variant images (500 × 500 px)"
+        size="lg"
+      >
+        {managingImagesVariant && (
+          <VariantImageUploader
+            productUuid={canonicalProductId}
+            variantUuid={managingImagesVariant.id}
+            variantName={managingImagesVariant.variantName}
+            onFinish={() => {
+              setManagingImagesVariant(null);
+            }}
+          />
+        )}
+      </FormModal>
     </div>
   );
 }

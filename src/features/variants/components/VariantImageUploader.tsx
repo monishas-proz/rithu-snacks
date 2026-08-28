@@ -11,9 +11,11 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ImageCropperModal } from "@/components/common";
 import {
   useVariantImages,
   useCreateVariantImages,
+  useSetPrimaryVariantImage,
   useDeleteVariantImage,
 } from "../hooks";
 import {
@@ -52,21 +54,27 @@ export function VariantImageUploader({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  // Multi-image cropping queue state
+  const [cropQueue, setCropQueue] = useState<File[]>([]);
+  const [currentCropIndex, setCurrentCropIndex] = useState<number>(0);
+  const [currentCropSrc, setCurrentCropSrc] = useState<string | null>(null);
+
   const { data: existingImages = [], isLoading: _isLoadingExisting } =
     useVariantImages(productUuid, variantUuid);
 
   const createImagesMutation = useCreateVariantImages();
+  const setPrimaryImageMutation = useSetPrimaryVariantImage();
   const deleteImageMutation = useDeleteVariantImage();
 
   const totalImageCount = existingImages.length + pendingImages.length;
   const maxAllowedImages = 4;
   const canAddMore = totalImageCount < maxAllowedImages;
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Process incoming files through validation and queue for cropping
+  const processFilesForCrop = (rawFiles: File[]) => {
     setErrorMessage(null);
     setSuccessMessage(null);
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
+    if (rawFiles.length === 0) return;
 
     const remainingSlots = maxAllowedImages - totalImageCount;
     if (remainingSlots <= 0) {
@@ -74,14 +82,18 @@ export function VariantImageUploader({
       return;
     }
 
-    const filesToProcess = files.slice(0, remainingSlots);
-    const validFiles: PendingImage[] = [];
+    const filesToProcess = rawFiles.slice(0, remainingSlots);
+    const validFiles: File[] = [];
 
     const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"];
     const maxSizeBytes = 5 * 1024 * 1024; // 5MB
 
     for (const file of filesToProcess) {
-      if (!allowedTypes.includes(file.type.toLowerCase())) {
+      const ext = file.name.split(".").pop()?.toLowerCase();
+      const isValidExt = ["jpg", "jpeg", "png", "webp", "gif"].includes(ext || "");
+      const isAllowedType = allowedTypes.includes(file.type.toLowerCase()) || isValidExt;
+
+      if (!isAllowedType) {
         setErrorMessage("Invalid file type. Only JPG, PNG, WEBP, and GIF are allowed.");
         return;
       }
@@ -89,22 +101,65 @@ export function VariantImageUploader({
         setErrorMessage(`File "${file.name}" exceeds the 5MB size limit.`);
         return;
       }
-
-      const hasAnyPrimary =
-        existingImages.some((img) => img.isPrimary) ||
-        pendingImages.some((img) => img.isPrimary) ||
-        validFiles.some((img) => img.isPrimary);
-
-      validFiles.push({
-        id: crypto.randomUUID(),
-        file,
-        previewUrl: URL.createObjectURL(file),
-        isPrimary: !hasAnyPrimary && validFiles.length === 0 && existingImages.length === 0,
-        sortOrder: totalImageCount + validFiles.length + 1,
-      });
+      validFiles.push(file);
     }
 
-    setPendingImages((prev) => [...prev, ...validFiles]);
+    if (validFiles.length > 0) {
+      setCropQueue(validFiles);
+      setCurrentCropIndex(0);
+      setCurrentCropSrc(URL.createObjectURL(validFiles[0]));
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    processFilesForCrop(files);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  // Called when a crop is confirmed for the current file in queue
+  const handleCropConfirm = (croppedFile: File, previewUrl: string) => {
+    if (currentCropSrc) {
+      URL.revokeObjectURL(currentCropSrc);
+    }
+
+    const hasAnyPrimary =
+      existingImages.some((img) => img.isPrimary) ||
+      pendingImages.some((img) => img.isPrimary);
+
+    setPendingImages((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        file: croppedFile,
+        previewUrl,
+        isPrimary: !hasAnyPrimary && prev.length === 0 && existingImages.length === 0,
+        sortOrder: existingImages.length + prev.length + 1,
+      },
+    ]);
+
+    // Advance to next image in queue or finish
+    const nextIndex = currentCropIndex + 1;
+    if (nextIndex < cropQueue.length) {
+      setCurrentCropIndex(nextIndex);
+      setCurrentCropSrc(URL.createObjectURL(cropQueue[nextIndex]));
+    } else {
+      setCropQueue([]);
+      setCurrentCropIndex(0);
+      setCurrentCropSrc(null);
+    }
+  };
+
+  // Called when the user cancels cropping
+  const handleCropCancel = () => {
+    if (currentCropSrc) {
+      URL.revokeObjectURL(currentCropSrc);
+    }
+    setCropQueue([]);
+    setCurrentCropIndex(0);
+    setCurrentCropSrc(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -185,6 +240,23 @@ export function VariantImageUploader({
     }
   };
 
+  const handleSetPrimaryExistingImage = async (imageUuid: string) => {
+    try {
+      setErrorMessage(null);
+      await setPrimaryImageMutation.mutateAsync({
+        productUuid,
+        variantUuid,
+        imageUuid,
+      });
+      setSuccessMessage("Primary image updated successfully.");
+    } catch (err: unknown) {
+      console.error("Failed to set primary image:", err);
+      setErrorMessage(
+        err instanceof Error ? err.message : "Failed to update primary image."
+      );
+    }
+  };
+
   const handleDeleteExistingImage = async (imageUuid: string) => {
     try {
       setErrorMessage(null);
@@ -240,7 +312,11 @@ export function VariantImageUploader({
             {existingImages.map((img) => (
               <div
                 key={img.id}
-                className="group relative aspect-square rounded-xl overflow-hidden border border-[var(--color-neutral-200)] bg-[var(--color-neutral-100)]"
+                className={`group relative aspect-square rounded-xl overflow-hidden border ${
+                  img.isPrimary
+                    ? "border-[#7A2224] ring-2 ring-[#7A2224]/20"
+                    : "border-[var(--color-neutral-200)]"
+                } bg-[var(--color-neutral-100)]`}
               >
                 <Image
                   src={img.imageUrl}
@@ -248,17 +324,34 @@ export function VariantImageUploader({
                   fill
                   className="object-cover"
                 />
-                {img.isPrimary && (
-                  <span className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-[var(--color-secondary-600)] px-2 py-0.5 text-[10px] font-semibold text-white shadow">
+                {img.isPrimary ? (
+                  <span className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-[#7A2224] px-2 py-0.5 text-[10px] font-semibold text-white shadow">
                     <Star className="h-3 w-3 fill-current" /> Primary
                   </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleSetPrimaryExistingImage(img.id)}
+                    disabled={
+                      setPrimaryImageMutation.isPending ||
+                      deleteImageMutation.isPending
+                    }
+                    className="absolute top-2 left-2 rounded-lg bg-black/70 hover:bg-[#7A2224] px-2 py-1 text-[10px] font-medium text-white opacity-0 group-hover:opacity-100 transition-all flex items-center gap-1 cursor-pointer shadow-sm"
+                    title="Set as primary image"
+                  >
+                    <Star className="h-3 w-3" />
+                    <span>Set Primary</span>
+                  </button>
                 )}
                 <button
                   type="button"
                   onClick={() => handleDeleteExistingImage(img.id)}
-                  disabled={deleteImageMutation.isPending}
+                  disabled={
+                    deleteImageMutation.isPending ||
+                    setPrimaryImageMutation.isPending
+                  }
                   aria-label="Delete Image"
-                  className="absolute top-2 right-2 rounded-lg bg-black/60 p-1.5 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[var(--color-error-600)]"
+                  className="absolute top-2 right-2 rounded-lg bg-black/60 p-1.5 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 cursor-pointer"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -319,6 +412,17 @@ export function VariantImageUploader({
       {canAddMore ? (
         <div
           onClick={() => fileInputRef.current?.click()}
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (e.dataTransfer.files) {
+              processFilesForCrop(Array.from(e.dataTransfer.files));
+            }
+          }}
           className="relative flex flex-col items-center justify-center p-8 rounded-xl border-2 border-dashed border-[var(--color-neutral-300)] bg-[var(--color-neutral-50)] hover:bg-white hover:border-[var(--color-primary-500)] cursor-pointer transition-all text-center"
         >
           <div className="rounded-full bg-white p-3 shadow-sm mb-3">
@@ -382,6 +486,22 @@ export function VariantImageUploader({
           </div>
         )}
       </div>
+
+      {/* Image Cropper Modal (Configured to 500x500 for Product Variants) */}
+      <ImageCropperModal
+        open={Boolean(currentCropSrc)}
+        imageSrc={currentCropSrc}
+        originalFileName={cropQueue[currentCropIndex]?.name}
+        mimeType={cropQueue[currentCropIndex]?.type || "image/jpeg"}
+        title="Crop Product Variant Image"
+        description="Reposition and zoom the image to fit the 500 × 500 px square area."
+        cropWidth={500}
+        cropHeight={500}
+        queueIndex={currentCropIndex + 1}
+        queueTotal={cropQueue.length}
+        onCropConfirm={handleCropConfirm}
+        onCancel={handleCropCancel}
+      />
     </div>
   );
 }

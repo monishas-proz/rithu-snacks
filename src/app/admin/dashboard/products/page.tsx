@@ -18,6 +18,7 @@ import {
 import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FormModal } from "@/components/common/FormModal";
 import { SearchInput } from "@/components/ui/search-input";
@@ -29,6 +30,7 @@ import { ProductForm } from "@/features/products/components/ProductForm";
 
 export default function AdminProductsPage() {
   const [search, setSearch] = useState("");
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>("");
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -39,19 +41,17 @@ export default function AdminProductsPage() {
   const [selectedProduct, setSelectedProduct] =
     useState<AdminProductResponse | null>(null);
 
-  // Main Products Query
+  // Main Products Query (filtered by search and selected category)
   const { data, isLoading, error, refetch } = useProducts({
     page,
     pageSize,
     search: search || undefined,
+    categoryId: selectedCategoryFilter || undefined,
   });
 
-  // Reference queries for modal form dropdowns (lazy-loaded only when modal opens)
+  // Reference queries for categories filter & modal form dropdowns
   const isModalOpen = isCreateOpen || isEditOpen;
-  const { data: categoriesData } = useCategories(
-    { pageSize: 100 },
-    { enabled: isModalOpen }
-  );
+  const { data: categoriesData } = useCategories({ pageSize: 100 });
   const { data: brandsData } = useBrands(
     { limit: 100 },
     { enabled: isModalOpen }
@@ -70,18 +70,31 @@ export default function AdminProductsPage() {
   const brands = brandsData?.data ?? [];
   const hsnCodes = hsnData?.data ?? [];
 
+  // Filter Options for category dropdown in toolbar
+  const categoryFilterOptions = useMemo(() => {
+    return [
+      { value: "", label: "All Categories" },
+      ...categories.map((c: any) => ({
+        value: String(c.uuid || c.id),
+        label: c.name,
+      })),
+    ];
+  }, [categories]);
+
   // Options for form dropdowns (used only when modal is open)
   const categoryOptions = useMemo(() => {
-    return categories.map((c) => ({
-      value: String(c.id),
+    return categories.map((c: any) => ({
+      value: String(c.id || c.uuid),
       label: c.name,
+      slug: c.slug,
     }));
   }, [categories]);
 
   const brandOptions = useMemo(() => {
-    return brands.map((b) => ({
+    return brands.map((b: any) => ({
       value: b.uuid || String(b.id),
       label: b.name,
+      slug: b.slug,
     }));
   }, [brands]);
 
@@ -249,15 +262,30 @@ export default function AdminProductsPage() {
       <AdminContent className="flex-1 min-h-0 overflow-hidden">
         <div className="flex h-full flex-col overflow-hidden bg-[var(--color-background)] py-1 rounded-2xl">
           <div className="flex-shrink-0 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <SearchInput
-              placeholder="Search products..."
-              defaultValue={search}
-              onSearch={(val) => {
-                setSearch(val);
-                setPage(1);
-              }}
-              className="w-full max-w-md"
-            />
+            <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
+              <SearchInput
+                placeholder="Search products..."
+                defaultValue={search}
+                onSearch={(val) => {
+                  setSearch(val);
+                  setPage(1);
+                }}
+                className="w-full max-w-md"
+              />
+
+              <div className="w-full sm:w-64">
+                <Select
+                  value={selectedCategoryFilter}
+                  onChange={(e) => {
+                    setSelectedCategoryFilter(e.target.value);
+                    setPage(1);
+                  }}
+                  options={categoryFilterOptions}
+                  placeholder="All Categories"
+                  className="h-11 rounded-xl"
+                />
+              </div>
+            </div>
 
             <Button
               onClick={() => setIsCreateOpen(true)}
