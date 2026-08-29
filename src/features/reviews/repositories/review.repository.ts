@@ -16,6 +16,15 @@ const reviewInclude = {
       slug: true,
     },
   },
+  product_variant: {
+    select: {
+      id: true,
+      uuid: true,
+      variant_name: true,
+      sku: true,
+      slug: true,
+    },
+  },
   order_items: {
     select: {
       id: true,
@@ -63,6 +72,35 @@ export const reviewRepository = {
     });
   },
 
+  async findVariantByIdentifier(identifier: string) {
+    const isNum = !isNaN(Number(identifier)) && !identifier.includes("-");
+    const orConditions: Prisma.ProductVariantWhereInput[] = [
+      { uuid: identifier },
+      { slug: identifier },
+    ];
+    if (isNum) {
+      orConditions.push({ id: BigInt(identifier) });
+    }
+
+    return db.productVariant.findFirst({
+      where: {
+        OR: orConditions,
+        isActive: true,
+        deleted_at: null,
+      },
+      include: {
+        product: {
+          select: {
+            id: true,
+            uuid: true,
+            name: true,
+            slug: true,
+          },
+        },
+      },
+    });
+  },
+
   async findOrderItemForReview(orderItemUuid: string, customerId: bigint) {
     return db.orderItem.findFirst({
       where: {
@@ -76,6 +114,7 @@ export const reviewRepository = {
       include: {
         order: true,
         product: true,
+        variant: true,
       },
     });
   },
@@ -92,6 +131,7 @@ export const reviewRepository = {
 
   async createReviewTransaction(params: {
     productId: bigint;
+    variantId: bigint;
     userId: bigint;
     orderItemId: bigint;
     rating: number;
@@ -106,6 +146,7 @@ export const reviewRepository = {
         data: {
           uuid: reviewUuid,
           productId: params.productId,
+          variant_id: params.variantId,
           userId: params.userId,
           order_item_id: params.orderItemId,
           rating: params.rating,
@@ -311,6 +352,80 @@ export const reviewRepository = {
               avatar: true,
             },
           },
+          product_variant: {
+            select: {
+              id: true,
+              uuid: true,
+              variant_name: true,
+              sku: true,
+              slug: true,
+            },
+          },
+          images: {
+            where: { is_active: true },
+            select: {
+              image_url: true,
+            },
+          },
+        },
+      }),
+      db.review.count({ where }),
+    ]);
+
+    return {
+      reviews,
+      total,
+      page,
+      limit,
+    };
+  },
+
+  async findPublicVariantReviews(
+    variantId: bigint,
+    params: PublicReviewQueryInput
+  ) {
+    const page = params.page ?? 1;
+    const limit = params.limit ?? 10;
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.ReviewWhereInput = {
+      variant_id: variantId,
+      isApproved: true,
+      is_active: true,
+    };
+
+    if (params.rating !== undefined) {
+      where.rating = params.rating;
+    }
+
+    const sortOrder = params.sortOrder ?? "desc";
+    const sortBy = params.sortBy ?? "createdAt";
+    const orderBy: Prisma.ReviewOrderByWithRelationInput = {
+      [sortBy]: sortOrder,
+    };
+
+    const [reviews, total] = await Promise.all([
+      db.review.findMany({
+        where,
+        orderBy,
+        skip,
+        take: limit,
+        include: {
+          user: {
+            select: {
+              name: true,
+              avatar: true,
+            },
+          },
+          product_variant: {
+            select: {
+              id: true,
+              uuid: true,
+              variant_name: true,
+              sku: true,
+              slug: true,
+            },
+          },
           images: {
             where: { is_active: true },
             select: {
@@ -376,7 +491,57 @@ export const reviewRepository = {
     };
   },
 
-  async findAdminReviews(params: AdminReviewListInput) {
+  async getPublicVariantRatingSummary(variantId: bigint) {
+    const where: Prisma.ReviewWhereInput = {
+      variant_id: variantId,
+      isApproved: true,
+      is_active: true,
+    };
+
+    const [agg, ratingGroups] = await Promise.all([
+      db.review.aggregate({
+        where,
+        _avg: { rating: true },
+        _count: { id: true },
+      }),
+      db.review.groupBy({
+        by: ["rating"],
+        where,
+        _count: { id: true },
+      }),
+    ]);
+
+    const breakdown = {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+    };
+
+    ratingGroups.forEach((g) => {
+      const key = String(g.rating) as keyof typeof breakdown;
+      if (key in breakdown) {
+        breakdown[key] = g._count.id;
+      }
+    });
+
+    const averageRating = agg._avg.rating
+      ? Math.round(agg._avg.rating * 10) / 10
+      : 0;
+
+    return {
+      averageRating,
+      totalReviews: agg._count.id,
+      ratingBreakdown: breakdown,
+    };
+  },
+
+  async findAdminReviews(
+    params: AdminReviewListInput,
+    resolvedProductId?: bigint,
+    resolvedVariantId?: bigint
+  ) {
     const page = params.page ?? 1;
     const limit = params.limit ?? 10;
     const skip = (page - 1) * limit;
@@ -384,6 +549,14 @@ export const reviewRepository = {
     const where: Prisma.ReviewWhereInput = {
       is_active: true,
     };
+
+    if (resolvedProductId) {
+      where.productId = resolvedProductId;
+    }
+
+    if (resolvedVariantId) {
+      where.variant_id = resolvedVariantId;
+    }
 
     if (params.isApproved !== undefined) {
       where.isApproved = params.isApproved;
@@ -399,6 +572,8 @@ export const reviewRepository = {
         { title: { contains: s } },
         { comment: { contains: s } },
         { product: { name: { contains: s } } },
+        { product_variant: { variant_name: { contains: s } } },
+        { product_variant: { sku: { contains: s } } },
         { user: { name: { contains: s } } },
         { user: { email: { contains: s } } },
       ];

@@ -51,6 +51,21 @@ export interface OrderStatusHistoryResponse {
   createdAt: Date;
 }
 
+export interface OrderDeliveryStaffDto {
+  id: string; // staff.uuid
+  name: string;
+  email: string | null;
+  phone: string | null;
+}
+
+export interface OrderDeliveryDto {
+  isAssigned: boolean;
+  assignmentStatus: string | null;
+  deliveryId: string | null;
+  staff: OrderDeliveryStaffDto | null;
+  assignedAt: Date | string | null;
+}
+
 export interface OrderListItemResponse {
   id: string; // order.uuid
   orderNumber: string;
@@ -63,6 +78,7 @@ export interface OrderListItemResponse {
   shippingCharge: number;
   totalAmount: number;
   totalItems: number;
+  delivery?: OrderDeliveryDto;
   notes: string | null;
   placedAt: Date | null;
   createdAt: Date;

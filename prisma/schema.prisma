@@ -430,6 +430,7 @@ model ProductVariant {
   stock_reports                            stock_reports[]
   wishlist_items                           WishlistItem[]
   variant_price_history                    variant_price_history[]
+  reviews                                  Review[]
 
   @@index([created_by], map: "fk_product_variants_created_by")
   @@index([updated_by], map: "fk_product_variants_updated_by")
@@ -745,29 +746,32 @@ model PaymentTransaction {
 }
 
 model Review {
-  id                              BigInt        @id @default(autoincrement()) @db.UnsignedBigInt
-  uuid                            String?       @unique(map: "idx_reviews_uuid") @db.VarChar(255)
-  productId                       BigInt        @map("product_id") @db.UnsignedBigInt
-  userId                          BigInt        @map("user_id") @db.UnsignedBigInt
-  order_item_id                   BigInt?       @db.UnsignedBigInt
-  rating                          Int           @db.UnsignedTinyInt
-  title                           String?       @db.VarChar(150)
-  comment                         String?       @db.Text
-  isApproved                      Boolean       @default(false) @map("is_approved")
-  createdAt                       DateTime      @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt                       DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
-  is_active                       Boolean       @default(true)
-  created_by                      BigInt?       @db.UnsignedBigInt
-  updated_by                      BigInt?       @db.UnsignedBigInt
+  id                              BigInt          @id @default(autoincrement()) @db.UnsignedBigInt
+  uuid                            String?         @unique(map: "idx_reviews_uuid") @db.VarChar(255)
+  productId                       BigInt          @map("product_id") @db.UnsignedBigInt
+  variant_id                      BigInt?         @map("variant_id") @db.UnsignedBigInt
+  userId                          BigInt          @map("user_id") @db.UnsignedBigInt
+  order_item_id                   BigInt?         @db.UnsignedBigInt
+  rating                          Int             @db.UnsignedTinyInt
+  title                           String?         @db.VarChar(150)
+  comment                         String?         @db.Text
+  isApproved                      Boolean         @default(false) @map("is_approved")
+  createdAt                       DateTime        @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt                       DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+  is_active                       Boolean         @default(true)
+  created_by                      BigInt?         @db.UnsignedBigInt
+  updated_by                      BigInt?         @db.UnsignedBigInt
   images                          ReviewImage[]
-  order_items                     OrderItem?    @relation(fields: [order_item_id], references: [id], onUpdate: NoAction, map: "fk_review_orderitem")
-  product                         Product       @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_review_product")
-  user                            User          @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_review_user")
-  users_reviews_created_byTousers User?         @relation("reviews_created_byTousers", fields: [created_by], references: [id], onUpdate: NoAction, map: "fk_reviews_created_by")
-  users_reviews_updated_byTousers User?         @relation("reviews_updated_byTousers", fields: [updated_by], references: [id], onUpdate: NoAction, map: "fk_reviews_updated_by")
+  order_items                     OrderItem?      @relation(fields: [order_item_id], references: [id], onUpdate: NoAction, map: "fk_review_orderitem")
+  product                         Product         @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_review_product")
+  product_variant                 ProductVariant? @relation(fields: [variant_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_review_variant")
+  user                            User            @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_review_user")
+  users_reviews_created_byTousers User?           @relation("reviews_created_byTousers", fields: [created_by], references: [id], onUpdate: NoAction, map: "fk_reviews_created_by")
+  users_reviews_updated_byTousers User?           @relation("reviews_updated_byTousers", fields: [updated_by], references: [id], onUpdate: NoAction, map: "fk_reviews_updated_by")
 
   @@index([order_item_id], map: "fk_review_orderitem")
   @@index([productId], map: "fk_review_product")
+  @@index([variant_id], map: "fk_review_variant")
   @@index([userId], map: "fk_review_user")
   @@index([created_by], map: "fk_reviews_created_by")
   @@index([updated_by], map: "fk_reviews_updated_by")
