@@ -2,10 +2,14 @@ import { z } from "zod";
 
 export const createReviewSchema = z
   .object({
-    productId: z.string().uuid("Invalid product UUID"),
-    orderItemId: z.string().uuid("Invalid order item UUID"),
+    variantId: z
+      .string({ message: "Variant ID is required" })
+      .uuid("Invalid variant UUID"),
+    orderItemId: z
+      .string({ message: "Order item ID is required" })
+      .uuid("Invalid order item UUID"),
     rating: z
-      .number()
+      .number({ message: "Rating is required" })
       .int("Rating must be an integer")
       .min(1, "Rating must be at least 1")
       .max(5, "Rating cannot exceed 5"),
@@ -91,6 +95,8 @@ export const adminReviewListSchema = z
     search: z.string().trim().optional(),
     isApproved: z.boolean().optional(),
     rating: z.number().int().min(1).max(5).optional(),
+    productId: z.string().uuid("Invalid product UUID format").optional(),
+    variantId: z.string().uuid("Invalid variant UUID format").optional(),
     sortBy: z.enum(["createdAt", "updatedAt", "rating"]).default("createdAt"),
     sortOrder: z.enum(["asc", "desc"]).default("desc"),
   })

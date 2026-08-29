@@ -11,6 +11,13 @@ export interface ReviewProductBasic {
   thumbnail?: string | null;
 }
 
+export interface ReviewVariantBasic {
+  id: string;
+  name: string;
+  sku: string;
+  slug?: string | null;
+}
+
 export interface ReviewOrderItemBasic {
   id: string;
   productNameSnapshot: string;
@@ -22,6 +29,7 @@ export interface ReviewOrderItemBasic {
 export interface ReviewResponse {
   id: string;
   productId: string;
+  variantId?: string | null;
   orderItemId: string | null;
   rating: number;
   title: string | null;
@@ -29,10 +37,27 @@ export interface ReviewResponse {
   images: string[];
   isApproved: boolean;
   product?: ReviewProductBasic;
+  variant?: ReviewVariantBasic;
   orderItem?: ReviewOrderItemBasic;
   customer?: ReviewUserBasic;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface CreateReviewInput {
+  variantId: string;
+  orderItemId: string;
+  rating: number;
+  title?: string | null;
+  comment?: string | null;
+  images?: string[];
+}
+
+export interface UpdateReviewInput {
+  rating?: number;
+  title?: string | null;
+  comment?: string | null;
+  images?: string[];
 }
 
 export interface PublicReviewItem {
@@ -43,6 +68,7 @@ export interface PublicReviewItem {
   images: string[];
   customerName: string;
   customerAvatar: string | null;
+  variant?: ReviewVariantBasic;
   createdAt: Date;
 }
 
@@ -54,13 +80,27 @@ export interface RatingBreakdown {
   "5": number;
 }
 
+export interface RatingSummary {
+  averageRating: number;
+  totalReviews: number;
+  ratingBreakdown: RatingBreakdown;
+}
+
 export interface PublicReviewsResponse {
   reviews: PublicReviewItem[];
-  ratingSummary: {
-    averageRating: number;
-    totalReviews: number;
-    ratingBreakdown: RatingBreakdown;
+  ratingSummary: RatingSummary;
+}
+
+export interface PublicVariantReviewResponse {
+  variant: {
+    id: string;
+    name: string;
+    sku: string;
+    slug?: string | null;
+    product: ReviewProductBasic;
   };
+  reviews: PublicReviewItem[];
+  ratingSummary: RatingSummary;
 }
 
 export interface ReviewModerateResult {
@@ -68,3 +108,26 @@ export interface ReviewModerateResult {
   isApproved: boolean;
   updatedAt: Date;
 }
+
+export interface AdminReviewListParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  isApproved?: boolean;
+  rating?: number;
+  productId?: string;
+  variantId?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+}
+
+export interface CustomerReviewListParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  isApproved?: boolean;
+  rating?: number;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+}
+

@@ -62,40 +62,40 @@ export const deliveryService = {
         },
         deliverySlot: order.delivery_slots
           ? {
-              id: order.delivery_slots.uuid || String(order.delivery_slots.id),
-              slotDate: order.delivery_slots.slot_date
-                ? order.delivery_slots.slot_date.toISOString().split("T")[0]
-                : null,
-              startTime: order.delivery_slots.start_time
-                ? order.delivery_slots.start_time.toISOString().substring(11, 19)
-                : null,
-              endTime: order.delivery_slots.end_time
-                ? order.delivery_slots.end_time.toISOString().substring(11, 19)
-                : null,
-            }
+            id: order.delivery_slots.uuid || String(order.delivery_slots.id),
+            slotDate: order.delivery_slots.slot_date
+              ? order.delivery_slots.slot_date.toISOString().split("T")[0]
+              : null,
+            startTime: order.delivery_slots.start_time
+              ? order.delivery_slots.start_time.toISOString().substring(11, 19)
+              : null,
+            endTime: order.delivery_slots.end_time
+              ? order.delivery_slots.end_time.toISOString().substring(11, 19)
+              : null,
+          }
           : null,
         shippingAddress: formatShippingAddress(order.address),
         shipment: latestShipment
           ? {
-              id: latestShipment.uuid || String(latestShipment.id),
-              status: latestShipment.status,
-              assignmentStatus: latestShipment.assignment_status || "pending",
-              trackingNumber: latestShipment.tracking_number,
-              deliveryNotes: latestShipment.delivery_notes,
-              acceptedAt: latestShipment.accepted_at,
-              shippedAt: latestShipment.shipped_at,
-              deliveredAt: latestShipment.delivered_at,
-              deliveryStaff: latestShipment.delivery_staff
-                ? {
-                    id: latestShipment.delivery_staff.uuid || String(latestShipment.delivery_staff.id),
-                    name: latestShipment.delivery_staff.name,
-                    phone: latestShipment.delivery_staff.phone,
-                    avatar: latestShipment.delivery_staff.avatar ?? null,
-                  }
-                : null,
-              createdAt: latestShipment.created_at,
-              updatedAt: latestShipment.updated_at,
-            }
+            id: latestShipment.uuid || String(latestShipment.id),
+            status: latestShipment.status,
+            assignmentStatus: latestShipment.assignment_status || "pending",
+            trackingNumber: latestShipment.tracking_number,
+            deliveryNotes: latestShipment.delivery_notes,
+            acceptedAt: latestShipment.accepted_at,
+            shippedAt: latestShipment.shipped_at,
+            deliveredAt: latestShipment.delivered_at,
+            deliveryStaff: latestShipment.delivery_staff
+              ? {
+                id: latestShipment.delivery_staff.uuid || String(latestShipment.delivery_staff.id),
+                name: latestShipment.delivery_staff.name,
+                phone: latestShipment.delivery_staff.phone,
+                avatar: latestShipment.delivery_staff.avatar ?? null,
+              }
+              : null,
+            createdAt: latestShipment.created_at,
+            updatedAt: latestShipment.updated_at,
+          }
           : null,
         createdAt: order.createdAt,
         updatedAt: order.updatedAt,
@@ -237,17 +237,17 @@ export const deliveryService = {
       shippingAddress: formatShippingAddress(s.orders.address),
       deliverySlot: s.orders.delivery_slots
         ? {
-            id: s.orders.delivery_slots.uuid || String(s.orders.delivery_slots.id),
-            slotDate: s.orders.delivery_slots.slot_date
-              ? s.orders.delivery_slots.slot_date.toISOString().split("T")[0]
-              : null,
-            startTime: s.orders.delivery_slots.start_time
-              ? s.orders.delivery_slots.start_time.toISOString().substring(11, 19)
-              : null,
-            endTime: s.orders.delivery_slots.end_time
-              ? s.orders.delivery_slots.end_time.toISOString().substring(11, 19)
-              : null,
-          }
+          id: s.orders.delivery_slots.uuid || String(s.orders.delivery_slots.id),
+          slotDate: s.orders.delivery_slots.slot_date
+            ? s.orders.delivery_slots.slot_date.toISOString().split("T")[0]
+            : null,
+          startTime: s.orders.delivery_slots.start_time
+            ? s.orders.delivery_slots.start_time.toISOString().substring(11, 19)
+            : null,
+          endTime: s.orders.delivery_slots.end_time
+            ? s.orders.delivery_slots.end_time.toISOString().substring(11, 19)
+            : null,
+        }
         : null,
       createdAt: s.created_at,
       updatedAt: s.updated_at,
@@ -314,17 +314,17 @@ export const deliveryService = {
       shippingAddress: formatShippingAddress(s.orders.address),
       deliverySlot: s.orders.delivery_slots
         ? {
-            id: s.orders.delivery_slots.uuid || String(s.orders.delivery_slots.id),
-            slotDate: s.orders.delivery_slots.slot_date
-              ? s.orders.delivery_slots.slot_date.toISOString().split("T")[0]
-              : null,
-            startTime: s.orders.delivery_slots.start_time
-              ? s.orders.delivery_slots.start_time.toISOString().substring(11, 19)
-              : null,
-            endTime: s.orders.delivery_slots.end_time
-              ? s.orders.delivery_slots.end_time.toISOString().substring(11, 19)
-              : null,
-          }
+          id: s.orders.delivery_slots.uuid || String(s.orders.delivery_slots.id),
+          slotDate: s.orders.delivery_slots.slot_date
+            ? s.orders.delivery_slots.slot_date.toISOString().split("T")[0]
+            : null,
+          startTime: s.orders.delivery_slots.start_time
+            ? s.orders.delivery_slots.start_time.toISOString().substring(11, 19)
+            : null,
+          endTime: s.orders.delivery_slots.end_time
+            ? s.orders.delivery_slots.end_time.toISOString().substring(11, 19)
+            : null,
+        }
         : null,
       trackingHistory: (s.shipment_tracking || []).map((t) => ({
         status: t.status,

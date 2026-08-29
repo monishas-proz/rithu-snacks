@@ -40,7 +40,6 @@ export const orderItemInclude = Prisma.validator<Prisma.OrderItemInclude>()({
       product_units: {
         select: {
           id: true,
-          uuid: true,
           name: true,
           code: true,
           type: true,
@@ -76,6 +75,22 @@ export const orderDetailInclude = Prisma.validator<Prisma.OrderInclude>()({
   order_status_history: {
     where: { is_active: true },
     orderBy: [{ created_at: "desc" }, { id: "desc" }],
+  },
+  shipments: {
+    where: { is_active: true },
+    orderBy: { id: "desc" },
+    take: 1,
+    include: {
+      delivery_staff: {
+        select: {
+          id: true,
+          uuid: true,
+          name: true,
+          email: true,
+          phone: true,
+        },
+      },
+    },
   },
 });
 
@@ -140,6 +155,54 @@ export function formatOrderStatusHistory(
   };
 }
 
+export function formatOrderDelivery(
+  shipments?: Array<{
+    id: bigint;
+    uuid: string | null;
+    assignment_status: string | null;
+    created_at: Date;
+    accepted_at: Date | null;
+    delivered_at: Date | null;
+    delivery_staff?: {
+      id: bigint;
+      uuid: string | null;
+      name: string;
+      email?: string | null;
+      phone: string | null;
+    } | null;
+  }> | null
+) {
+  if (!shipments || shipments.length === 0) {
+    return {
+      isAssigned: false,
+      assignmentStatus: null,
+      deliveryId: null,
+      staff: null,
+      assignedAt: null,
+    };
+  }
+
+  const latest = shipments[0];
+  const staff = latest.delivery_staff;
+
+  const isAssigned = latest.assignment_status !== null;
+
+  return {
+    isAssigned,
+    assignmentStatus: latest.assignment_status || null,
+    deliveryId: latest.uuid || String(latest.id),
+    staff: staff
+      ? {
+          id: staff.uuid || String(staff.id),
+          name: staff.name,
+          email: staff.email ?? null,
+          phone: staff.phone ?? null,
+        }
+      : null,
+    assignedAt: latest.created_at ? latest.created_at.toISOString() : null,
+  };
+}
+
 export function formatOrderDetail(
   order: Prisma.OrderGetPayload<{ include: typeof orderDetailInclude }>
 ): OrderDetailResponse {
@@ -176,6 +239,7 @@ export function formatOrderDetail(
     shippingCharge: Number(order.shipping_charge),
     totalAmount: Number(order.totalAmount),
     totalItems,
+    delivery: formatOrderDelivery((order as any).shipments),
     notes: order.notes ?? null,
     placedAt: order.placed_at ?? null,
     createdAt: order.createdAt,
@@ -232,6 +296,7 @@ export function formatOrderListItem(
     shippingCharge: Number(order.shipping_charge),
     totalAmount: Number(order.totalAmount),
     totalItems,
+    delivery: formatOrderDelivery((order as any).shipments),
     notes: order.notes ?? null,
     placedAt: order.placed_at ?? null,
     createdAt: order.createdAt,
@@ -605,6 +670,22 @@ export const orderRepository = {
           items: {
             where: { is_active: true },
             select: { quantity: true },
+          },
+          shipments: {
+            where: { is_active: true },
+            orderBy: { id: "desc" },
+            take: 1,
+            include: {
+              delivery_staff: {
+                select: {
+                  id: true,
+                  uuid: true,
+                  name: true,
+                  email: true,
+                  phone: true,
+                },
+              },
+            },
           },
         },
       }),
