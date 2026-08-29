@@ -51,13 +51,33 @@ function DataTable<TData, TValue>({
   const [internalPageSize, setInternalPageSize] = React.useState<number>(
     controlledPageSize ?? 10
   );
+  const [internalPage, setInternalPage] = React.useState<number>(page);
 
   const effectivePageSize = controlledPageSize ?? internalPageSize;
+  const effectivePage = page ?? internalPage;
+
+  React.useEffect(() => {
+    if (controlledPageSize !== undefined) {
+      setInternalPageSize(controlledPageSize);
+    }
+  }, [controlledPageSize]);
+
+  React.useEffect(() => {
+    if (page !== undefined) {
+      setInternalPage(page);
+    }
+  }, [page]);
 
   const handlePageSizeChange = (newSize: number) => {
     setInternalPageSize(newSize);
+    setInternalPage(1);
     onPageSizeChange?.(newSize);
     onPageChange?.(1);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setInternalPage(newPage);
+    onPageChange?.(newPage);
   };
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -66,8 +86,17 @@ function DataTable<TData, TValue>({
   const [rowSelection, setRowSelection] = React.useState({});
   const [globalFilter, setGlobalFilter] = React.useState("");
 
+  const isServerSide = totalItems !== undefined && totalItems > data.length;
+  const paginatedData = React.useMemo(() => {
+    if (isServerSide || data.length <= effectivePageSize) {
+      return data;
+    }
+    const startIndex = (effectivePage - 1) * effectivePageSize;
+    return data.slice(startIndex, startIndex + effectivePageSize);
+  }, [data, isServerSide, effectivePage, effectivePageSize]);
+
   const table = useReactTable({
-    data,
+    data: paginatedData,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -87,14 +116,18 @@ function DataTable<TData, TValue>({
     },
   });
 
+  const computedTotalItems = totalItems !== undefined ? totalItems : data.length;
+  const computedTotalPages =
+    totalPages !== undefined && totalPages > 0
+      ? totalPages
+      : Math.max(1, Math.ceil(computedTotalItems / effectivePageSize));
+
   const startEntry =
-    totalItems && totalItems > 0
-      ? (page - 1) * effectivePageSize + 1
-      : 0;
+    computedTotalItems > 0 ? (effectivePage - 1) * effectivePageSize + 1 : 0;
 
   const endEntry =
-    totalItems && totalItems > 0
-      ? Math.min(page * effectivePageSize, totalItems)
+    computedTotalItems > 0
+      ? Math.min(effectivePage * effectivePageSize, computedTotalItems)
       : 0;
 
     
@@ -202,7 +235,7 @@ function DataTable<TData, TValue>({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 sm:px-5 py-2">
         <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-sm text-[var(--color-neutral-500)]">
           <p>
-            Showing {startEntry}–{endEntry} of {totalItems ?? data.length} entries
+            Showing {startEntry}–{endEntry} of {computedTotalItems} entries
           </p>
           <div className="flex items-center gap-2">
             <span className="text-xs font-medium text-[var(--color-neutral-600)] whitespace-nowrap">
@@ -224,8 +257,8 @@ function DataTable<TData, TValue>({
         </div>
         <div className="flex items-center gap-2 self-end sm:self-auto">
           <button
-            onClick={() => onPageChange?.(page - 1)}
-            disabled={page <= 1}
+            onClick={() => handlePageChange(effectivePage - 1)}
+            disabled={effectivePage <= 1}
             className={cn(
               "inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--color-neutral-300)]",
               "bg-white text-[var(--color-neutral-700)] transition-colors hover:bg-[var(--color-neutral-50)]",
@@ -236,11 +269,11 @@ function DataTable<TData, TValue>({
             <ChevronLeft className="h-4 w-4" />
           </button>
           <span className="text-sm font-medium text-[var(--color-neutral-700)] px-1">
-            {page} / {totalPages ?? 1}
+            {effectivePage} / {computedTotalPages}
           </span>
           <button
-            onClick={() => onPageChange?.(page + 1)}
-            disabled={!totalPages || page >= totalPages}
+            onClick={() => handlePageChange(effectivePage + 1)}
+            disabled={effectivePage >= computedTotalPages}
             className={cn(
               "inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--color-neutral-300)]",
               "bg-white text-[var(--color-neutral-700)] transition-colors hover:bg-[var(--color-neutral-50)]",

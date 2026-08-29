@@ -336,16 +336,16 @@ export default function AdminVariantDetailsPage() {
                 SKU: {variant.sku}
               </span>
               <span className="opacity-30">·</span>
-              <span className="font-mono text-[#A2968C]">
+              {/* <span className="font-mono text-[#A2968C]">
                 ID: {variant.id}
-              </span>
+              </span> */}
             </div>
           </div>
         </div>
 
           {/* Action Buttons */}
           <div className="flex items-center gap-2.5 flex-wrap self-end md:self-center">
-            <Button
+            {/* <Button
               variant="outline"
               size="sm"
               onClick={() => setIsImageUploaderOpen(true)}
@@ -353,7 +353,7 @@ export default function AdminVariantDetailsPage() {
             >
               <Upload className="w-3.5 h-3.5 mr-1.5 opacity-70" />
               <span>Manage Images</span>
-            </Button>
+            </Button> */}
 
             <Button
               variant="destructive"
@@ -362,7 +362,7 @@ export default function AdminVariantDetailsPage() {
               className="h-9"
             >
               <Pencil className="w-3.5 h-3.5 mr-1.5" />
-              <span>Edit Variant</span>
+              <span>Edit</span>
             </Button>
 
             <Button
@@ -421,7 +421,7 @@ export default function AdminVariantDetailsPage() {
                 </span>
               </div>
 
-              <Button
+              {/* <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsImageUploaderOpen(true)}
@@ -429,7 +429,7 @@ export default function AdminVariantDetailsPage() {
               >
                 <Upload className="w-3.5 h-3.5 mr-1" />
                 <span>Upload / Manage</span>
-              </Button>
+              </Button> */}
             </div>
 
             {/* Images Gallery */}

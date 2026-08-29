@@ -304,9 +304,10 @@ export default function AdminBannersPage() {
               columns={columns}
               data={banners}
               pageSize={pageSize}
+              pageSizeOptions={[10, 20, 30, 50]}
               page={data?.meta?.page ?? page}
-              totalPages={data?.meta?.totalPages ?? 1}
-              totalItems={data?.meta?.total ?? 0}
+              totalPages={data?.meta?.totalPages ?? Math.max(1, Math.ceil((data?.meta?.total ?? banners.length) / pageSize))}
+              totalItems={data?.meta?.total ?? banners.length}
               onPageChange={setPage}
               onPageSizeChange={(newSize) => {
                 setPageSize(newSize);

@@ -170,14 +170,14 @@ export function CustomerOrdersSection({
       </div>
 
       {/* Footer: View All Orders Link matching screenshot */}
-      <div className="py-5 text-center border-t border-[#F2EFE9]">
+      {/* <div className="py-5 text-center border-t border-[#F2EFE9]">
         <Link
           href="/admin/dashboard/orders"
           className="inline-block text-xs font-semibold uppercase tracking-wider text-[#801B2B] hover:underline"
         >
           View All Orders
         </Link>
-      </div>
+      </div> */}
 
       {/* Pagination Footer (if multi-page) */}
       {meta && meta.totalPages > 1 && (

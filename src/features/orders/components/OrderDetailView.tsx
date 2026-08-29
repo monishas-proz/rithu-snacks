@@ -5,6 +5,9 @@ import {
   CreditCard,
   Truck,
   CalendarDays,
+  User,
+  Clock,
+  FileText,
   Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,11 +19,10 @@ import {
   OrderStatusBadge,
   PaymentStatusBadge,
 } from "./OrderStatusBadge";
-import { DELIVERY_OPTIONS } from "../constants";
-import type { OrderDetail } from "../types";
+import type { OrderDetailResponse, OrderDetail } from "../types";
 
 interface OrderDetailViewProps {
-  order: OrderDetail;
+  order: OrderDetailResponse | OrderDetail;
   onCancel?: () => void;
   isCancelling?: boolean;
   canCancel?: boolean;
@@ -32,32 +34,47 @@ export function OrderDetailView({
   isCancelling = false,
   canCancel = false,
 }: OrderDetailViewProps) {
-  const address = order.address;
-  const payment = order.payments[0];
-  const delivery = order.delivery;
-  const shipping = order.shipping;
+  const shippingAddress =
+    ("shippingAddress" in order ? order.shippingAddress : (order as any).address) ||
+    null;
+  const billingAddress =
+    ("billingAddress" in order ? order.billingAddress : null) || null;
+  const customer = "customer" in order ? order.customer : (order as any).user;
+  const shippingCharge =
+    "shippingCharge" in order
+      ? order.shippingCharge
+      : (order as any).shippingAmount || 0;
+  const statusHistory =
+    "statusHistory" in order ? order.statusHistory || [] : [];
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold">{order.orderNumber}</h2>
+          <h2 className="text-xl font-bold text-neutral-900">
+            {order.orderNumber}
+          </h2>
           <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
             <CalendarDays className="h-4 w-4" />
-            Placed on {formatDateTime(order.createdAt)}
+            Placed on {formatDateTime(order.placedAt || order.createdAt)}
           </p>
         </div>
-        <div className="flex flex-col items-end gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <OrderStatusBadge status={order.status} />
+          {order.paymentStatus && (
+            <PaymentStatusBadge status={order.paymentStatus} />
+          )}
           {canCancel && (
             <Button
               variant="outline"
               size="sm"
-              className="text-error-600"
+              className="text-error-600 border-error-200 hover:bg-error-50"
               onClick={onCancel}
               disabled={isCancelling}
             >
-              {isCancelling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isCancelling && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
               Cancel Order
             </Button>
           )}
@@ -66,142 +83,153 @@ export function OrderDetailView({
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
+          {/* Order Items */}
           <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Items</CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold">
+                Order Items ({order.items?.length || 0})
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <OrderItemsList items={order.items} />
+              <OrderItemsList items={order.items || []} />
             </CardContent>
           </Card>
 
+          {/* Customer & Address Information */}
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            {address && (
+            {/* Customer Details */}
+            {customer && (
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base font-semibold">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    Customer Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm space-y-1.5 text-neutral-600">
+                  <p className="font-semibold text-neutral-900">
+                    {customer.name || "Customer"}
+                  </p>
+                  {customer.customerId && (
+                    <p className="text-xs font-mono text-neutral-500">
+                      ID: {customer.customerId}
+                    </p>
+                  )}
+                  {customer.email && <p>Email: {customer.email}</p>}
+                  {customer.phone && <p>Phone: {customer.phone}</p>}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Shipping Address */}
+            {shippingAddress && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base font-semibold">
                     <MapPin className="h-4 w-4 text-muted-foreground" />
                     Delivery Address
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="text-sm text-muted-foreground space-y-1">
-                  <p className="font-medium text-foreground">
-                    {address.firstName} {address.lastName}
+                <CardContent className="text-sm text-neutral-600 space-y-1">
+                  <p className="font-semibold text-neutral-900">
+                    {shippingAddress.fullName}
                   </p>
                   <p>
-                    {address.addressLine1}
-                    {address.addressLine2 ? `, ${address.addressLine2}` : ""}
+                    {shippingAddress.addressLine1}
+                    {shippingAddress.addressLine2
+                      ? `, ${shippingAddress.addressLine2}`
+                      : ""}
                   </p>
-                  <p>
-                    {address.city}, {address.state} - {address.postalCode}
-                  </p>
-                  <p>{address.country}</p>
-                  <p>Phone: {address.phone}</p>
-                  <p>Email: {address.email}</p>
-                </CardContent>
-              </Card>
-            )}
-
-            {payment && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <CreditCard className="h-4 w-4 text-muted-foreground" />
-                    Payment
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm text-muted-foreground space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span>Method</span>
-                    <span className="font-medium text-foreground">
-                      {payment.method.replace(/_/g, " ")}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Status</span>
-                    <PaymentStatusBadge status={payment.status} />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Amount</span>
-                    <span className="font-medium text-foreground">
-                      {formatPrice(payment.amount)}
-                    </span>
-                  </div>
-                  {payment.reference && (
-                    <p className="text-xs">Ref: {payment.reference}</p>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-
-            {delivery && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Truck className="h-4 w-4 text-muted-foreground" />
-                    Delivery
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm text-muted-foreground space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span>Method</span>
-                    <span className="font-medium text-foreground">
-                      {DELIVERY_OPTIONS[delivery.method]?.label ?? delivery.method}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Cost</span>
-                    <span className="font-medium text-foreground">
-                      {delivery.cost === 0 ? "Free" : formatPrice(delivery.cost)}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Status</span>
-                    <span className="font-medium text-foreground">
-                      {delivery.status.replace(/_/g, " ")}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {shipping && (shipping.trackingNumber || shipping.carrier) && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Tracking</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm text-muted-foreground space-y-1">
-                  {shipping.carrier && <p>Carrier: {shipping.carrier}</p>}
-                  {shipping.trackingNumber && (
-                    <p>Tracking: {shipping.trackingNumber}</p>
-                  )}
-                  <p>Status: {shipping.status.replace(/_/g, " ")}</p>
-                  {shipping.estimatedDelivery && (
-                    <p>
-                      Estimated: {formatDateTime(shipping.estimatedDelivery)}
+                  {shippingAddress.landmark && (
+                    <p className="text-xs text-neutral-500">
+                      Landmark: {shippingAddress.landmark}
                     </p>
                   )}
+                  <p>
+                    {shippingAddress.city}, {shippingAddress.state}{" "}
+                    {shippingAddress.pincode ? `- ${shippingAddress.pincode}` : ""}
+                  </p>
+                  <p>{shippingAddress.country || "India"}</p>
+                  <p className="pt-1 text-xs text-neutral-500">
+                    Phone: {shippingAddress.phone}
+                  </p>
                 </CardContent>
               </Card>
             )}
           </div>
+
+          {/* Notes */}
+          {order.notes && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-base font-semibold">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  Order Notes
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-neutral-700">
+                <p className="italic bg-neutral-50 p-3 rounded-lg border border-neutral-200">
+                  &ldquo;{order.notes}&rdquo;
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Status Timeline */}
+          {statusHistory.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base font-semibold">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  Status History
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {statusHistory.map((item, idx) => (
+                    <div
+                      key={item.id || idx}
+                      className="flex items-start gap-3 text-sm pb-3 border-b border-neutral-100 last:border-0 last:pb-0"
+                    >
+                      <div className="mt-0.5">
+                        <OrderStatusBadge status={item.status} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        {item.note && (
+                          <p className="text-neutral-800 font-medium">
+                            {item.note}
+                          </p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          {formatDateTime(item.createdAt)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
+        {/* Order Totals Summary */}
         <div>
           <Card className="sticky top-24">
-            <CardHeader>
-              <CardTitle className="text-base">Order Summary</CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold">
+                Order Summary
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <OrderTotals
                 totals={{
-                  subtotal: order.subtotal,
-                  taxAmount: order.taxAmount,
-                  shippingAmount: order.shippingAmount,
-                  discountAmount: order.discountAmount,
-                  totalAmount: order.totalAmount,
+                  subtotal: Number(order.subtotal || 0),
+                  taxAmount: Number(order.taxAmount || 0),
+                  shippingAmount: Number(shippingCharge || 0),
+                  discountAmount: Number(order.discountAmount || 0),
+                  totalAmount: Number(order.totalAmount || 0),
                 }}
-                couponLabel={order.couponCode}
+                couponLabel={(order as any).couponCode}
               />
             </CardContent>
           </Card>

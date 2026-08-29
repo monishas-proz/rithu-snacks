@@ -1,4 +1,5 @@
 export * from "./types";
 export * from "./validations/staff.schema";
-export * from "./repositories/staff.repository";
-export * from "./services/staff.service";
+export * from "./api/staff.api";
+export * from "./hooks";
+export * from "./components";

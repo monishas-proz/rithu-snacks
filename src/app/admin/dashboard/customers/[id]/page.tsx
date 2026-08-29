@@ -127,7 +127,7 @@ export default function AdminCustomerProfilePage() {
   }
 
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-6 pb-12">
+    <div className="w-full space-y-5">
       {/* Top Header & Breadcrumb Actions */}
       <CustomerTopBar customer={customer} />
 

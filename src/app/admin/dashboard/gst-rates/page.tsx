@@ -28,7 +28,7 @@ export default function AdminGstRatesPage() {
   const [search, setSearch] = useState("");
 
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const [pageSize, setPageSize] = useState(10);
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -169,10 +169,15 @@ export default function AdminGstRatesPage() {
               columns={columns}
               data={gstRates}
               pageSize={pageSize}
+              pageSizeOptions={[10, 20, 30, 50]}
               page={data?.meta?.page ?? page}
-              totalPages={data?.meta?.totalPages ?? 1}
-              totalItems={data?.meta?.total ?? 0}
+              totalPages={data?.meta?.totalPages ?? Math.max(1, Math.ceil((data?.meta?.total ?? gstRates.length) / pageSize))}
+              totalItems={data?.meta?.total ?? gstRates.length}
               onPageChange={setPage}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                setPage(1);
+              }}
               className="bg-white"
             />
           </div>

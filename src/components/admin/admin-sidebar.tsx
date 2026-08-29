@@ -27,6 +27,7 @@ import {
   type LucideIcon,
   Ruler,
   Layers,
+  UserCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
@@ -98,6 +99,7 @@ const sidebarItems: SidebarItem[] = [
     icon: Shield,
     children: [
       { label: "Users", href: "/admin/dashboard/users", icon: Users },
+      { label: "Staff", href: "/admin/dashboard/users/staff", icon: UserCheck },
       { label: "Roles", href: "/admin/dashboard/roles", icon: Shield },
       { label: "Permissions", href: "/admin/dashboard/permissions", icon: Shield },
       // { label: "Customers", href: "/admin/dashboard/customers", icon: Users },

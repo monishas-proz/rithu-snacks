@@ -157,7 +157,6 @@ export default function AdminProductDetailsPage() {
   const [isEditProductOpen, setIsEditProductOpen] = React.useState(false);
   const [isAddVariantOpen, setIsAddVariantOpen] = React.useState(false);
   const [editingVariant, setEditingVariant] = React.useState<AdminVariantResponse | null>(null);
-  const [viewingVariant, setViewingVariant] = React.useState<AdminVariantResponse | null>(null);
   const [editingPriceVariant, setEditingPriceVariant] = React.useState<AdminVariantResponse | null>(null);
   const [deletingVariant, setDeletingVariant] = React.useState<AdminVariantResponse | null>(null);
   const [variantToDeactivate, setVariantToDeactivate] = React.useState<AdminVariantResponse | null>(null);
@@ -975,8 +974,11 @@ export default function AdminProductDetailsPage() {
 
                         {/* Variant Name & Image */}
                         <td className="px-4 py-3 min-w-[200px]">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-[38px] h-[38px] rounded-[9px] flex-none bg-[#F6EFE7] border border-[#EDE4D9] relative overflow-hidden flex items-center justify-center">
+                          <Link
+                            href={`/admin/dashboard/variants/${encodeURIComponent(variant.id)}?productId=${encodeURIComponent(canonicalProductId)}`}
+                            className="group/variant flex items-center gap-3 min-w-0 hover:opacity-95"
+                          >
+                            <div className="w-[38px] h-[38px] rounded-[9px] flex-none bg-[#F6EFE7] border border-[#EDE4D9] relative overflow-hidden flex items-center justify-center transition-transform group-hover/variant:scale-105">
                               {variant.primaryImage ? (
                                 <Image
                                   src={variant.primaryImage}
@@ -989,14 +991,14 @@ export default function AdminProductDetailsPage() {
                               )}
                             </div>
                             <div className="min-w-0">
-                              <span className="font-semibold text-[#211C1A] block leading-snug truncate">
+                              <span className="font-semibold text-[#211C1A] group-hover/variant:text-[#7A2224] group-hover/variant:underline block leading-snug truncate transition-colors">
                                 {variant.variantName}
                               </span>
                               <span className="font-mono text-[11px] text-[#A2968C] block truncate">
                                 {variant.id ? `ID: ${variant.id.slice(0, 8)}...` : "—"}
                               </span>
                             </div>
-                          </div>
+                          </Link>
                         </td>
 
                         {/* SKU */}
@@ -1157,17 +1159,14 @@ export default function AdminProductDetailsPage() {
                 {variant.isActive ? (
                   <>
                     {/* 1. View Product Variant */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveMenu(null);
-                        setViewingVariant(variant);
-                      }}
+                    <Link
+                      href={`/admin/dashboard/variants/${encodeURIComponent(variant.id)}?productId=${encodeURIComponent(canonicalProductId)}`}
+                      onClick={() => setActiveMenu(null)}
                       className="w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-semibold text-[#4A423D] hover:text-[#7A2224] hover:bg-[#FBF3F2] rounded-lg transition-colors cursor-pointer text-left"
                     >
                       <Eye className="w-3.5 h-3.5 opacity-70" />
                       <span>View Product Variant</span>
-                    </button>
+                    </Link>
 
                     {/* 2. Price Change */}
                     <button
@@ -1361,146 +1360,7 @@ export default function AdminProductDetailsPage() {
         )}
       </FormModal>
 
-      {/* 3. View Variant Details Modal */}
-      <FormModal
-        open={!!viewingVariant}
-        onClose={() => setViewingVariant(null)}
-        title="Variant Details"
-        description={viewingVariant?.variantName}
-        size="md"
-      >
-        {viewingVariant && (
-          <div className="space-y-4">
-            <div className="flex gap-4 items-center p-3.5 rounded-xl bg-[#F8F6F2] border border-[#EDE4D9]">
-              <div className="w-16 h-16 rounded-lg bg-white border border-[#EDE4D9] relative overflow-hidden flex items-center justify-center shrink-0">
-                {viewingVariant.primaryImage ? (
-                  <Image
-                    src={viewingVariant.primaryImage}
-                    alt={viewingVariant.variantName}
-                    fill
-                    className="object-cover"
-                  />
-                ) : (
-                  <Package className="w-6 h-6 text-[#A2968C] opacity-60" />
-                )}
-              </div>
-              <div className="min-w-0">
-                <h4 className="font-bold text-[#211C1A] text-base truncate">
-                  {viewingVariant.variantName}
-                </h4>
-                <div className="font-mono text-xs text-[#6B615A] mt-0.5">
-                  SKU: {viewingVariant.sku}
-                </div>
-                <div className="font-mono text-[11px] text-[#A2968C]">
-                  ID: {viewingVariant.id}
-                </div>
-              </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="p-3 rounded-lg border border-[#EDE4D9] bg-white">
-                <span className="text-[#8A7F76] font-medium block">Measurement</span>
-                <span className="font-semibold text-[#211C1A] text-sm mt-0.5 block">
-                  {formatMeasurement(viewingVariant.measurement)}
-                </span>
-              </div>
-
-              <div className="p-3 rounded-lg border border-[#EDE4D9] bg-white">
-                <span className="text-[#8A7F76] font-medium block">Status</span>
-                <span className="mt-1 block">
-                  <span
-                    className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                      viewingVariant.isActive
-                        ? "bg-[#E8F6EC] text-[#1D7A44]"
-                        : "bg-[#F7F2EC] text-[#7C7169]"
-                    }`}
-                  >
-                    <span
-                      className={`w-1.5 h-1.5 rounded-full ${
-                        viewingVariant.isActive ? "bg-[#2AA35C]" : "bg-[#A2968C]"
-                      }`}
-                    />
-                    {viewingVariant.isActive ? "Active" : "Inactive"}
-                  </span>
-                </span>
-              </div>
-
-              <div className="p-3 rounded-lg border border-[#EDE4D9] bg-white">
-                <span className="text-[#8A7F76] font-medium block">Base Price</span>
-                <span className="font-bold text-[#211C1A] text-sm mt-0.5 block">
-                  ₹{viewingVariant.basePrice.toLocaleString("en-IN")}
-                </span>
-              </div>
-
-              <div className="p-3 rounded-lg border border-[#EDE4D9] bg-white">
-                <span className="text-[#8A7F76] font-medium block">Sale Price</span>
-                <span className="font-bold text-[#1D7A44] text-sm mt-0.5 block">
-                  ₹{viewingVariant.salePrice.toLocaleString("en-IN")}
-                </span>
-              </div>
-
-              {viewingVariant.weightGrams !== undefined &&
-                viewingVariant.weightGrams !== null && (
-                  <div className="p-3 rounded-lg border border-[#EDE4D9] bg-white">
-                    <span className="text-[#8A7F76] font-medium block">Weight in Grams</span>
-                    <span className="font-semibold text-[#211C1A] text-sm mt-0.5 block">
-                      {viewingVariant.weightGrams} g
-                    </span>
-                  </div>
-                )}
-
-              <div className="p-3 rounded-lg border border-[#EDE4D9] bg-white">
-                <span className="text-[#8A7F76] font-medium block">Last Updated</span>
-                <span className="font-medium text-[#211C1A] text-xs mt-0.5 block">
-                  {viewingVariant.updatedAt
-                    ? new Date(viewingVariant.updatedAt).toLocaleDateString("en-IN", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })
-                    : "—"}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-3 border-t border-[#EDE4D9]">
-              <button
-                type="button"
-                onClick={() => {
-                  const target = viewingVariant;
-                  setViewingVariant(null);
-                  setManagingImagesVariant(target);
-                }}
-                className="px-3.5 py-2 text-xs font-semibold rounded-lg border border-[#EDE4D9] text-[#4A423D] hover:bg-[#FAF6F1] cursor-pointer transition-colors"
-              >
-                Manage Images
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const target = viewingVariant;
-                  setViewingVariant(null);
-                  setEditingPriceVariant(target);
-                }}
-                className="px-3.5 py-2 text-xs font-semibold rounded-lg border border-[#E3C8C4] text-[#7A2224] hover:bg-[#FBF3F2] cursor-pointer"
-              >
-                Edit Price
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const target = viewingVariant;
-                  setViewingVariant(null);
-                  setEditingVariant(target);
-                }}
-                className="px-3.5 py-2 text-xs font-bold rounded-lg bg-[#7A2224] hover:bg-[#5F1A1C] text-[#FFF6EC] cursor-pointer shadow-xs"
-              >
-                Edit Details
-              </button>
-            </div>
-          </div>
-        )}
-      </FormModal>
 
       {/* 4. Edit Product Modal */}
       <FormModal

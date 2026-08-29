@@ -368,8 +368,8 @@ export default function AdminCustomersPage() {
             />
 
             {/* Filter Dropdowns */}
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Status Filter */}
+            {/* <div className="flex flex-wrap items-center gap-2">
+              
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
@@ -381,7 +381,7 @@ export default function AdminCustomersPage() {
                 <option value="banned">Banned</option>
               </select>
 
-              {/* Gender Filter */}
+              
               <select
                 value={genderFilter}
                 onChange={(e) => setGenderFilter(e.target.value)}
@@ -393,7 +393,7 @@ export default function AdminCustomersPage() {
                 <option value="other">Other</option>
               </select>
 
-              {/* Verification Filter */}
+              
               <select
                 value={verificationFilter}
                 onChange={(e) => setVerificationFilter(e.target.value)}
@@ -404,7 +404,7 @@ export default function AdminCustomersPage() {
                 <option value="phone_verified">Phone Verified</option>
               </select>
 
-              {/* Reset Filters */}
+              
               {hasActiveFilters && (
                 <Button
                   variant="outline"
@@ -416,7 +416,7 @@ export default function AdminCustomersPage() {
                   Reset
                 </Button>
               )}
-            </div>
+            </div> */}
           </div>
         {/* </div> */}
 
@@ -426,9 +426,10 @@ export default function AdminCustomersPage() {
             columns={columns}
             data={customers}
             pageSize={pageSize}
+            pageSizeOptions={[10, 20, 30, 50]}
             page={meta?.page ?? page}
-            totalPages={meta?.totalPages ?? 1}
-            totalItems={meta?.total ?? 0}
+            totalPages={meta?.totalPages ?? Math.max(1, Math.ceil((meta?.total ?? customers.length) / pageSize))}
+            totalItems={meta?.total ?? customers.length}
             onPageChange={setPage}
             onPageSizeChange={(newSize) => {
               setPageSize(newSize);
