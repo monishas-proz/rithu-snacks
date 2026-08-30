@@ -12,6 +12,7 @@ import type {
 } from "../types";
 import type {
   CustomerOrdersQueryInput,
+  CustomerOrdersListInput,
   AdminOrdersListInput,
 } from "../validations/order.schema";
 
@@ -40,6 +41,7 @@ export const orderItemInclude = Prisma.validator<Prisma.OrderItemInclude>()({
       product_units: {
         select: {
           id: true,
+          uuid: true,
           name: true,
           code: true,
           type: true,
@@ -511,10 +513,10 @@ export const orderRepository = {
 
   async findCustomerOrders(
     userId: bigint,
-    params: CustomerOrdersQueryInput
-  ): Promise<OrderListResponse<OrderListItemResponse>> {
+    params: CustomerOrdersListInput | CustomerOrdersQueryInput
+  ): Promise<OrderListResponse<OrderDetailResponse>> {
     const page = params.page ?? 1;
-    const pageSize = params.pageSize ?? 20;
+    const limit = (params as any).limit ?? params.pageSize ?? 20;
 
     const where: Prisma.OrderWhereInput = {
       userId,
@@ -523,6 +525,10 @@ export const orderRepository = {
 
     if (params.status) {
       where.order_status = params.status;
+    }
+
+    if ((params as any).paymentStatus) {
+      where.payment_status = (params as any).paymentStatus;
     }
 
     if (params.search) {
@@ -548,36 +554,21 @@ export const orderRepository = {
       db.order.findMany({
         where,
         orderBy,
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-        include: {
-          user: {
-            select: {
-              id: true,
-              uuid: true,
-              cust_id: true,
-              name: true,
-              email: true,
-              phone: true,
-            },
-          },
-          items: {
-            where: { is_active: true },
-            select: { quantity: true },
-          },
-        },
+        skip: (page - 1) * limit,
+        take: limit,
+        include: orderDetailInclude,
       }),
       db.order.count({ where }),
     ]);
 
     return {
-      data: orders.map(formatOrderListItem),
+      data: orders.map(formatOrderDetail),
       meta: {
         page,
-        limit: pageSize,
-        pageSize,
+        limit,
+        pageSize: limit,
         total,
-        totalPages: Math.ceil(total / pageSize),
+        totalPages: Math.ceil(total / limit),
       },
     };
   },

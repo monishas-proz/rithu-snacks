@@ -411,6 +411,7 @@ model ProductVariant {
   weight_grams                             Decimal?                 @db.Decimal(10, 2)
   is_default                               Boolean                  @default(false)
   isActive                                 Boolean                  @default(true) @map("is_active")
+  out_of_stock                             Boolean                  @default(false) @map("out_of_stock")
   createdAt                                DateTime                 @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt                                DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
   deleted_at                               DateTime?                @db.Timestamp(0)
