@@ -31,7 +31,7 @@ export const POST = createApiHandler(
   },
   {
     requireAuth: true,
-    requiredRole: ["STAFF"],
+    requiredRole: ["STAFF","ADMIN"],
     bodySchema: staffDeliveryListSchema,
   }
 );

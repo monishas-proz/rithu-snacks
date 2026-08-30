@@ -38,8 +38,15 @@ export const customerOrdersQuerySchema = z.object({
     .min(1, "pageSize must be at least 1")
     .max(100, "pageSize cannot exceed 100")
     .default(20),
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1, "limit must be at least 1")
+    .max(100, "limit cannot exceed 100")
+    .optional(),
   search: z.string().trim().optional(),
   status: z.enum(ORDER_STATUS_ENUM).optional(),
+  paymentStatus: z.enum(PAYMENT_STATUS_ENUM).optional(),
   sortBy: z
     .enum(["createdAt", "updatedAt", "placedAt", "totalAmount", "orderNumber"])
     .default("createdAt"),
@@ -47,6 +54,35 @@ export const customerOrdersQuerySchema = z.object({
 });
 
 export type CustomerOrdersQueryInput = z.infer<typeof customerOrdersQuerySchema>;
+
+export const customerOrdersListSchema = z
+  .object({
+    page: z.number().int().min(1, "page must be at least 1").default(1).optional(),
+    pageSize: z
+      .number()
+      .int()
+      .min(1, "pageSize must be at least 1")
+      .max(100, "pageSize cannot exceed 100")
+      .default(20)
+      .optional(),
+    limit: z
+      .number()
+      .int()
+      .min(1, "limit must be at least 1")
+      .max(100, "limit cannot exceed 100")
+      .optional(),
+    search: z.string().trim().optional(),
+    status: z.enum(ORDER_STATUS_ENUM).optional(),
+    paymentStatus: z.enum(PAYMENT_STATUS_ENUM).optional(),
+    sortBy: z
+      .enum(["createdAt", "updatedAt", "placedAt", "totalAmount", "orderNumber"])
+      .default("createdAt")
+      .optional(),
+    sortOrder: z.enum(["asc", "desc"]).default("desc").optional(),
+  })
+  .strict();
+
+export type CustomerOrdersListInput = z.infer<typeof customerOrdersListSchema>;
 
 export const adminOrdersListSchema = z
   .object({
