@@ -38,7 +38,7 @@ function ConfirmDialog({
             "rounded-full p-3 mb-4",
             isDestructive
               ? "bg-red-50 text-red-600"
-              : "bg-[#E8F6EC] text-[#1D7A44]"
+              : "bg-success-50 text-success-700"
           )}
         >
           {isDestructive ? (
@@ -47,12 +47,12 @@ function ConfirmDialog({
             <CheckCircle2 className="h-6 w-6" />
           )}
         </div>
-        <h3 className="text-lg font-bold text-[#211C1A] mb-2 tracking-tight">{title}</h3>
-        <p className="text-sm text-[#7C7169] mb-6 max-w-sm leading-relaxed">{description}</p>
+        <h3 className="text-lg font-bold text-neutral-900 mb-2 tracking-tight">{title}</h3>
+        <p className="text-sm text-neutral-500 mb-6 max-w-sm leading-relaxed">{description}</p>
         <div className="flex gap-3 w-full">
           <Button
             variant="outline"
-            className="flex-1 rounded-xl border-[#EDE4D9] text-[#4A423D] hover:bg-[#F7F2EC] font-semibold transition-colors cursor-pointer"
+            className="flex-1 rounded-xl border-cream-border text-neutral-700 hover:bg-cream-200 font-semibold transition-colors cursor-pointer"
             onClick={onClose}
             disabled={isLoading}
           >
@@ -62,7 +62,7 @@ function ConfirmDialog({
             variant={variant}
             className={cn(
               "flex-1 rounded-xl font-semibold transition-colors cursor-pointer",
-              !isDestructive && "bg-[#7A2224] hover:bg-[#5F1A1C] text-[#FFF6EC]"
+              !isDestructive && "bg-secondary-600 hover:bg-secondary-700 text-cream-white"
             )}
             onClick={() => {
               onConfirm();

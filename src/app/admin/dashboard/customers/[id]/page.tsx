@@ -150,9 +150,9 @@ export default function AdminCustomerProfilePage() {
       </div>
 
       {/* Middle Section: Tabbed Container matching screenshot */}
-      <div className="rounded-2xl border border-[#EDE8E1] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.02)] overflow-hidden">
+      <div className="rounded-2xl border border-cream-border bg-white shadow-xs overflow-hidden">
         {/* Tab Navigation Header Bar */}
-        <div className="bg-[#F8F6F2] border-b border-[#EDE8E1] px-4 sm:px-6">
+        <div className="bg-cream-100 border-b border-cream-border px-4 sm:px-6">
           <div className="flex items-center gap-6 sm:gap-8 overflow-x-auto scrollbar-hide">
             {tabs.map((tab) => {
               const isActive = activeTab === tab.id;
@@ -164,7 +164,7 @@ export default function AdminCustomerProfilePage() {
                   onClick={() => setActiveTab(tab.id)}
                   className={`py-3.5 px-1 font-mono text-xs sm:text-sm font-semibold tracking-wide transition-all border-b-2 whitespace-nowrap cursor-pointer ${
                     isActive
-                      ? "border-[#801B2B] text-[#801B2B]"
+                      ? "border-secondary-600 text-secondary-600"
                       : "border-transparent text-neutral-500 hover:text-neutral-800"
                   }`}
                 >

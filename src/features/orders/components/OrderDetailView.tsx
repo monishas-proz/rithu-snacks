@@ -46,6 +46,7 @@ export function OrderDetailView({
       : (order as any).shippingAmount || 0;
   const statusHistory =
     "statusHistory" in order ? order.statusHistory || [] : [];
+  const delivery = "delivery" in order ? order.delivery : (order as any).delivery;
 
   return (
     <div className="space-y-6">
@@ -95,8 +96,8 @@ export function OrderDetailView({
             </CardContent>
           </Card>
 
-          {/* Customer & Address Information */}
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+          {/* Customer, Address & Delivery Staff Information */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {/* Customer Details */}
             {customer && (
               <Card>
@@ -156,6 +157,59 @@ export function OrderDetailView({
                 </CardContent>
               </Card>
             )}
+
+            {/* Assigned Delivery Staff */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base font-semibold">
+                  <Truck className="h-4 w-4 text-muted-foreground" />
+                  Assigned Staff
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm space-y-2 text-neutral-600">
+                {delivery?.staff ? (
+                  <>
+                    <div className="flex items-center gap-2.5">
+                      <div className="grid h-8 w-8 place-items-center rounded-full bg-secondary-600 text-white text-xs font-bold shrink-0">
+                        {delivery.staff.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-neutral-900 truncate">
+                          {delivery.staff.name}
+                        </p>
+                        {delivery.assignmentStatus && (
+                          <span className="inline-block text-[11px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded capitalize">
+                            {delivery.assignmentStatus.replace(/_/g, " ")}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {delivery.staff.phone && (
+                      <p className="text-xs">
+                        Phone: <span className="font-mono">{delivery.staff.phone}</span>
+                      </p>
+                    )}
+                    {delivery.staff.email && (
+                      <p className="text-xs truncate">Email: {delivery.staff.email}</p>
+                    )}
+                    {delivery.assignedAt && (
+                      <p className="text-xs text-neutral-400 pt-1">
+                        Assigned on {formatDateTime(delivery.assignedAt)}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <div className="py-2">
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-neutral-500 bg-neutral-100 px-2 py-0.5 rounded-full border border-neutral-200">
+                      Unassigned
+                    </span>
+                    <p className="text-xs text-neutral-400 mt-2">
+                      No delivery staff assigned yet.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           {/* Notes */}

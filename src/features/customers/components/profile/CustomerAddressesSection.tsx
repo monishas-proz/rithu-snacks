@@ -64,13 +64,13 @@ export function CustomerAddressesSection({
           return (
             <div
               key={addr.id}
-              className="rounded-xl border border-[#EDE8E1] p-5 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-all relative flex flex-col justify-between"
+              className="rounded-xl border border-cream-border p-5 bg-white shadow-xs transition-all relative flex flex-col justify-between"
             >
               <div className="space-y-3">
                 {/* Header: Label & Badges */}
-                <div className="flex items-center justify-between gap-2 border-b border-[#F2EFE9] pb-3">
+                <div className="flex items-center justify-between gap-2 border-b border-cream-border-subtle pb-3">
                   <div className="flex items-center gap-2">
-                    <div className="p-1 rounded-md bg-[#F8F6F2] text-neutral-600">
+                    <div className="p-1 rounded-md bg-cream-100 text-neutral-600">
                       {isWork ? (
                         <Building className="h-3.5 w-3.5" />
                       ) : isHome ? (
@@ -85,7 +85,7 @@ export function CustomerAddressesSection({
                   </div>
 
                   {addr.isDefault && (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#EAF7EE] text-[#1E833F]">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-success-50 text-success-700">
                       Default
                     </span>
                   )}
@@ -105,7 +105,7 @@ export function CustomerAddressesSection({
                 </div>
 
                 {/* Street & Location Details */}
-                <div className="text-xs text-neutral-600 space-y-0.5 leading-relaxed bg-[#FAF8F5] p-3 rounded-lg border border-[#EDE8E1]">
+                <div className="text-xs text-neutral-600 space-y-0.5 leading-relaxed bg-cream-50 p-3 rounded-lg border border-cream-border">
                   <p className="font-medium text-neutral-800">
                     {addr.addressLine1}
                   </p>
@@ -125,7 +125,7 @@ export function CustomerAddressesSection({
                 </div>
               </div>
 
-              <div className="pt-3 mt-3 border-t border-[#F2EFE9] flex items-center justify-between text-[11px] text-neutral-400 font-mono">
+              <div className="pt-3 mt-3 border-t border-cream-border-subtle flex items-center justify-between text-[11px] text-neutral-400 font-mono">
                 <span>ID: {addr.id.slice(0, 8)}...</span>
                 <span>
                   Added: {new Date(addr.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}

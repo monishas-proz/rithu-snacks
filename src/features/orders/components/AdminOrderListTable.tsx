@@ -12,6 +12,7 @@ import {
   Loader2,
   ArrowRight,
   Truck,
+  Package,
 } from "lucide-react";
 import { DataTable } from "@/components/admin/data-table/DataTable";
 import { LoadingState } from "@/components/ui/loading-state";
@@ -108,11 +109,11 @@ export function AdminOrderListTable({
           <button
             type="button"
             onClick={() => setViewOrderId(row.original.id)}
-            className="text-left font-semibold text-[#211C1A] hover:text-[#7A2224] transition-colors cursor-pointer"
+            className="text-left font-semibold text-neutral-900 hover:text-secondary-600 transition-colors cursor-pointer"
           >
             {row.original.orderNumber}
           </button>
-          <div className="text-[11px] text-[#A2968C]">
+          <div className="text-[11px] text-neutral-400">
             {formatDateTime(row.original.placedAt || row.original.createdAt)}
           </div>
         </div>
@@ -125,10 +126,10 @@ export function AdminOrderListTable({
         const customer = row.original.customer;
         return (
           <div className="leading-snug max-w-[200px] truncate">
-            <div className="font-semibold text-[#211C1A] truncate">
+            <div className="font-semibold text-neutral-900 truncate">
               {customer?.name || "Customer"}
             </div>
-            <div className="text-[11px] text-[#A2968C] font-mono truncate">
+            <div className="text-[11px] text-neutral-400 font-mono truncate">
               {customer?.phone ||
                 customer?.email ||
                 (customer?.customerId ? `ID: ${customer.customerId}` : "—")}
@@ -141,7 +142,7 @@ export function AdminOrderListTable({
       accessorKey: "totalItems",
       header: "Items",
       cell: ({ row }) => (
-        <span className="text-xs font-medium text-[#4A423D]">
+        <span className="text-xs font-medium text-neutral-700">
           {row.original.totalItems}{" "}
           {row.original.totalItems === 1 ? "item" : "items"}
         </span>
@@ -151,7 +152,7 @@ export function AdminOrderListTable({
       accessorKey: "totalAmount",
       header: "Total",
       cell: ({ row }) => (
-        <span className="font-semibold text-[#211C1A] tabular-nums text-sm">
+        <span className="font-semibold text-neutral-900 tabular-nums text-sm">
           {formatPrice(row.original.totalAmount)}
         </span>
       ),
@@ -171,10 +172,64 @@ export function AdminOrderListTable({
       cell: ({ row }) => <OrderStatusBadge status={row.original.status} />,
     },
     {
+      accessorKey: "delivery.staff",
+      header: "Assigned Staff",
+      cell: ({ row }) => {
+        const delivery = row.original.delivery;
+        const staff = delivery?.staff;
+        const isAssigned = delivery?.isAssigned && !!staff;
+        const orderStatus = (row.original.status || "").toLowerCase();
+
+        if (!isAssigned || !staff) {
+          return (
+            <div className="flex items-center gap-1.5">
+              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-neutral-500 bg-cream-100 px-2 py-0.5 rounded-full border border-cream-border">
+                <Package className="h-3 w-3 text-neutral-400" />
+                Unassigned
+              </span>
+              {orderStatus === "packed" && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setAssignStaffOrder({
+                      id: row.original.id,
+                      orderNumber: row.original.orderNumber,
+                    })
+                  }
+                  title="Assign Staff"
+                  className="text-[11px] font-semibold text-secondary-600 hover:underline cursor-pointer ml-0.5"
+                >
+                  Assign
+                </button>
+              )}
+            </div>
+          );
+        }
+
+        const initial = staff.name.charAt(0).toUpperCase();
+
+        return (
+          <div className="flex items-center gap-2 max-w-[180px]">
+            <div className="grid h-7 w-7 place-items-center rounded-full bg-secondary-600 text-white text-xs font-bold shrink-0">
+              {initial}
+            </div>
+            <div className="min-w-0 leading-tight">
+              <div className="font-semibold text-xs text-neutral-900 truncate">
+                {staff.name}
+              </div>
+              <div className="text-[10.5px] text-neutral-500 font-mono truncate">
+                {staff.phone || staff.email || "Staff"}
+              </div>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
       accessorKey: "placedAt",
       header: "Placed At",
       cell: ({ row }) => (
-        <div className="leading-snug text-xs text-[#4A423D]">
+        <div className="leading-snug text-xs text-neutral-700">
           <div>
             {new Date(
               row.original.placedAt || row.original.createdAt
@@ -184,7 +239,7 @@ export function AdminOrderListTable({
               year: "numeric",
             })}
           </div>
-          <div className="text-[11px] text-[#A2968C]">
+          <div className="text-[11px] text-neutral-400">
             {new Date(
               row.original.placedAt || row.original.createdAt
             ).toLocaleTimeString("en-IN", {
@@ -217,7 +272,7 @@ export function AdminOrderListTable({
                   )
                 }
                 title="Confirm Order"
-                className="grid h-8 w-8 place-items-center rounded-lg border border-[#E3C8C4] bg-[#FBF3F2] text-xs font-semibold text-[#7A2224] hover:brightness-95 transition-all cursor-pointer"
+                className="grid h-8 w-8 place-items-center rounded-lg border border-secondary-200 bg-secondary-50 text-xs font-semibold text-secondary-600 hover:brightness-95 transition-all cursor-pointer"
                 disabled={isTransitionPending}
               >
                 <ArrowRight className="h-3.5 w-3.5" />
@@ -268,7 +323,7 @@ export function AdminOrderListTable({
                   })
                 }
                 title="Assign Delivery Staff"
-                className="grid h-8 w-8 place-items-center rounded-lg border border-[#7A2224] bg-[#7A2224] text-xs font-semibold text-white hover:bg-[#5A1A11] transition-all cursor-pointer shadow-xs"
+                className="grid h-8 w-8 place-items-center rounded-lg border border-secondary-600 bg-secondary-600 text-xs font-semibold text-white hover:bg-secondary-700 transition-all cursor-pointer shadow-xs"
                 disabled={isTransitionPending}
               >
                 <Truck className="h-3.5 w-3.5" />
@@ -279,7 +334,7 @@ export function AdminOrderListTable({
               type="button"
               onClick={() => setViewOrderId(row.original.id)}
               title="View Order Details"
-              className="grid h-8 w-8 place-items-center rounded-lg border border-[#EBE1D6] bg-white text-xs text-[#6B615A] hover:bg-[#F7F2EC] hover:text-[#40100F] hover:border-[#D8CBBC] transition-colors cursor-pointer"
+              className="grid h-8 w-8 place-items-center rounded-lg border border-cream-border-subtle bg-white text-xs text-neutral-600 hover:bg-cream-200 hover:text-secondary-800 hover:border-cream-border-hover transition-colors cursor-pointer"
             >
               <Eye className="h-3.5 w-3.5" />
             </button>
@@ -289,7 +344,7 @@ export function AdminOrderListTable({
                 type="button"
                 onClick={() => setCancelOrderId(row.original.id)}
                 title="Cancel Order"
-                className="grid h-8 w-8 place-items-center rounded-lg border border-[#F0DCD9] bg-white text-xs text-error-600 hover:bg-error-50 hover:border-error-200 transition-colors cursor-pointer"
+                className="grid h-8 w-8 place-items-center rounded-lg border border-secondary-200 bg-white text-xs text-error-600 hover:bg-error-50 hover:border-error-200 transition-colors cursor-pointer"
               >
                 <XCircle className="h-3.5 w-3.5" />
               </button>
@@ -312,7 +367,7 @@ export function AdminOrderListTable({
               setSearch(val.trim());
               setPage(1);
             }}
-            className="w-full max-w-md bg-[#FCFAF7] border-[#EBE1D6]"
+            className="w-full max-w-md bg-cream-50 border-cream-border-subtle"
           />
         </div>
 
@@ -324,7 +379,7 @@ export function AdminOrderListTable({
               setPage(1);
             }}
             aria-label="Filter by payment status"
-            className="h-10 rounded-xl border border-[#EBE1D6] bg-white px-3 text-xs font-semibold text-[#4A423D] hover:border-[#D8CBBC] focus:border-[#7A2224] focus:outline-hidden cursor-pointer"
+            className="h-10 rounded-xl border border-cream-border-subtle bg-white px-3 text-xs font-semibold text-neutral-700 hover:border-cream-border-hover focus:border-secondary-600 focus:outline-hidden cursor-pointer"
           >
             <option value="">All Payments</option>
             {PAYMENT_STATUSES.map((ps) => (
@@ -362,7 +417,7 @@ export function AdminOrderListTable({
               setPageSize(newSize);
               setPage(1);
             }}
-            className="bg-white border border-[#EDE4D9]"
+            className="bg-white border border-cream-border"
             emptyMessage={emptyMessage}
           />
         )}
@@ -403,7 +458,7 @@ export function AdminOrderListTable({
                 {currentDetailStatus === "pending" && (
                   <Button
                     size="sm"
-                    className="bg-[#7A2224] hover:bg-[#5A1A11] text-white"
+                    className="bg-secondary-600 hover:bg-secondary-700 text-white"
                     onClick={() => {
                       confirmOrder.mutate(
                         { id: orderDetail.id, note: "Order confirmed by admin" },
@@ -481,7 +536,7 @@ export function AdminOrderListTable({
                 {currentDetailStatus === "packed" && (
                   <Button
                     size="sm"
-                    className="bg-[#7A2224] hover:bg-[#5A1A11] text-white"
+                    className="bg-secondary-600 hover:bg-secondary-700 text-white"
                     onClick={() => {
                       setAssignStaffOrder({
                         id: orderDetail.id,

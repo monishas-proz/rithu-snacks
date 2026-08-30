@@ -66,32 +66,31 @@ function formatMeasurement(m: any): string {
 function renderDietaryBadge(vegType?: string | null) {
   const type = (vegType || "na").toLowerCase();
   let label = "Vegetarian";
-  let markColor = "#2F7A3C";
+  let markBorder = "border-success-600";
+  let markBg = "bg-success-600";
 
   if (type === "nonveg" || type === "non-veg") {
     label = "Non-vegetarian";
-    markColor = "#A33127";
+    markBorder = "border-error-600";
+    markBg = "bg-error-600";
   } else if (type === "vegan") {
     label = "Vegan";
-    markColor = "#1D7A44";
+    markBorder = "border-success-700";
+    markBg = "bg-success-700";
   } else if (type === "egg" || type === "contains egg") {
     label = "Contains egg";
-    markColor = "#C08A1E";
+    markBorder = "border-amber-600";
+    markBg = "bg-amber-600";
   } else if (type === "na" || !vegType) {
     label = "Not Assigned";
-    markColor = "#A2968C";
+    markBorder = "border-neutral-400";
+    markBg = "bg-neutral-400";
   }
 
   return (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F7F2EC] text-[#5C534C] text-xs font-bold border border-[#E4D9CD]">
-      <span
-        className="w-3 h-3 rounded-[2px] flex items-center justify-center"
-        style={{ border: `1.5px solid ${markColor}` }}
-      >
-        <span
-          className="w-1.5 h-1.5 rounded-full"
-          style={{ backgroundColor: markColor }}
-        />
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cream-200 text-neutral-700 text-xs font-bold border border-cream-border-subtle">
+      <span className={`w-3 h-3 rounded-[2px] border-[1.5px] ${markBorder} flex items-center justify-center`}>
+        <span className={`w-1.5 h-1.5 rounded-full ${markBg}`} />
       </span>
       <span>{label}</span>
     </span>
@@ -490,26 +489,26 @@ export default function AdminProductDetailsPage() {
   }
 
   return (
-    <div className="w-full space-y-5 text-[#2A2422]">
+    <div className="w-full space-y-5 text-neutral-900">
       {/* Breadcrumb Navigation */}
-      <div className="flex items-center gap-2 text-xs sm:text-sm font-medium text-[#8A7F76] pb-1">
+      <div className="flex items-center gap-2 text-xs sm:text-sm font-medium text-neutral-400 pb-1">
         <Link
           href="/admin/dashboard/products"
-          className="hover:text-[#40100F] transition-colors"
+          className="hover:text-secondary-800 transition-colors"
         >
           Products
         </Link>
         <span className="opacity-40">/</span>
-        <span className="text-[#211C1A] font-semibold truncate max-w-[200px] sm:max-w-md">
+        <span className="text-neutral-900 font-semibold truncate max-w-[200px] sm:max-w-md">
           {product.name}
         </span>
       </div>
 
       {/* Section 1: Hero Overview Header Card */}
-        <section className="bg-white border border-[#EDE4D9] rounded-2xl p-5 sm:p-6 shadow-[0_1px_2px_rgba(64,16,15,0.04)] flex flex-col md:flex-row gap-5 items-start md:items-center justify-between">
+        <section className="bg-white border border-cream-border rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col md:flex-row gap-5 items-start md:items-center justify-between">
           <div className="flex gap-5 items-center min-w-0">
             {/* Product Image Thumbnail */}
-            <div className="w-[92px] h-[92px] rounded-xl flex-none bg-[#F6EFE7] border border-[#EDE4D9] relative overflow-hidden flex items-center justify-center">
+            <div className="w-[92px] h-[92px] rounded-xl flex-none bg-cream-100 border border-cream-border relative overflow-hidden flex items-center justify-center">
               {primaryProductImage ? (
                 <Image
                   src={primaryProductImage}
@@ -519,8 +518,8 @@ export default function AdminProductDetailsPage() {
                 />
               ) : (
                 <div className="text-center">
-                  <Package className="w-6 h-6 text-[#A2968C] mx-auto mb-1 opacity-70" />
-                  <span className="font-mono text-[9px] text-[#A2968C] block leading-tight">
+                  <Package className="w-6 h-6 text-neutral-400 mx-auto mb-1 opacity-70" />
+                  <span className="font-mono text-[9px] text-neutral-400 block leading-tight">
                     product<br />shot
                   </span>
                 </div>
@@ -530,20 +529,20 @@ export default function AdminProductDetailsPage() {
             {/* Title & Badges */}
             <div className="min-w-0 flex flex-col gap-2">
               <div className="flex items-center gap-2.5 flex-wrap">
-                <h1 className="text-2xl sm:text-[25px] font-bold tracking-tight text-[#211C1A]">
+                <h1 className="text-2xl sm:text-[25px] font-bold tracking-tight text-neutral-900">
                   {product.name}
                 </h1>
                 {/* Active/Inactive badge */}
                 <span
                   className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
                     product.isActive
-                      ? "bg-[#E8F6EC] text-[#1D7A44]"
-                      : "bg-[#F4EFEA] text-[#8A7F76]"
+                      ? "bg-success-50 text-success-700"
+                      : "bg-cream-200 text-neutral-400"
                   }`}
                 >
                   <span
                     className={`w-1.5 h-1.5 rounded-full ${
-                      product.isActive ? "bg-[#2AA35C]" : "bg-[#A2968C]"
+                      product.isActive ? "bg-success-600" : "bg-neutral-400"
                     }`}
                   />
                   {product.isActive ? "Active" : "Inactive"}
@@ -551,7 +550,7 @@ export default function AdminProductDetailsPage() {
 
                 {/* Featured badge */}
                 {product.isFeatured && (
-                  <span className="px-2.5 py-1 rounded-full bg-[#FDF0DC] text-[#96601A] text-xs font-bold">
+                  <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 text-xs font-bold">
                     Featured
                   </span>
                 )}
@@ -561,12 +560,12 @@ export default function AdminProductDetailsPage() {
               </div>
 
               {/* Category · Brand · Slug subline */}
-              <div className="flex items-center gap-3 flex-wrap text-xs sm:text-sm text-[#7C7169]">
+              <div className="flex items-center gap-3 flex-wrap text-xs sm:text-sm text-neutral-500">
                 <span>{categoryName || "Not Assigned"}</span>
                 <span className="opacity-40">·</span>
                 <span>{brandName || "Not Assigned"}</span>
                 <span className="opacity-40">·</span>
-                <span className="font-mono text-xs text-[#4A423D] bg-[#F7F2EC] px-2 py-0.5 rounded border border-[#EDE4D9]">
+                <span className="font-mono text-xs text-neutral-700 bg-cream-200 px-2 py-0.5 rounded border border-cream-border">
                   {product.slug || "NO_SLUG"}
                 </span>
               </div>
@@ -575,20 +574,10 @@ export default function AdminProductDetailsPage() {
 
           {/* Header Actions */}
           <div className="flex items-center gap-2.5 flex-none w-full md:w-auto justify-end">
-            {/* {product.slug && (
-              <Link
-                href={`/products/${product.slug}`}
-                target="_blank"
-                className="px-3.5 py-2 rounded-lg border border-[#E4D9CD] bg-white text-[#4A423D] hover:bg-[#F7F2EC] text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5"
-              >
-                <ExternalLink className="w-3.5 h-3.5 opacity-70" />
-                <span>Preview</span>
-              </Link>
-            )} */}
             <button
               type="button"
               onClick={() => setIsEditProductOpen(true)}
-              className="px-4 py-2 rounded-lg bg-[#7A2224] hover:bg-[#5F1A1C] text-[#FFF6EC] text-xs sm:text-sm font-semibold transition-all shadow-[0_1px_2px_rgba(64,16,15,0.2)] flex items-center gap-1.5 cursor-pointer"
+              className="px-4 py-2 rounded-lg bg-secondary-600 hover:bg-secondary-700 text-cream-white text-xs sm:text-sm font-semibold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
             >
               <Pencil className="w-3.5 h-3.5" />
               <span>Edit product</span>
@@ -598,92 +587,86 @@ export default function AdminProductDetailsPage() {
 
         {/* Section 2: Stats Cards Grid (3 Cards) */}
         <section className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-          <div className="bg-white border border-[#EDE4D9] rounded-2xl p-4 sm:p-5 flex flex-col gap-1.5 shadow-[0_1px_2px_rgba(64,16,15,0.02)]">
-            <div className="text-[11px] font-bold tracking-wider text-[#A2968C] uppercase">
+          <div className="bg-white border border-cream-border rounded-2xl p-4 sm:p-5 flex flex-col gap-1.5 shadow-xs">
+            <div className="text-[11px] font-bold tracking-wider text-neutral-400 uppercase">
               Price Range
             </div>
-            <div className="text-xl sm:text-2xl font-bold tracking-tight text-[#211C1A]">
+            <div className="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900">
               {stats.priceRange}
             </div>
-            <div className="text-xs text-[#8A7F76]">{stats.priceRangeNote}</div>
+            <div className="text-xs text-neutral-400">{stats.priceRangeNote}</div>
           </div>
 
-          <div className="bg-white border border-[#EDE4D9] rounded-2xl p-4 sm:p-5 flex flex-col gap-1.5 shadow-[0_1px_2px_rgba(64,16,15,0.02)]">
-            <div className="text-[11px] font-bold tracking-wider text-[#A2968C] uppercase">
+          <div className="bg-white border border-cream-border rounded-2xl p-4 sm:p-5 flex flex-col gap-1.5 shadow-xs">
+            <div className="text-[11px] font-bold tracking-wider text-neutral-400 uppercase">
               Variants Status
             </div>
-            <div className="text-xl sm:text-2xl font-bold tracking-tight text-[#211C1A] flex items-center gap-2">
-              <span className="text-[#1D7A44]"> Active</span>
-              <span className="text-[#A2968C] text-base font-normal">/</span>
-              <span className="text-[#7C7169]">Inactive</span>
+            <div className="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900 flex items-center gap-2">
+              <span className="text-success-700"> Active</span>
+              <span className="text-neutral-400 text-base font-normal">/</span>
+              <span className="text-neutral-500">Inactive</span>
             </div>
-            {/* <div className="text-xs text-[#8A7F76]">
-              {inactiveCount > 0
-                ? `${inactiveCount} inactive variant${inactiveCount > 1 ? "s" : ""}`
-                : "All variants active"} · Avg. disc. {stats.avgDiscount}
-            </div> */}
           </div>
 
-          <div className="bg-white border border-[#EDE4D9] rounded-2xl p-4 sm:p-5 flex flex-col gap-1.5 shadow-[0_1px_2px_rgba(64,16,15,0.02)]">
-            <div className="text-[11px] font-bold tracking-wider text-[#A2968C] uppercase">
+          <div className="bg-white border border-cream-border rounded-2xl p-4 sm:p-5 flex flex-col gap-1.5 shadow-xs">
+            <div className="text-[11px] font-bold tracking-wider text-neutral-400 uppercase">
               Last Updated
             </div>
-            <div className="text-xl sm:text-2xl font-bold tracking-tight text-[#211C1A]">
+            <div className="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900">
               {stats.lastUpdatedDate}
             </div>
-            <div className="text-xs text-[#8A7F76]">{stats.lastUpdatedTime || "Recent"}</div>
+            <div className="text-xs text-neutral-400">{stats.lastUpdatedTime || "Recent"}</div>
           </div>
         </section>
 
         {/* Section 3: Two-Column Specifications & Description Grid */}
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
           {/* Specifications Card */}
-          <div className="lg:col-span-7 bg-white border border-[#EDE4D9] rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(64,16,15,0.02)]">
-            <div className="px-5 py-4 border-b border-[#F1E8DE] flex items-center justify-between">
-              <h2 className="text-[15px] font-bold text-[#211C1A] tracking-tight">
+          <div className="lg:col-span-7 bg-white border border-cream-border rounded-2xl overflow-hidden shadow-xs">
+            <div className="px-5 py-4 border-b border-cream-border flex items-center justify-between">
+              <h2 className="text-[15px] font-bold text-neutral-900 tracking-tight">
                 Product specifications
               </h2>
-              
             </div>
-            <div className="divide-y divide-[#F6F0E9]">
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 px-5 py-3.5 items-center hover:bg-[#FCFAF7] transition-colors">
-                <div className="sm:col-span-5 text-xs text-[#8A7F76] font-medium">Category</div>
-                <div className="sm:col-span-7 text-xs sm:text-sm text-[#211C1A] font-semibold truncate">
+            <div className="divide-y divide-cream-border-subtle">
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 px-5 py-3.5 items-center hover:bg-cream-50 transition-colors">
+                <div className="sm:col-span-5 text-xs text-neutral-400 font-medium">Category</div>
+                <div className="sm:col-span-7 text-xs sm:text-sm text-neutral-900 font-semibold truncate">
                   {categoryName || "Not Assigned"}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 px-5 py-3.5 items-center hover:bg-[#FCFAF7] transition-colors">
-                <div className="sm:col-span-5 text-xs text-[#8A7F76] font-medium">Brand</div>
-                <div className="sm:col-span-7 text-xs sm:text-sm text-[#211C1A] font-semibold truncate">
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 px-5 py-3.5 items-center hover:bg-cream-50 transition-colors">
+                <div className="sm:col-span-5 text-xs text-neutral-400 font-medium">Brand</div>
+                <div className="sm:col-span-7 text-xs sm:text-sm text-neutral-900 font-semibold truncate">
                   {brandName || "Not Assigned"}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 px-5 py-3.5 items-center hover:bg-[#FCFAF7] transition-colors">
-                <div className="sm:col-span-5 text-xs text-[#8A7F76] font-medium">HSN Code</div>
-                <div className="sm:col-span-7 text-xs sm:text-sm text-[#211C1A] font-semibold truncate">
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 px-5 py-3.5 items-center hover:bg-cream-50 transition-colors">
+                <div className="sm:col-span-5 text-xs text-neutral-400 font-medium">HSN Code</div>
+                <div className="sm:col-span-7 text-xs sm:text-sm text-neutral-900 font-semibold truncate">
                   {hsnCodeInfo || "Not Assigned"}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 px-5 py-3.5 items-center hover:bg-[#FCFAF7] transition-colors">
-                <div className="sm:col-span-5 text-xs text-[#8A7F76] font-medium">Dietary Type</div>
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 px-5 py-3.5 items-center hover:bg-cream-50 transition-colors">
+                <div className="sm:col-span-5 text-xs text-neutral-400 font-medium">Dietary Type</div>
                 <div className="sm:col-span-7 text-xs sm:text-sm">
                   {renderDietaryBadge(product.vegType || product.veg_type)}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 px-5 py-3.5 items-center hover:bg-[#FCFAF7] transition-colors">
-                <div className="sm:col-span-5 text-xs text-[#8A7F76] font-medium">Slug</div>
-                <div className="sm:col-span-7 font-mono text-xs text-[#4A423D] font-semibold truncate">
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 px-5 py-3.5 items-center hover:bg-cream-50 transition-colors">
+                <div className="sm:col-span-5 text-xs text-neutral-400 font-medium">Slug</div>
+                <div className="sm:col-span-7 font-mono text-xs text-neutral-700 font-semibold truncate">
                   {product.slug || "—"}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 px-5 py-3.5 items-center hover:bg-[#FCFAF7] transition-colors">
-                <div className="sm:col-span-5 text-xs text-[#8A7F76] font-medium">Created Date</div>
-                <div className="sm:col-span-7 text-xs sm:text-sm text-[#211C1A] font-semibold">
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 px-5 py-3.5 items-center hover:bg-cream-50 transition-colors">
+                <div className="sm:col-span-5 text-xs text-neutral-400 font-medium">Created Date</div>
+                <div className="sm:col-span-7 text-xs sm:text-sm text-neutral-900 font-semibold">
                   {product.createdAt
                     ? new Date(product.createdAt).toLocaleDateString("en-IN", {
                         day: "numeric",
@@ -694,9 +677,9 @@ export default function AdminProductDetailsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 px-5 py-3.5 items-center hover:bg-[#FCFAF7] transition-colors">
-                <div className="sm:col-span-5 text-xs text-[#8A7F76] font-medium">Last Updated</div>
-                <div className="sm:col-span-7 text-xs sm:text-sm text-[#211C1A] font-semibold">
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 px-5 py-3.5 items-center hover:bg-cream-50 transition-colors">
+                <div className="sm:col-span-5 text-xs text-neutral-400 font-medium">Last Updated</div>
+                <div className="sm:col-span-7 text-xs sm:text-sm text-neutral-900 font-semibold">
                   {product.updatedAt
                     ? new Date(product.updatedAt).toLocaleDateString("en-IN", {
                         day: "numeric",
@@ -712,9 +695,9 @@ export default function AdminProductDetailsPage() {
           </div>
 
           {/* Description Card */}
-          <div className="lg:col-span-5 bg-white border border-[#EDE4D9] rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(64,16,15,0.02)] flex flex-col">
-            <div className="px-5 py-4 border-b border-[#F1E8DE] flex items-center justify-between">
-              <h2 className="text-[15px] font-bold text-[#211C1A] tracking-tight">
+          <div className="lg:col-span-5 bg-white border border-cream-border rounded-2xl overflow-hidden shadow-xs flex flex-col">
+            <div className="px-5 py-4 border-b border-cream-border flex items-center justify-between">
+              <h2 className="text-[15px] font-bold text-neutral-900 tracking-tight">
                 Description
               </h2>
             </div>
@@ -723,10 +706,10 @@ export default function AdminProductDetailsPage() {
                 <div className="space-y-4">
                   {product.shortDescription && (
                     <div>
-                      <div className="text-[11px] font-bold text-[#A2968C] uppercase tracking-wider mb-1">
+                      <div className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1">
                         Summary
                       </div>
-                      <p className="text-xs sm:text-sm text-[#4A423D] leading-relaxed">
+                      <p className="text-xs sm:text-sm text-neutral-700 leading-relaxed">
                         {product.shortDescription}
                       </p>
                     </div>
@@ -734,10 +717,10 @@ export default function AdminProductDetailsPage() {
 
                   {product.description && (
                     <div>
-                      <div className="text-[11px] font-bold text-[#A2968C] uppercase tracking-wider mb-1">
+                      <div className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1">
                         Full Description
                       </div>
-                      <p className="text-xs sm:text-sm text-[#6B615A] leading-relaxed whitespace-pre-line">
+                      <p className="text-xs sm:text-sm text-neutral-600 leading-relaxed whitespace-pre-line">
                         {product.description}
                       </p>
                     </div>
@@ -745,19 +728,19 @@ export default function AdminProductDetailsPage() {
                 </div>
               ) : (
                 <div className="py-8 px-4 text-center flex flex-col items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#F7F2EC] border border-[#EDE4D9] flex items-center justify-center text-[#A2968C]">
+                  <div className="w-10 h-10 rounded-xl bg-cream-200 border border-cream-border flex items-center justify-center text-neutral-400">
                     <FileText className="w-5 h-5 opacity-60" />
                   </div>
-                  <div className="text-xs sm:text-sm font-semibold text-[#4A423D]">
+                  <div className="text-xs sm:text-sm font-semibold text-neutral-700">
                     No description yet
                   </div>
-                  <p className="text-xs text-[#8A7F76] max-w-[280px] leading-relaxed">
+                  <p className="text-xs text-neutral-400 max-w-[280px] leading-relaxed">
                     Product descriptions appear on the storefront and in exported catalogues.
                   </p>
                   <button
                     type="button"
                     onClick={() => setIsEditProductOpen(true)}
-                    className="mt-1 border border-[#E4D9CD] bg-white text-[#7A2224] hover:bg-[#FBF3F2] hover:border-[#E3C8C4] text-xs font-bold px-3.5 py-1.5 rounded-lg cursor-pointer transition-colors"
+                    className="mt-1 border border-cream-border-subtle bg-white text-secondary-600 hover:bg-secondary-50 hover:border-secondary-200 text-xs font-bold px-3.5 py-1.5 rounded-lg cursor-pointer transition-colors"
                   >
                     Add description
                   </button>
@@ -768,34 +751,34 @@ export default function AdminProductDetailsPage() {
         </section>
 
         {/* Section 4: Product Variants Section with FIXED ACTION COLUMN */}
-        <section className="bg-white border border-[#EDE4D9] rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(64,16,15,0.02)]">
+        <section className="bg-white border border-cream-border rounded-2xl overflow-hidden shadow-xs">
           {/* Header & Controls */}
-          <div className="p-4 sm:p-5 border-b border-[#F1E8DE] flex flex-col md:flex-row md:items-center justify-between gap-3.5">
+          <div className="p-4 sm:p-5 border-b border-cream-border flex flex-col md:flex-row md:items-center justify-between gap-3.5">
             {/* Left: Title, Counter Badge & Segmented Filter Tabs */}
             <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
               <div className="flex items-center gap-2.5">
-                <h2 className="text-base font-bold text-[#211C1A] tracking-tight">
+                <h2 className="text-base font-bold text-neutral-900 tracking-tight">
                   Product variants
                 </h2>
-                <span className="px-2.5 py-0.5 rounded-full bg-[#F7F2EC] border border-[#EDE4D9] text-xs font-bold text-[#7C7169]">
+                <span className="px-2.5 py-0.5 rounded-full bg-cream-200 border border-cream-border text-xs font-bold text-neutral-500">
                   {currentTabCount}
                 </span>
               </div>
 
               {/* Filter Tabs with Count Pills */}
-              <div className="flex p-1 bg-[#F7F2EC] border border-[#EDE4D9] rounded-xl gap-1">
+              <div className="flex p-1 bg-cream-200 border border-cream-border rounded-xl gap-1">
                 <button
                   type="button"
                   onClick={() => setVariantFilter("active")}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
                     variantFilter === "active"
-                      ? "bg-[#7A2224] text-[#FFF6EC] shadow-xs"
-                      : "text-[#7C7169] hover:text-[#211C1A] hover:bg-white"
+                      ? "bg-secondary-600 text-cream-white shadow-xs"
+                      : "text-neutral-500 hover:text-neutral-900 hover:bg-white"
                   }`}
                 >
                   <span>Active</span>
                   {variantFilter === "active" && (
-                    <span className="px-1.5 py-0.5 text-[10.5px] rounded-full font-bold leading-none bg-white/20 text-[#FFF6EC]">
+                    <span className="px-1.5 py-0.5 text-[10.5px] rounded-full font-bold leading-none bg-white/20 text-cream-white">
                       {currentTabCount}
                     </span>
                   )}
@@ -805,13 +788,13 @@ export default function AdminProductDetailsPage() {
                   onClick={() => setVariantFilter("inactive")}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
                     variantFilter === "inactive"
-                      ? "bg-[#7A2224] text-[#FFF6EC] shadow-xs"
-                      : "text-[#7C7169] hover:text-[#211C1A] hover:bg-white"
+                      ? "bg-secondary-600 text-cream-white shadow-xs"
+                      : "text-neutral-500 hover:text-neutral-900 hover:bg-white"
                   }`}
                 >
                   <span>Inactive</span>
                   {variantFilter === "inactive" && (
-                    <span className="px-1.5 py-0.5 text-[10.5px] rounded-full font-bold leading-none bg-white/20 text-[#FFF6EC]">
+                    <span className="px-1.5 py-0.5 text-[10.5px] rounded-full font-bold leading-none bg-white/20 text-cream-white">
                       {currentTabCount}
                     </span>
                   )}
@@ -821,20 +804,10 @@ export default function AdminProductDetailsPage() {
 
             {/* Right: Actions (Export, Edit prices, Add variant) */}
             <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap sm:flex-nowrap justify-end">
-              {/* <button
-                type="button"
-                onClick={handleExportVariants}
-                className="px-3.5 py-1.5 rounded-lg border border-[#E4D9CD] bg-white text-[#4A423D] hover:bg-[#F7F2EC] text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                title="Export variants to CSV"
-              >
-                <Download className="w-3.5 h-3.5 opacity-70" />
-                <span>Export</span>
-              </button> */}
-
               <button
                 type="button"
                 onClick={() => setIsPriceEditOpen(true)}
-                className="px-3.5 py-1.5 rounded-lg border border-[#E3C8C4] bg-[#FBF3F2] hover:bg-[#F6E7E5] text-[#7A2224] text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                className="px-3.5 py-1.5 rounded-lg border border-secondary-200 bg-secondary-50 hover:bg-secondary-100 text-secondary-600 text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
                 title="Bulk edit prices"
               >
                 <IndianRupee className="w-3.5 h-3.5" />
@@ -844,7 +817,7 @@ export default function AdminProductDetailsPage() {
               <button
                 type="button"
                 onClick={() => setIsAddVariantOpen(true)}
-                className="px-3.5 py-1.5 rounded-lg bg-[#7A2224] hover:bg-[#5F1A1C] text-[#FFF6EC] text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-[0_1px_2px_rgba(64,16,15,0.2)]"
+                className="px-3.5 py-1.5 rounded-lg bg-secondary-600 hover:bg-secondary-700 text-cream-white text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Add variant</span>
@@ -854,29 +827,29 @@ export default function AdminProductDetailsPage() {
 
           {/* Bulk Selection Action Bar */}
           {hasSelection && (
-            <div className="px-5 py-2.5 bg-[#FBF3F2] border-b border-[#F2DDD9] flex items-center justify-between gap-3 text-xs">
-              <span className="font-bold text-[#7A2224]">
+            <div className="px-5 py-2.5 bg-secondary-50 border-b border-secondary-200 flex items-center justify-between gap-3 text-xs">
+              <span className="font-bold text-secondary-600">
                 {selectedIds.length} variant{selectedIds.length > 1 ? "s" : ""} selected
               </span>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setSelectedVariants({})}
-                  className="px-2.5 py-1 rounded-md border border-[#E3C8C4] bg-white hover:bg-[#F6E7E5] text-[#7A2224] font-semibold cursor-pointer"
+                  className="px-2.5 py-1 rounded-md border border-secondary-200 bg-white hover:bg-secondary-100 text-secondary-600 font-semibold cursor-pointer"
                 >
                   Clear
                 </button>
                 <button
                   type="button"
                   onClick={() => handleBulkStatusChange(true)}
-                  className="px-2.5 py-1 rounded-md border border-[#E3C8C4] bg-white hover:bg-[#F6E7E5] text-[#1D7A44] font-semibold cursor-pointer"
+                  className="px-2.5 py-1 rounded-md border border-secondary-200 bg-white hover:bg-secondary-100 text-success-700 font-semibold cursor-pointer"
                 >
                   Activate
                 </button>
                 <button
                   type="button"
                   onClick={() => handleBulkStatusChange(false)}
-                  className="px-2.5 py-1 rounded-md border border-[#E3C8C4] bg-white hover:bg-[#F6E7E5] text-[#A2968C] font-semibold cursor-pointer"
+                  className="px-2.5 py-1 rounded-md border border-secondary-200 bg-white hover:bg-secondary-100 text-neutral-400 font-semibold cursor-pointer"
                 >
                   Deactivate
                 </button>
@@ -903,7 +876,7 @@ export default function AdminProductDetailsPage() {
               <button
                 type="button"
                 onClick={() => setIsAddVariantOpen(true)}
-                className="mt-4 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#7A2224] text-[#FFF6EC] text-xs font-semibold cursor-pointer"
+                className="mt-4 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-secondary-600 text-cream-white text-xs font-semibold cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Add first variant</span>
@@ -912,54 +885,45 @@ export default function AdminProductDetailsPage() {
           ) : (
             <div className="overflow-x-auto overflow-y-auto max-h-[560px] relative scrollbar-thin">
               <table className="w-full text-left text-sm border-collapse">
-                <thead className="sticky top-0 z-30 bg-[#FAF7F3] text-[11px] font-bold tracking-wider text-[#A2968C] uppercase shadow-[0_1px_0_#F1E8DE]">
+                <thead className="sticky top-0 z-30 bg-cream-50 text-[11px] font-bold tracking-wider text-neutral-400 uppercase shadow-[0_1px_0_var(--cream-border)]">
                   <tr>
                     {/* Checkbox */}
-                    <th className="px-3.5 py-3 w-[44px] min-w-[44px] text-center border-b border-[#F1E8DE]">
+                    <th className="px-3.5 py-3 w-[44px] min-w-[44px] text-center border-b border-cream-border">
                       <input
                         type="checkbox"
                         checked={isAllSelected}
                         onChange={toggleSelectAll}
-                        className="w-4 h-4 rounded border-[#D8CBBC] text-[#7A2224] focus:ring-[#7A2224] cursor-pointer"
+                        className="w-4 h-4 rounded border-cream-border-hover text-secondary-600 focus:ring-secondary-600 cursor-pointer"
                       />
                     </th>
 
-                    <th className="px-4 py-3 min-w-[200px] border-b border-[#F1E8DE]">Variant</th>
-                    <th className="px-4 py-3 min-w-[120px] border-b border-[#F1E8DE]">SKU</th>
-                    <th className="px-4 py-3 min-w-[90px] border-b border-[#F1E8DE]">Size</th>
-                    <th className="px-4 py-3 min-w-[90px] text-right border-b border-[#F1E8DE]">Base</th>
-                    <th className="px-4 py-3 min-w-[110px] text-right border-b border-[#F1E8DE]">Sale</th>
-                    {/* <th className="px-4 py-3 min-w-[90px] text-right border-b border-[#F1E8DE]">Margin</th> */}
-                    <th className="px-3 py-3 min-w-[95px] text-center border-b border-[#F1E8DE]">Status</th>
+                    <th className="px-4 py-3 min-w-[200px] border-b border-cream-border">Variant</th>
+                    <th className="px-4 py-3 min-w-[120px] border-b border-cream-border">SKU</th>
+                    <th className="px-4 py-3 min-w-[90px] border-b border-cream-border">Size</th>
+                    <th className="px-4 py-3 min-w-[90px] text-right border-b border-cream-border">Base</th>
+                    <th className="px-4 py-3 min-w-[110px] text-right border-b border-cream-border">Sale</th>
+                    <th className="px-3 py-3 min-w-[95px] text-center border-b border-cream-border">Status</th>
 
                     {/* FIXED ACTION COLUMN (Sticky top & right corner) */}
-                    <th className="sticky top-0 right-0 z-40 bg-[#FAF7F3] text-center px-2 py-3 w-[72px] min-w-[72px] border-b border-[#F1E8DE] shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05),0_1px_0_#F1E8DE]">
+                    <th className="sticky top-0 right-0 z-40 bg-cream-50 text-center px-2 py-3 w-[72px] min-w-[72px] border-b border-cream-border shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05),0_1px_0_var(--cream-border)]">
                       Actions
                     </th>
                   </tr>
                 </thead>
 
-                <tbody className="divide-y divide-[#F6F0E9] bg-white">
+                <tbody className="divide-y divide-cream-border-subtle bg-white">
                   {variants.map((variant) => {
                     const isPicked = !!selectedVariants[variant.id];
                     const discount =
                       variant.basePrice > 0 && variant.salePrice < variant.basePrice
                         ? variant.basePrice - variant.salePrice
                         : 0;
-                    const margin =
-                      variant.basePrice > 0
-                        ? Math.round(
-                            ((variant.basePrice - (variant.salePrice || variant.basePrice)) /
-                              variant.basePrice) *
-                              100
-                          )
-                        : 0;
 
                     return (
                       <tr
                         key={variant.id}
                         className={`group transition-colors ${
-                          isPicked ? "bg-[#FDF8F4]" : "hover:bg-[#FCFAF7]"
+                          isPicked ? "bg-cream-50" : "hover:bg-cream-50"
                         }`}
                       >
                         {/* Checkbox */}
@@ -968,7 +932,7 @@ export default function AdminProductDetailsPage() {
                             type="checkbox"
                             checked={isPicked}
                             onChange={() => toggleSelectOne(variant.id)}
-                            className="w-4 h-4 rounded border-[#D8CBBC] text-[#7A2224] focus:ring-[#7A2224] cursor-pointer"
+                            className="w-4 h-4 rounded border-cream-border-hover text-secondary-600 focus:ring-secondary-600 cursor-pointer"
                           />
                         </td>
 
@@ -978,7 +942,7 @@ export default function AdminProductDetailsPage() {
                             href={`/admin/dashboard/variants/${encodeURIComponent(variant.id)}?productId=${encodeURIComponent(canonicalProductId)}`}
                             className="group/variant flex items-center gap-3 min-w-0 hover:opacity-95"
                           >
-                            <div className="w-[38px] h-[38px] rounded-[9px] flex-none bg-[#F6EFE7] border border-[#EDE4D9] relative overflow-hidden flex items-center justify-center transition-transform group-hover/variant:scale-105">
+                            <div className="w-[38px] h-[38px] rounded-[9px] flex-none bg-cream-100 border border-cream-border relative overflow-hidden flex items-center justify-center transition-transform group-hover/variant:scale-105">
                               {variant.primaryImage ? (
                                 <Image
                                   src={variant.primaryImage}
@@ -987,14 +951,14 @@ export default function AdminProductDetailsPage() {
                                   className="object-cover"
                                 />
                               ) : (
-                                <Package className="w-4 h-4 text-[#A2968C] opacity-70" />
+                                <Package className="w-4 h-4 text-neutral-400 opacity-70" />
                               )}
                             </div>
                             <div className="min-w-0">
-                              <span className="font-semibold text-[#211C1A] group-hover/variant:text-[#7A2224] group-hover/variant:underline block leading-snug truncate transition-colors">
+                              <span className="font-semibold text-neutral-900 group-hover/variant:text-secondary-600 group-hover/variant:underline block leading-snug truncate transition-colors">
                                 {variant.variantName}
                               </span>
-                              <span className="font-mono text-[11px] text-[#A2968C] block truncate">
+                              <span className="font-mono text-[11px] text-neutral-400 block truncate">
                                 {variant.id ? `ID: ${variant.id.slice(0, 8)}...` : "—"}
                               </span>
                             </div>
@@ -1002,56 +966,46 @@ export default function AdminProductDetailsPage() {
                         </td>
 
                         {/* SKU */}
-                        <td className="px-4 py-3 min-w-[120px] font-mono text-[11.5px] text-[#6B615A] truncate">
+                        <td className="px-4 py-3 min-w-[120px] font-mono text-[11.5px] text-neutral-600 truncate">
                           {variant.sku}
                         </td>
 
                         {/* Size / Measurement */}
-                        <td className="px-4 py-3 min-w-[90px] text-xs font-medium text-[#4A423D] whitespace-nowrap">
+                        <td className="px-4 py-3 min-w-[90px] text-xs font-medium text-neutral-700 whitespace-nowrap">
                           {formatMeasurement(variant.measurement)}
                         </td>
 
                         {/* Base Price */}
-                        <td className="px-4 py-3 min-w-[90px] text-xs text-right font-medium text-[#8A7F76] whitespace-nowrap tabular-nums">
+                        <td className="px-4 py-3 min-w-[90px] text-xs text-right font-medium text-neutral-400 whitespace-nowrap tabular-nums">
                           ₹{variant.basePrice.toLocaleString("en-IN")}
                         </td>
 
                         {/* Sale Price */}
                         <td className="px-4 py-3 min-w-[110px] text-right whitespace-nowrap tabular-nums">
                           <div className="inline-flex items-center gap-1.5 justify-end">
-                            <span className="font-bold text-[#211C1A] text-xs sm:text-sm">
+                            <span className="font-bold text-neutral-900 text-xs sm:text-sm">
                               ₹{variant.salePrice.toLocaleString("en-IN")}
                             </span>
                             {discount > 0 && (
-                              <span className="px-1.5 py-0.5 rounded bg-[#E8F6EC] text-[#1D7A44] text-[10.5px] font-bold">
+                              <span className="px-1.5 py-0.5 rounded bg-success-50 text-success-700 text-[10.5px] font-bold">
                                 −₹{discount.toLocaleString("en-IN")}
                               </span>
                             )}
                           </div>
                         </td>
 
-                        {/* Margin - commented out until backend API support is added
-                        <td className="px-4 py-3 text-right text-xs font-semibold tabular-nums whitespace-nowrap">
-                          <span
-                            className={margin > 0 ? "text-[#1D7A44]" : "text-[#8A7F76]"}
-                          >
-                            {margin > 0 ? `${margin}% off` : "0%"}
-                          </span>
-                        </td>
-                        */}
-
                         {/* Status */}
                         <td className="px-3 py-3 min-w-[95px] text-center whitespace-nowrap">
                           <span
                             className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold ${
                               variant.isActive
-                                ? "bg-[#E8F6EC] text-[#1D7A44] border border-[#C2E4CC]"
-                                : "bg-[#F5F2EE] text-[#7C7169] border border-[#E5DFD7]"
+                                ? "bg-success-50 text-success-700 border border-success-200"
+                                : "bg-cream-200 text-neutral-500 border border-cream-border"
                             }`}
                           >
                             <span
                               className={`w-1.5 h-1.5 rounded-full ${
-                                variant.isActive ? "bg-[#2AA35C]" : "bg-[#A2968C]"
+                                variant.isActive ? "bg-success-600" : "bg-neutral-400"
                               }`}
                             />
                             {variant.isActive ? "Active" : "Inactive"}
@@ -1062,8 +1016,8 @@ export default function AdminProductDetailsPage() {
                         <td
                           className={`sticky right-0 transition-colors px-2 py-3 text-center shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)] z-20 ${
                             isPicked
-                              ? "bg-[#FDF8F4]"
-                              : "bg-white group-hover:bg-[#FCFAF7]"
+                              ? "bg-cream-50"
+                              : "bg-white group-hover:bg-cream-50"
                           }`}
                         >
                           <div className="flex items-center justify-center">
@@ -1082,8 +1036,8 @@ export default function AdminProductDetailsPage() {
                                 }}
                                 className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${
                                   activeMenu?.variant.id === variant.id
-                                    ? "bg-[#7A2224] text-[#FFF6EC] border-[#7A2224] shadow-xs"
-                                    : "border-[#EDE4D9] bg-white hover:bg-[#FBF3F2] text-[#4A423D] hover:text-[#7A2224]"
+                                    ? "bg-secondary-600 text-cream-white border-secondary-600 shadow-xs"
+                                    : "border-cream-border bg-white hover:bg-secondary-50 text-neutral-700 hover:text-secondary-600"
                                 }`}
                                 title="More actions"
                                 aria-label="More actions"
@@ -1094,7 +1048,7 @@ export default function AdminProductDetailsPage() {
                               <button
                                 type="button"
                                 onClick={() => setVariantToActivate(variant)}
-                                className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-[#C2E4CC] bg-[#E8F6EC] hover:bg-[#D5EEDB] text-[#1D7A44] transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
+                                className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-success-200 bg-success-50 hover:bg-success-100 text-success-700 transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
                                 title="Make Active"
                               >
                                 <Power className="w-3.5 h-3.5" />
@@ -1112,10 +1066,10 @@ export default function AdminProductDetailsPage() {
           )}
 
           {/* Variants Table Footer */}
-          <div className="px-5 py-3.5 border-t border-[#F1E8DE] bg-[#FCFAF7]/50 flex items-center justify-between text-xs text-[#8A7F76] flex-wrap gap-2">
+          <div className="px-5 py-3.5 border-t border-cream-border bg-cream-50/50 flex items-center justify-between text-xs text-neutral-400 flex-wrap gap-2">
             <span>
-              Showing <strong className="text-[#211C1A]">{variants.length}</strong> of{" "}
-              <strong className="text-[#211C1A]">{currentTabCount}</strong>{" "}
+              Showing <strong className="text-neutral-900">{variants.length}</strong> of{" "}
+              <strong className="text-neutral-900">{currentTabCount}</strong>{" "}
               {variantFilter} variants
             </span>
           </div>
@@ -1137,7 +1091,6 @@ export default function AdminProductDetailsPage() {
             }
 
             // Align vertically with the button icon:
-            // "don't show in top" -> align to button top (starts at button and flows downwards)
             let top = rect.top;
             if (top + menuHeight > window.innerHeight - 12) {
               top = Math.max(12, window.innerHeight - menuHeight - 12);
@@ -1153,7 +1106,7 @@ export default function AdminProductDetailsPage() {
                   width: `${menuWidth}px`,
                   zIndex: 9999,
                 }}
-                className="rounded-xl border border-[#EDE4D9] bg-white p-1.5 shadow-2xl animate-in zoom-in-95 duration-100 select-none"
+                className="rounded-xl border border-cream-border bg-white p-1.5 shadow-2xl animate-in zoom-in-95 duration-100 select-none"
                 onClick={(e) => e.stopPropagation()}
               >
                 {variant.isActive ? (
@@ -1162,7 +1115,7 @@ export default function AdminProductDetailsPage() {
                     <Link
                       href={`/admin/dashboard/variants/${encodeURIComponent(variant.id)}?productId=${encodeURIComponent(canonicalProductId)}`}
                       onClick={() => setActiveMenu(null)}
-                      className="w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-semibold text-[#4A423D] hover:text-[#7A2224] hover:bg-[#FBF3F2] rounded-lg transition-colors cursor-pointer text-left"
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-semibold text-neutral-700 hover:text-secondary-600 hover:bg-secondary-50 rounded-lg transition-colors cursor-pointer text-left"
                     >
                       <Eye className="w-3.5 h-3.5 opacity-70" />
                       <span>View Product Variant</span>
@@ -1175,7 +1128,7 @@ export default function AdminProductDetailsPage() {
                         setActiveMenu(null);
                         setEditingPriceVariant(variant);
                       }}
-                      className="w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-semibold text-[#4A423D] hover:text-[#7A2224] hover:bg-[#FBF3F2] rounded-lg transition-colors cursor-pointer text-left"
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-semibold text-neutral-700 hover:text-secondary-600 hover:bg-secondary-50 rounded-lg transition-colors cursor-pointer text-left"
                     >
                       <IndianRupee className="w-3.5 h-3.5 opacity-70" />
                       <span>Price Change</span>
@@ -1188,7 +1141,7 @@ export default function AdminProductDetailsPage() {
                         setActiveMenu(null);
                         setEditingVariant(variant);
                       }}
-                      className="w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-semibold text-[#4A423D] hover:text-[#7A2224] hover:bg-[#FBF3F2] rounded-lg transition-colors cursor-pointer text-left"
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-semibold text-neutral-700 hover:text-secondary-600 hover:bg-secondary-50 rounded-lg transition-colors cursor-pointer text-left"
                     >
                       <Pencil className="w-3.5 h-3.5 opacity-70" />
                       <span>Edit</span>
@@ -1201,13 +1154,13 @@ export default function AdminProductDetailsPage() {
                         setActiveMenu(null);
                         setManagingImagesVariant(variant);
                       }}
-                      className="w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-semibold text-[#4A423D] hover:text-[#7A2224] hover:bg-[#FBF3F2] rounded-lg transition-colors cursor-pointer text-left"
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-semibold text-neutral-700 hover:text-secondary-600 hover:bg-secondary-50 rounded-lg transition-colors cursor-pointer text-left"
                     >
                       <ImagesIcon className="w-3.5 h-3.5 opacity-70" />
                       <span>Manage Images</span>
                     </button>
 
-                    <div className="my-1 border-t border-[#F1E8DE]" />
+                    <div className="my-1 border-t border-cream-border" />
 
                     {/* 4. Make Inactive */}
                     <button
@@ -1243,7 +1196,7 @@ export default function AdminProductDetailsPage() {
                       setActiveMenu(null);
                       setVariantToActivate(variant);
                     }}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-semibold text-[#1D7A44] hover:text-[#166035] hover:bg-[#E8F6EC] rounded-lg transition-colors cursor-pointer text-left"
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-semibold text-success-700 hover:text-success-800 hover:bg-success-50 rounded-lg transition-colors cursor-pointer text-left"
                   >
                     <Power className="w-3.5 h-3.5" />
                     <span>Make Active</span>
@@ -1281,9 +1234,9 @@ export default function AdminProductDetailsPage() {
       >
         {editingPriceVariant && (
           <div className="space-y-4">
-            <div className="rounded-xl bg-[#F8F6F2] p-3.5 border border-[#EDE4D9] space-y-1">
-              <div className="text-xs text-[#8A7F76]">SKU: {editingPriceVariant.sku}</div>
-              <div className="text-xs font-semibold text-[#211C1A]">
+            <div className="rounded-xl bg-cream-100 p-3.5 border border-cream-border space-y-1">
+              <div className="text-xs text-neutral-400">SKU: {editingPriceVariant.sku}</div>
+              <div className="text-xs font-semibold text-neutral-900">
                 Measurement: {formatMeasurement(editingPriceVariant.measurement)}
               </div>
             </div>
@@ -1297,7 +1250,7 @@ export default function AdminProductDetailsPage() {
 
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-[#211C1A] mb-1">
+                <label className="block text-xs font-semibold text-neutral-900 mb-1">
                   Base Price (₹) <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -1306,13 +1259,13 @@ export default function AdminProductDetailsPage() {
                   step="0.01"
                   value={singleBasePrice}
                   onChange={(e) => setSingleBasePrice(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-[#D8CBBC] text-sm focus:outline-none focus:border-[#7A2224]"
+                  className="w-full px-3 py-2 rounded-lg border border-cream-border-hover text-sm focus:outline-none focus:border-secondary-600"
                   placeholder="e.g. 500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#211C1A] mb-1">
+                <label className="block text-xs font-semibold text-neutral-900 mb-1">
                   Sale Price (₹) <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -1321,13 +1274,13 @@ export default function AdminProductDetailsPage() {
                   step="0.01"
                   value={singleSalePrice}
                   onChange={(e) => setSingleSalePrice(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-[#D8CBBC] text-sm focus:outline-none focus:border-[#7A2224]"
+                  className="w-full px-3 py-2 rounded-lg border border-cream-border-hover text-sm focus:outline-none focus:border-secondary-600"
                   placeholder="e.g. 450"
                 />
               </div>
 
               {parseFloat(singleBasePrice) > parseFloat(singleSalePrice) && (
-                <div className="text-xs text-[#1D7A44] font-semibold bg-[#E8F6EC] p-2 rounded-lg">
+                <div className="text-xs text-success-700 font-semibold bg-success-50 p-2 rounded-lg">
                   Discount: ₹{(parseFloat(singleBasePrice) - parseFloat(singleSalePrice)).toFixed(2)} (
                   {Math.round(
                     ((parseFloat(singleBasePrice) - parseFloat(singleSalePrice)) /
@@ -1339,11 +1292,11 @@ export default function AdminProductDetailsPage() {
               )}
             </div>
 
-            <div className="flex justify-end gap-2 pt-3 border-t border-[#EDE4D9]">
+            <div className="flex justify-end gap-2 pt-3 border-t border-cream-border">
               <button
                 type="button"
                 onClick={() => setEditingPriceVariant(null)}
-                className="px-4 py-2 text-xs font-semibold rounded-lg border border-[#D8CBBC] text-[#4A423D] hover:bg-[#F7F2EC] cursor-pointer"
+                className="px-4 py-2 text-xs font-semibold rounded-lg border border-cream-border-hover text-neutral-700 hover:bg-cream-200 cursor-pointer"
               >
                 Cancel
               </button>
@@ -1351,7 +1304,7 @@ export default function AdminProductDetailsPage() {
                 type="button"
                 onClick={handleSaveSinglePrice}
                 disabled={updateVariantMutation.isPending}
-                className="px-4 py-2 text-xs font-bold rounded-lg bg-[#7A2224] hover:bg-[#5F1A1C] text-[#FFF6EC] cursor-pointer shadow-xs disabled:opacity-50"
+                className="px-4 py-2 text-xs font-bold rounded-lg bg-secondary-600 hover:bg-secondary-700 text-cream-white cursor-pointer shadow-xs disabled:opacity-50"
               >
                 {updateVariantMutation.isPending ? "Saving..." : "Save Price"}
               </button>

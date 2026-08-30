@@ -314,7 +314,7 @@ export function VariantImageUploader({
                 key={img.id}
                 className={`group relative aspect-square rounded-xl overflow-hidden border ${
                   img.isPrimary
-                    ? "border-[#7A2224] ring-2 ring-[#7A2224]/20"
+                    ? "border-secondary-600 ring-2 ring-secondary-600/20"
                     : "border-[var(--color-neutral-200)]"
                 } bg-[var(--color-neutral-100)]`}
               >
@@ -325,7 +325,7 @@ export function VariantImageUploader({
                   className="object-cover"
                 />
                 {img.isPrimary ? (
-                  <span className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-[#7A2224] px-2 py-0.5 text-[10px] font-semibold text-white shadow">
+                  <span className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-secondary-600 px-2 py-0.5 text-[10px] font-semibold text-white shadow">
                     <Star className="h-3 w-3 fill-current" /> Primary
                   </span>
                 ) : (
@@ -336,7 +336,7 @@ export function VariantImageUploader({
                       setPrimaryImageMutation.isPending ||
                       deleteImageMutation.isPending
                     }
-                    className="absolute top-2 left-2 rounded-lg bg-black/70 hover:bg-[#7A2224] px-2 py-1 text-[10px] font-medium text-white opacity-0 group-hover:opacity-100 transition-all flex items-center gap-1 cursor-pointer shadow-sm"
+                    className="absolute top-2 left-2 rounded-lg bg-black/70 hover:bg-secondary-600 px-2 py-1 text-[10px] font-medium text-white opacity-0 group-hover:opacity-100 transition-all flex items-center gap-1 cursor-pointer shadow-sm"
                     title="Set as primary image"
                   >
                     <Star className="h-3 w-3" />

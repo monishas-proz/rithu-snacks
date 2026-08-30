@@ -133,41 +133,41 @@ const toastVariantStyles: Record<
   { progressTrack: string; progressBar: string }
 > = {
   success: {
-    progressTrack: "bg-[#EAE4DF]",
-    progressBar: "bg-[#2E1E16]",
+    progressTrack: "bg-cream-border",
+    progressBar: "bg-neutral-900",
   },
   error: {
-    progressTrack: "bg-[#FCE8E8]",
-    progressBar: "bg-[#C92A2A]",
+    progressTrack: "bg-error-100",
+    progressBar: "bg-error-600",
   },
   warning: {
-    progressTrack: "bg-[#F7F0E1]",
-    progressBar: "bg-[#8D6508]",
+    progressTrack: "bg-amber-100",
+    progressBar: "bg-amber-700",
   },
   info: {
-    progressTrack: "bg-[#F7E6EA]",
-    progressBar: "bg-[#6B1124]",
+    progressTrack: "bg-secondary-100",
+    progressBar: "bg-secondary-600",
   },
 };
 
 const toastIcons: Record<ToastVariant, React.ReactNode> = {
   success: (
-    <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#2E1E16] text-white">
+    <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white">
       <Check className="h-3 w-3 stroke-[3]" />
     </div>
   ),
   error: (
-    <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#C92A2A] text-white">
+    <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-error-600 text-white">
       <span className="text-[11px] font-black leading-none select-none">!</span>
     </div>
   ),
   warning: (
-    <div className="flex h-5 w-5 shrink-0 items-center justify-center text-[#8D6508]">
-      <AlertTriangle className="h-5 w-5 fill-[#8D6508] text-white" />
+    <div className="flex h-5 w-5 shrink-0 items-center justify-center text-amber-700">
+      <AlertTriangle className="h-5 w-5 fill-amber-700 text-white" />
     </div>
   ),
   info: (
-    <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#6B1124] text-white">
+    <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-secondary-600 text-white">
       <span className="font-serif italic font-bold text-[11px] leading-none select-none">i</span>
     </div>
   ),
@@ -270,5 +270,5 @@ function ToastContainer({ toasts, removeToast }: ToastContainerProps) {
   return createPortal(content, document.body);
 }
 
-export { ToastProvider, useToast, toast };
+export { ToastProvider, useToast };
 export type { Toast, ToastVariant };

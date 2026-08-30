@@ -118,7 +118,7 @@ export function ImageCropperModal({
 
       {/* Modal Card */}
       <div
-        className="relative z-10 w-full max-w-lg rounded-2xl border border-[#EDE4D9] bg-white p-5 sm:p-6 shadow-2xl animate-in zoom-in-95 duration-150 my-auto"
+        className="relative z-10 w-full max-w-lg rounded-2xl border border-cream-border bg-white p-5 sm:p-6 shadow-2xl animate-in zoom-in-95 duration-150 my-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -135,16 +135,16 @@ export function ImageCropperModal({
           <div className="flex items-start justify-between gap-3 pr-6">
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base sm:text-lg font-bold text-[#211C1A] tracking-tight">
+                <h3 className="text-base sm:text-lg font-bold text-neutral-900 tracking-tight">
                   {title}
                 </h3>
                 {isMultiple && (
-                  <span className="px-2 py-0.5 rounded-full bg-[#FAF6F1] border border-[#EDE4D9] text-[11px] font-bold text-[#7A2224]">
+                  <span className="px-2 py-0.5 rounded-full bg-cream-100 border border-cream-border text-[11px] font-bold text-secondary-600">
                     Image {queueIndex ?? 1} of {queueTotal}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-[#7C7169] mt-0.5">
+              <p className="text-xs text-neutral-500 mt-0.5">
                 {description ||
                   `Output size: ${cropWidth} × ${cropHeight} px. Drag to reposition and zoom as needed.`}
               </p>
@@ -152,7 +152,7 @@ export function ImageCropperModal({
           </div>
 
           {/* Crop Area Container */}
-          <div className="relative w-full h-[300px] sm:h-[360px] rounded-xl overflow-hidden bg-neutral-950 border border-[#EDE4D9] shadow-inner select-none">
+          <div className="relative w-full h-[300px] sm:h-[360px] rounded-xl overflow-hidden bg-neutral-950 border border-cream-border shadow-inner select-none">
             <Cropper
               image={imageSrc}
               crop={crop}
@@ -170,13 +170,13 @@ export function ImageCropperModal({
           </div>
 
           {/* Zoom Controls */}
-          <div className="p-3 rounded-xl bg-[#FAF6F1] border border-[#EDE4D9] space-y-2">
-            <div className="flex items-center justify-between text-xs font-semibold text-[#4A423D]">
+          <div className="p-3 rounded-xl bg-cream-100 border border-cream-border space-y-2">
+            <div className="flex items-center justify-between text-xs font-semibold text-neutral-700">
               <span className="flex items-center gap-1.5">
-                <CropIcon className="w-3.5 h-3.5 text-[#7A2224]" />
+                <CropIcon className="w-3.5 h-3.5 text-secondary-600" />
                 <span>Zoom</span>
               </span>
-              <span className="font-mono text-[11px] text-[#7C7169]">
+              <span className="font-mono text-[11px] text-neutral-500">
                 {zoom.toFixed(2)}x
               </span>
             </div>
@@ -186,7 +186,7 @@ export function ImageCropperModal({
                 type="button"
                 onClick={() => setZoom((z) => Math.max(1, +(z - 0.2).toFixed(2)))}
                 disabled={zoom <= 1 || isGenerating}
-                className="p-1.5 rounded-lg border border-[#EDE4D9] bg-white text-[#4A423D] hover:bg-[#FBF3F2] hover:text-[#7A2224] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                className="p-1.5 rounded-lg border border-cream-border bg-white text-neutral-700 hover:bg-secondary-50 hover:text-secondary-600 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 title="Zoom out"
                 aria-label="Zoom out"
               >
@@ -201,7 +201,7 @@ export function ImageCropperModal({
                 value={zoom}
                 onChange={(e) => setZoom(Number(e.target.value))}
                 disabled={isGenerating}
-                className="w-full accent-[#7A2224] h-1.5 bg-[#EDE4D9] rounded-lg cursor-pointer"
+                className="w-full accent-secondary-600 h-1.5 bg-cream-border rounded-lg cursor-pointer"
                 aria-label="Zoom level slider"
               />
 
@@ -209,7 +209,7 @@ export function ImageCropperModal({
                 type="button"
                 onClick={() => setZoom((z) => Math.min(3, +(z + 0.2).toFixed(2)))}
                 disabled={zoom >= 3 || isGenerating}
-                className="p-1.5 rounded-lg border border-[#EDE4D9] bg-white text-[#4A423D] hover:bg-[#FBF3F2] hover:text-[#7A2224] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                className="p-1.5 rounded-lg border border-cream-border bg-white text-neutral-700 hover:bg-secondary-50 hover:text-secondary-600 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 title="Zoom in"
                 aria-label="Zoom in"
               >
@@ -225,7 +225,7 @@ export function ImageCropperModal({
               variant="outline"
               onClick={onCancel}
               disabled={isGenerating}
-              className="px-4 py-2 text-xs font-semibold rounded-xl border-[#EDE4D9] text-[#4A423D] hover:bg-[#FAF6F1] cursor-pointer"
+              className="px-4 py-2 text-xs font-semibold rounded-xl border-cream-border text-neutral-700 hover:bg-cream-100 cursor-pointer"
             >
               Cancel
             </Button>
@@ -234,7 +234,7 @@ export function ImageCropperModal({
               type="button"
               onClick={handleConfirm}
               isLoading={isGenerating}
-              className="px-5 py-2 text-xs font-bold rounded-xl bg-[#7A2224] hover:bg-[#5F1A1C] text-[#FFF6EC] shadow-xs cursor-pointer transition-colors"
+              className="px-5 py-2 text-xs font-bold rounded-xl bg-secondary-600 hover:bg-secondary-700 text-cream-white shadow-xs cursor-pointer transition-colors"
             >
               {isMultiple && queueIndex !== undefined && queueTotal !== undefined && queueIndex < queueTotal
                 ? "Crop & Continue"

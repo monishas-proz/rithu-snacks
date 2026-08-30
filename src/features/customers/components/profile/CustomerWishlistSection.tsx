@@ -90,11 +90,11 @@ export function CustomerWishlistSection({
           return (
             <div
               key={item.id}
-              className="rounded-xl border border-[#EDE8E1] bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-all flex flex-col justify-between"
+              className="rounded-xl border border-cream-border bg-white p-4 shadow-xs transition-all flex flex-col justify-between"
             >
               <div className="space-y-3">
                 {/* Image & Stock Badge */}
-                <div className="relative h-40 w-full rounded-lg overflow-hidden border border-[#EDE8E1] bg-[#FAF8F5] flex items-center justify-center">
+                <div className="relative h-40 w-full rounded-lg overflow-hidden border border-cream-border bg-cream-50 flex items-center justify-center">
                   {primaryImage ? (
                     <Image
                       src={primaryImage}
@@ -108,11 +108,11 @@ export function CustomerWishlistSection({
 
                   <div className="absolute top-2.5 right-2.5">
                     {isAvailable ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-[#EAF7EE] text-[#1E833F] shadow-xs">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-success-50 text-success-700 shadow-xs">
                         In Stock
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-[#FDE8E8] text-[#9B1C1C] shadow-xs">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-error-50 text-error-700 shadow-xs">
                         Out of Stock
                       </span>
                     )}
@@ -157,8 +157,8 @@ export function CustomerWishlistSection({
                 </div>
 
                 {/* Price Row */}
-                <div className="flex items-baseline gap-2 pt-1 border-t border-[#F2EFE9]">
-                  <span className="text-base font-bold text-[#801B2B] font-mono">
+                <div className="flex items-baseline gap-2 pt-1 border-t border-cream-border-subtle">
+                  <span className="text-base font-bold text-secondary-600 font-mono">
                     ₹{price.toLocaleString("en-IN")}
                   </span>
                   {hasDiscount && basePrice && (
@@ -167,7 +167,7 @@ export function CustomerWishlistSection({
                     </span>
                   )}
                   {Boolean(discountPercent && discountPercent > 0) && (
-                    <span className="text-[10px] font-semibold text-[#1E833F] bg-[#EAF7EE] px-1.5 py-0.5 rounded">
+                    <span className="text-[10px] font-semibold text-success-700 bg-success-50 px-1.5 py-0.5 rounded">
                       {discountPercent}% OFF
                     </span>
                   )}
@@ -175,7 +175,7 @@ export function CustomerWishlistSection({
               </div>
 
               {addedDate && (
-                <div className="pt-3 mt-3 border-t border-[#F2EFE9] text-[11px] text-neutral-400">
+                <div className="pt-3 mt-3 border-t border-cream-border-subtle text-[11px] text-neutral-400">
                   Added:{" "}
                   {new Date(addedDate).toLocaleDateString("en-US", {
                     day: "numeric",

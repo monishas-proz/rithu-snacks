@@ -6,15 +6,17 @@ import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ModalProps {
-  open: boolean;
+  open?: boolean;
+  isOpen?: boolean;
   onClose: () => void;
   children: React.ReactNode;
-  title?: string;
-  description?: string;
+  title?: React.ReactNode;
+  description?: React.ReactNode;
   className?: string;
 }
 
-function Modal({ open, onClose, children, title, description, className }: ModalProps) {
+function Modal({ open, isOpen, onClose, children, title, description, className }: ModalProps) {
+  const isModalOpen = Boolean(open ?? isOpen);
   const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => {
@@ -22,7 +24,7 @@ function Modal({ open, onClose, children, title, description, className }: Modal
   }, []);
 
   React.useEffect(() => {
-    if (open) {
+    if (isModalOpen) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "unset";
@@ -30,9 +32,9 @@ function Modal({ open, onClose, children, title, description, className }: Modal
     return () => {
       document.body.style.overflow = "unset";
     };
-  }, [open]);
+  }, [isModalOpen]);
 
-  if (!open || !mounted) return null;
+  if (!isModalOpen || !mounted) return null;
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-y-auto">
@@ -60,8 +62,8 @@ function Modal({ open, onClose, children, title, description, className }: Modal
         </button>
         {title && (
           <div className="mb-4">
-            <h2 className="text-lg font-bold text-[#211C1A] tracking-tight">{title}</h2>
-            {description && <p className="mt-1 text-sm text-[#7C7169]">{description}</p>}
+            <h2 className="text-lg font-bold text-neutral-900 tracking-tight">{title}</h2>
+            {description && <p className="mt-1 text-sm text-neutral-500">{description}</p>}
           </div>
         )}
         {children}

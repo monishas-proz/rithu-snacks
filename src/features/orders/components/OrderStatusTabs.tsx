@@ -40,8 +40,8 @@ export function OrderStatusTabs() {
             className={cn(
               "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors border",
               isActive
-                ? "bg-[#7A2224] text-[#FFF6EC] border-[#7A2224] shadow-xs"
-                : "bg-white text-[#7C7169] border-[#EBE1D6] hover:bg-[#F7F2EC] hover:text-[#4A1516] hover:border-[#D8CBBC]"
+                ? "bg-secondary-600 text-cream-white border-secondary-600 shadow-xs"
+                : "bg-white text-neutral-500 border-cream-border-subtle hover:bg-cream-200 hover:text-secondary-800 hover:border-cream-border-hover"
             )}
           >
             <span>{tab.label}</span>

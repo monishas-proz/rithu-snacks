@@ -83,7 +83,7 @@ export function CustomerCartSection({
   return (
     <div className="w-full">
       {/* Subtotal Summary Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4 border-b border-[#F2EFE9] bg-[#FAF8F5]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4 border-b border-cream-border-subtle bg-cream-50">
         <div>
           <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-800 font-mono">
             Active Cart Items
@@ -95,7 +95,7 @@ export function CustomerCartSection({
 
         <div className="flex items-center gap-2">
           <span className="text-xs text-neutral-500 font-medium">Cart Subtotal:</span>
-          <span className="text-base font-bold text-[#801B2B] font-mono">
+          <span className="text-base font-bold text-secondary-600 font-mono">
             ₹{calculatedSubtotal.toLocaleString("en-IN")}
           </span>
         </div>
@@ -105,7 +105,7 @@ export function CustomerCartSection({
       <div className="overflow-x-auto">
         <table className="w-full min-w-[580px] text-left text-sm">
           <thead>
-            <tr className="border-b border-[#F2EFE9]">
+            <tr className="border-b border-cream-border-subtle">
               <th className="py-4 px-6 text-xs font-semibold uppercase tracking-wider text-neutral-400 font-mono">
                 Item Details
               </th>
@@ -126,7 +126,7 @@ export function CustomerCartSection({
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#F2EFE9]">
+          <tbody className="divide-y divide-cream-border-subtle">
             {items.map((item) => {
               const productName = item.productName || "Product";
               const variantName = item.variantName || "";
@@ -155,7 +155,7 @@ export function CustomerCartSection({
                   {/* Product & Variant */}
                   <td className="py-4 px-6">
                     <div className="flex items-center gap-3">
-                      <div className="relative h-12 w-12 rounded-lg border border-[#EDE8E1] bg-[#FAF8F5] overflow-hidden flex items-center justify-center shrink-0">
+                      <div className="relative h-12 w-12 rounded-lg border border-cream-border bg-cream-50 overflow-hidden flex items-center justify-center shrink-0">
                         {primaryImage ? (
                           <Image
                             src={primaryImage}
@@ -187,7 +187,7 @@ export function CustomerCartSection({
 
                   {/* Measurement */}
                   <td className="py-4 px-6 whitespace-nowrap">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-medium bg-[#F8F6F2] text-neutral-700">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-medium bg-cream-100 text-neutral-700">
                       {measurementStr}
                     </span>
                   </td>
@@ -199,13 +199,13 @@ export function CustomerCartSection({
 
                   {/* Quantity */}
                   <td className="py-4 px-6 text-center whitespace-nowrap">
-                    <span className="inline-flex items-center justify-center h-6 w-6 rounded bg-[#F8F6F2] text-xs font-bold text-neutral-800">
+                    <span className="inline-flex items-center justify-center h-6 w-6 rounded bg-cream-100 text-xs font-bold text-neutral-800">
                       {quantity}
                     </span>
                   </td>
 
                   {/* Total */}
-                  <td className="py-4 px-6 text-right whitespace-nowrap font-bold text-[#801B2B] font-mono">
+                  <td className="py-4 px-6 text-right whitespace-nowrap font-bold text-secondary-600 font-mono">
                     ₹{totalPrice.toLocaleString("en-IN")}
                   </td>
                 </tr>

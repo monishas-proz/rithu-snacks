@@ -96,7 +96,7 @@ export function AssignStaffModal({
             Cancel
           </Button>
           <Button
-            className="bg-[#7A2224] hover:bg-[#5A1A11] text-white"
+            className="bg-secondary-600 hover:bg-secondary-700 text-white"
             onClick={handleAssign}
             disabled={!selectedStaffId || assignDelivery.isPending}
           >
@@ -119,7 +119,7 @@ export function AssignStaffModal({
             placeholder="Search staff by name, phone or email..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-neutral-200 bg-neutral-50 focus:bg-white focus:border-[#7A2224] focus:outline-hidden transition-colors"
+            className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-neutral-200 bg-neutral-50 focus:bg-white focus:border-secondary-600 focus:outline-hidden transition-colors"
           />
         </div>
 
@@ -155,14 +155,14 @@ export function AssignStaffModal({
                     onClick={() => setSelectedStaffId(staff.id)}
                     className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer select-none ${
                       isSelected
-                        ? "border-[#7A2224] bg-[#FAF3F2] shadow-xs"
+                        ? "border-secondary-600 bg-secondary-50 shadow-xs"
                         : "border-neutral-200 bg-white hover:border-neutral-300 hover:bg-neutral-50"
                     }`}
                   >
                     <div
                       className={`h-9 w-9 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
                         isSelected
-                          ? "bg-[#7A2224] text-white"
+                          ? "bg-secondary-600 text-white"
                           : "bg-neutral-100 text-neutral-700"
                       }`}
                     >
@@ -179,7 +179,7 @@ export function AssignStaffModal({
                     </div>
 
                     {isSelected && (
-                      <CheckCircle2 className="h-5 w-5 text-[#7A2224] shrink-0" />
+                      <CheckCircle2 className="h-5 w-5 text-secondary-600 shrink-0" />
                     )}
                   </div>
                 );
@@ -198,7 +198,7 @@ export function AssignStaffModal({
             placeholder="Special instructions or notes for delivery staff..."
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            className="w-full p-2.5 text-sm rounded-xl border border-neutral-200 bg-neutral-50 focus:bg-white focus:border-[#7A2224] focus:outline-hidden transition-colors resize-none"
+            className="w-full p-2.5 text-sm rounded-xl border border-neutral-200 bg-neutral-50 focus:bg-white focus:border-secondary-600 focus:outline-hidden transition-colors resize-none"
           />
         </div>
 

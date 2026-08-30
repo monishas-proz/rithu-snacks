@@ -17,28 +17,28 @@ export function OrderStatsCards() {
       value: isLoading ? "—" : String(todayOrders),
       note: "Orders placed today",
       noteColor: "text-neutral-500",
-      accent: "#C97B3C",
+      accentBorder: "border-l-amber-600",
     },
     {
       label: "AWAITING CONFIRMATION",
       value: isLoading ? "—" : String(pendingOrders),
       note: pendingOrders > 0 ? "Needs action" : "All clear",
       noteColor: pendingOrders > 0 ? "text-amber-700 font-semibold" : "text-neutral-500",
-      accent: "#E0A83C",
+      accentBorder: "border-l-primary-500",
     },
     {
       label: "TOTAL ORDERS",
       value: isLoading ? "—" : String(totalOrders),
       note: "All-time total orders",
       noteColor: "text-neutral-500",
-      accent: "#B4232B",
+      accentBorder: "border-l-secondary-600",
     },
     {
       label: "ORDER VALUE",
       value: isLoading ? "—" : formatPrice(totalRevenue),
       note: "Total order revenue",
       noteColor: "text-neutral-500",
-      accent: "#2AA35C",
+      accentBorder: "border-l-success-600",
     },
   ];
 
@@ -47,13 +47,12 @@ export function OrderStatsCards() {
       {cards.map((card) => (
         <div
           key={card.label}
-          className="flex flex-col gap-1 rounded-xl border border-[#EDE4D9] bg-white p-3 shadow-xs"
-          style={{ borderLeftWidth: "3px", borderLeftColor: card.accent }}
+          className={`flex flex-col gap-1 rounded-xl border border-cream-border bg-white p-3 shadow-xs border-l-[3px] ${card.accentBorder}`}
         >
-          <div className="text-[10.5px] font-bold tracking-wider text-[#A2968C] uppercase">
+          <div className="text-[10.5px] font-bold tracking-wider text-neutral-400 uppercase">
             {card.label}
           </div>
-          <div className="text-xl font-bold tracking-tight text-[#211C1A]">
+          <div className="text-xl font-bold tracking-tight text-neutral-900">
             {card.value}
           </div>
           <div className={`text-[11px] font-medium ${card.noteColor}`}>
