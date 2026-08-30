@@ -20,6 +20,8 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   VariantForm,
   VariantImageUploader,
+  VariantCard,
+  VariantCustomerPreviewModal,
 } from "@/features/variants/components";
 import type { UnitFormItem } from "@/features/variants/components/VariantForm";
 import type { AdminVariantResponse } from "@/features/variants/types";
@@ -31,6 +33,8 @@ import {
   Trash2,
   ImageIcon,
   Layers,
+  Sparkles,
+  ShoppingBag,
 } from "lucide-react";
 
 export default function AdminVariantDetailsPage() {
@@ -77,6 +81,7 @@ export default function AdminVariantDetailsPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isImageUploaderOpen, setIsImageUploaderOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
 
   // 4. Reference Units for the Edit Modal
   const { data: unitsData } = useUnits({ pageSize: 100 });
@@ -324,6 +329,17 @@ export default function AdminVariantDetailsPage() {
           {/* Action Buttons */}
           <div className="flex items-center gap-2.5 flex-wrap self-end md:self-center">
             <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsPreviewModalOpen(true)}
+              className="h-9 bg-white border-cream-border text-secondary-700 hover:bg-secondary-50 cursor-pointer"
+              title="Storefront Customer View Preview"
+            >
+              <Sparkles className="w-3.5 h-3.5 mr-1.5 text-secondary-600" />
+              <span>Customer Preview</span>
+            </Button>
+
+            <Button
               variant="destructive"
               size="sm"
               onClick={() => setIsEditModalOpen(true)}
@@ -345,17 +361,17 @@ export default function AdminVariantDetailsPage() {
           </div>
         </section>
 
-        {/* Content Section: Attributes (Left) and Images (Right) */}
+        {/* Content Section: Attributes (Left), Images (Middle), and Storefront Card (Right) */}
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Left Column: Variant Attributes Card */}
-          <div className="lg:col-span-7 bg-white border border-cream-border rounded-2xl overflow-hidden shadow-xs">
+          <div className="lg:col-span-5 bg-white border border-cream-border rounded-2xl overflow-hidden shadow-xs">
             <div className="px-6 py-4.5 border-b border-cream-border flex items-center justify-between">
               <h2 className="text-[15px] font-bold text-neutral-900 tracking-tight flex items-center gap-2">
                 <Layers className="w-4 h-4 text-secondary-600" />
                 <span>Variant attributes</span>
               </h2>
               <span className="text-xs text-neutral-400">
-                Technical specifications & values
+                Technical specifications
               </span>
             </div>
 
@@ -365,10 +381,10 @@ export default function AdminVariantDetailsPage() {
                   key={idx}
                   className="grid grid-cols-1 sm:grid-cols-12 gap-2 px-6 py-3.5 items-center hover:bg-cream-50 transition-colors"
                 >
-                  <span className="sm:col-span-4 text-xs font-medium text-neutral-400">
+                  <span className="sm:col-span-5 text-xs font-medium text-neutral-400">
                     {attr.label}
                   </span>
-                  <div className="sm:col-span-8 text-sm font-semibold text-neutral-900">
+                  <div className="sm:col-span-7 text-xs sm:text-sm font-semibold text-neutral-900">
                     {attr.value}
                   </div>
                 </div>
@@ -376,8 +392,8 @@ export default function AdminVariantDetailsPage() {
             </div>
           </div>
 
-          {/* Right Column: Images Card */}
-          <div className="lg:col-span-5 bg-white border border-cream-border rounded-2xl overflow-hidden shadow-xs">
+          {/* Middle Column: Images Card */}
+          <div className="lg:col-span-4 bg-white border border-cream-border rounded-2xl overflow-hidden shadow-xs">
             <div className="px-6 py-4.5 border-b border-cream-border flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <h2 className="text-[15px] font-bold text-neutral-900 tracking-tight flex items-center gap-2">
@@ -392,7 +408,7 @@ export default function AdminVariantDetailsPage() {
 
             {/* Images Gallery */}
             {images.length > 0 ? (
-              <div className="p-5 grid grid-cols-3 gap-3">
+              <div className="p-5 grid grid-cols-2 gap-3">
                 {images.map((img) => (
                   <div
                     key={img.id}
@@ -427,7 +443,7 @@ export default function AdminVariantDetailsPage() {
                 </button>
               </div>
             ) : variant.primaryImage ? (
-              <div className="p-5 grid grid-cols-3 gap-3">
+              <div className="p-5 grid grid-cols-2 gap-3">
                 <div className="relative aspect-square rounded-xl bg-cream-100 border-2 border-secondary-600 overflow-hidden shadow-xs">
                   <Image
                     src={variant.primaryImage}
@@ -459,7 +475,7 @@ export default function AdminVariantDetailsPage() {
                     No images uploaded yet
                   </p>
                   <p className="text-[11px] text-neutral-400 mt-0.5">
-                    Upload square product photos (500 × 500 px)
+                    Upload square photos (500 × 500 px)
                   </p>
                 </div>
                 <Button
@@ -473,6 +489,29 @@ export default function AdminVariantDetailsPage() {
                 </Button>
               </div>
             )}
+          </div>
+
+          {/* Right Column: Live Storefront Card View Preview */}
+          <div className="lg:col-span-3 bg-white border border-cream-border rounded-2xl overflow-hidden shadow-xs">
+            <div className="px-5 py-4 border-b border-cream-border flex items-center justify-between">
+              <h2 className="text-[15px] font-bold text-neutral-900 tracking-tight flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-secondary-600" />
+                <span>Storefront Card View</span>
+              </h2>
+            </div>
+            <div className="p-4 bg-cream-50/50 flex flex-col items-center">
+              <p className="text-[11px] text-neutral-500 mb-3 text-center">
+                Live format how customers view this variant:
+              </p>
+              <div className="w-full max-w-[280px]">
+                <VariantCard
+                  variant={variant}
+                  productUuid={canonicalProductUuid}
+                  showAdminActions={false}
+                  onPreview={() => setIsPreviewModalOpen(true)}
+                />
+              </div>
+            </div>
           </div>
         </section>
 
@@ -560,6 +599,13 @@ export default function AdminVariantDetailsPage() {
         cancelText="Cancel"
         variant="destructive"
         isLoading={deleteVariantMutation.isPending}
+      />
+
+      {/* 4. Customer View Live Card Preview Modal */}
+      <VariantCustomerPreviewModal
+        variant={variant}
+        isOpen={isPreviewModalOpen}
+        onClose={() => setIsPreviewModalOpen(false)}
       />
     </div>
   );

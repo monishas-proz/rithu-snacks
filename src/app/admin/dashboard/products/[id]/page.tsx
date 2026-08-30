@@ -30,6 +30,8 @@ import {
   Power,
   PowerOff,
   Images as ImagesIcon,
+  LayoutList,
+  LayoutGrid,
 } from "lucide-react";
 import { useAdminProduct } from "@/features/products/hooks";
 import {
@@ -45,7 +47,14 @@ import { useHsnCodes } from "@/features/hsn-codes/hooks";
 import { useUnits } from "@/features/units/hooks";
 import { ProductPriceEditModal } from "@/features/products/components/ProductPriceEditModal";
 import { ProductForm, type ProductFormValues } from "@/features/products/components/ProductForm";
-import { VariantForm, VariantImageUploader, type VariantFormValues, type UnitFormItem } from "@/features/variants/components";
+import {
+  VariantForm,
+  VariantImageUploader,
+  VariantCard,
+  VariantCustomerPreviewModal,
+  type VariantFormValues,
+  type UnitFormItem,
+} from "@/features/variants/components";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { FormModal } from "@/components/common/FormModal";
@@ -129,6 +138,8 @@ export default function AdminProductDetailsPage() {
 
   // Filter & Selection State (Active by default, Inactive for inactive tab)
   const [variantFilter, setVariantFilter] = React.useState<VariantFilter>("active");
+  const [variantViewMode, setVariantViewMode] = React.useState<"table" | "cards">("table");
+  const [previewVariant, setPreviewVariant] = React.useState<AdminVariantResponse | null>(null);
 
   // 2. Product Variants Query using the POST "Get All Variants" API (POST /api/admin/variants)
   // Queries variants for this product based on the active tab (isActive: true or false)
@@ -802,8 +813,38 @@ export default function AdminProductDetailsPage() {
               </div>
             </div>
 
-            {/* Right: Actions (Export, Edit prices, Add variant) */}
+            {/* Right: Actions (View Mode Switcher, Export, Edit prices, Add variant) */}
             <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap sm:flex-nowrap justify-end">
+              {/* Table / Card View Mode Toggle */}
+              <div className="flex items-center bg-cream-200 border border-cream-border p-1 rounded-xl shadow-2xs">
+                <button
+                  type="button"
+                  onClick={() => setVariantViewMode("table")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    variantViewMode === "table"
+                      ? "bg-secondary-600 text-cream-white shadow-xs"
+                      : "text-neutral-500 hover:text-neutral-900 hover:bg-white"
+                  }`}
+                  title="Table View"
+                >
+                  <LayoutList className="w-3.5 h-3.5" />
+                  <span>Table</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVariantViewMode("cards")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    variantViewMode === "cards"
+                      ? "bg-secondary-600 text-cream-white shadow-xs"
+                      : "text-neutral-500 hover:text-neutral-900 hover:bg-white"
+                  }`}
+                  title="Customer Card View"
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <span>Card View</span>
+                </button>
+              </div>
+
               <button
                 type="button"
                 onClick={() => setIsPriceEditOpen(true)}
@@ -826,7 +867,7 @@ export default function AdminProductDetailsPage() {
           </div>
 
           {/* Bulk Selection Action Bar */}
-          {hasSelection && (
+          {hasSelection && variantViewMode === "table" && (
             <div className="px-5 py-2.5 bg-secondary-50 border-b border-secondary-200 flex items-center justify-between gap-3 text-xs">
               <span className="font-bold text-secondary-600">
                 {selectedIds.length} variant{selectedIds.length > 1 ? "s" : ""} selected
@@ -857,7 +898,7 @@ export default function AdminProductDetailsPage() {
             </div>
           )}
 
-          {/* Variants Table */}
+          {/* Variants Rendering: Table vs Cards */}
           {isLoadingVariants ? (
             <div className="py-16 flex justify-center">
               <LoadingState text="Loading variants..." />
@@ -881,6 +922,27 @@ export default function AdminProductDetailsPage() {
                 <Plus className="w-3.5 h-3.5" />
                 <span>Add first variant</span>
               </button>
+            </div>
+          ) : variantViewMode === "cards" ? (
+            <div className="p-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
+              {variants.map((variant) => (
+                <VariantCard
+                  key={variant.id}
+                  variant={variant}
+                  productUuid={canonicalProductId}
+                  onEdit={(v) => setEditingVariant(v)}
+                  onManageImages={(v) => setManagingImagesVariant(v)}
+                  onDelete={(v) => setDeletingVariant(v)}
+                  onPreview={(v) => setPreviewVariant(v)}
+                  onToggleStatus={(v, nextActive) => {
+                    if (nextActive) {
+                      setVariantToActivate(v);
+                    } else {
+                      setVariantToDeactivate(v);
+                    }
+                  }}
+                />
+              ))}
             </div>
           ) : (
             <div className="overflow-x-auto overflow-y-auto max-h-[560px] relative scrollbar-thin">
@@ -1406,11 +1468,23 @@ export default function AdminProductDetailsPage() {
             initialData={{
               variantName: editingVariant.variantName,
               sku: editingVariant.sku,
-              unitId: "b32ce718-0ad4-47a6-819e-f09b60485abb" || "",
-              unitValue: (editingVariant as any).measurement.value,
+              slug: editingVariant.slug || "",
+              unitId:
+                editingVariant.unitId ||
+                unitOptions.find(
+                  (u) =>
+                    u.code?.toUpperCase() ===
+                      editingVariant.measurement?.unit?.toUpperCase() ||
+                    u.name?.toUpperCase() ===
+                      editingVariant.measurement?.unit?.toUpperCase()
+                )?.id ||
+                "",
+              unitValue:
+                typeof editingVariant.measurement?.value === "number"
+                  ? editingVariant.measurement.value
+                  : Number(editingVariant.measurement?.value) || 1,
               basePrice: editingVariant.basePrice,
               salePrice: editingVariant.salePrice,
-              weightGrams: (editingVariant as any).weightGrams ?? null,
             }}
             isEditing
             fixedProductId={canonicalProductId}
@@ -1524,6 +1598,13 @@ export default function AdminProductDetailsPage() {
           />
         )}
       </FormModal>
+
+      {/* 11. Customer View Live Card Preview Modal */}
+      <VariantCustomerPreviewModal
+        variant={previewVariant}
+        isOpen={Boolean(previewVariant)}
+        onClose={() => setPreviewVariant(null)}
+      />
     </div>
   );
 }
