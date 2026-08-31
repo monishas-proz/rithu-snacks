@@ -23,6 +23,8 @@ interface DataTableProps<TData, TValue> {
   searchKey?: string;
   searchPlaceholder?: string;
   pageSize?: number;
+  pageSizeOptions?: number[];
+  onPageSizeChange?: (pageSize: number) => void;
   page?: number;
   totalPages?: number;
   totalItems?: number;
@@ -36,7 +38,9 @@ function DataTable<TData, TValue>({
   data,
   searchKey,
   searchPlaceholder = "Search...",
-  pageSize = 10,
+  pageSize: controlledPageSize,
+  pageSizeOptions = [10, 20, 30, 50],
+  onPageSizeChange,
   page = 1,
   totalPages,
   totalItems,
@@ -44,14 +48,55 @@ function DataTable<TData, TValue>({
   className,
   emptyMessage = "No results found.",
 }: DataTableProps<TData, TValue>) {
+  const [internalPageSize, setInternalPageSize] = React.useState<number>(
+    controlledPageSize ?? 10
+  );
+  const [internalPage, setInternalPage] = React.useState<number>(page);
+
+  const effectivePageSize = controlledPageSize ?? internalPageSize;
+  const effectivePage = page ?? internalPage;
+
+  React.useEffect(() => {
+    if (controlledPageSize !== undefined) {
+      setInternalPageSize(controlledPageSize);
+    }
+  }, [controlledPageSize]);
+
+  React.useEffect(() => {
+    if (page !== undefined) {
+      setInternalPage(page);
+    }
+  }, [page]);
+
+  const handlePageSizeChange = (newSize: number) => {
+    setInternalPageSize(newSize);
+    setInternalPage(1);
+    onPageSizeChange?.(newSize);
+    onPageChange?.(1);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setInternalPage(newPage);
+    onPageChange?.(newPage);
+  };
+
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
   const [globalFilter, setGlobalFilter] = React.useState("");
 
+  const isServerSide = totalItems !== undefined && totalItems > data.length;
+  const paginatedData = React.useMemo(() => {
+    if (isServerSide || data.length <= effectivePageSize) {
+      return data;
+    }
+    const startIndex = (effectivePage - 1) * effectivePageSize;
+    return data.slice(startIndex, startIndex + effectivePageSize);
+  }, [data, isServerSide, effectivePage, effectivePageSize]);
+
   const table = useReactTable({
-    data,
+    data: paginatedData,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -71,21 +116,25 @@ function DataTable<TData, TValue>({
     },
   });
 
+  const computedTotalItems = totalItems !== undefined ? totalItems : data.length;
+  const computedTotalPages =
+    totalPages !== undefined && totalPages > 0
+      ? totalPages
+      : Math.max(1, Math.ceil(computedTotalItems / effectivePageSize));
+
   const startEntry =
-    totalItems && totalItems > 0
-      ? (page - 1) * pageSize + 1
-      : 0;
+    computedTotalItems > 0 ? (effectivePage - 1) * effectivePageSize + 1 : 0;
 
   const endEntry =
-    totalItems && totalItems > 0
-      ? Math.min(page * pageSize, totalItems)
+    computedTotalItems > 0
+      ? Math.min(effectivePage * effectivePageSize, computedTotalItems)
       : 0;
 
     
   return (
-    <div className={cn("space-y-4 h-full flex flex-col justify-between rounded-2xl", className)}>
+    <div className={cn("h-full flex flex-col justify-between rounded-2xl overflow-hidden", className)}>
       {searchKey && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 p-3 pb-0 flex-shrink-0">
           <SearchInput
             placeholder={searchPlaceholder}
             defaultValue={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ""}
@@ -95,7 +144,7 @@ function DataTable<TData, TValue>({
         </div>
       )}
 
-      <div className="min-h-0 flex-1 overflow-hidden rounded-2xl">
+      <div className="min-h-0 flex-1 overflow-hidden">
         <div className="h-full overflow-x-auto overflow-y-auto overscroll-x-contain">
           <table className="w-full min-w-[720px] table-auto caption-bottom text-sm border-separate border-spacing-0">
             <thead>
@@ -183,33 +232,54 @@ function DataTable<TData, TValue>({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-5">
-        <p className="text-sm text-[var(--color-neutral-500)]">
-          Showing {startEntry}–{endEntry} of {totalItems ?? data.length} entries
-        </p>
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 sm:px-5 py-2.5 flex-shrink-0 border-t border-neutral-200/80 bg-white">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-sm text-[var(--color-neutral-500)]">
+          <p>
+            Showing {startEntry}–{endEntry} of {computedTotalItems} entries
+          </p>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-[var(--color-neutral-600)] whitespace-nowrap">
+              Rows per page:
+            </span>
+            <select
+              value={effectivePageSize}
+              onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+              aria-label="Rows per page"
+              className="h-8 rounded-lg border border-[var(--color-neutral-300)] bg-white px-2.5 py-1 text-xs font-semibold text-[var(--color-neutral-700)] shadow-xs transition-colors hover:border-[var(--color-neutral-400)] focus:border-secondary-600 focus:outline-hidden cursor-pointer"
+            >
+              {pageSizeOptions.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 self-end sm:self-auto">
           <button
-            onClick={() => onPageChange?.(page - 1)}
-            disabled={page <= 1}
+            onClick={() => handlePageChange(effectivePage - 1)}
+            disabled={effectivePage <= 1}
             className={cn(
               "inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--color-neutral-300)]",
               "bg-white text-[var(--color-neutral-700)] transition-colors hover:bg-[var(--color-neutral-50)]",
               "disabled:cursor-not-allowed disabled:opacity-50"
             )}
+            aria-label="Previous page"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
-          <span className="text-sm text-[var(--color-neutral-700)]">
-            {page} / {totalPages ?? 1}
+          <span className="text-sm font-medium text-[var(--color-neutral-700)] px-1">
+            {effectivePage} / {computedTotalPages}
           </span>
           <button
-            onClick={() => onPageChange?.(page + 1)}
-            disabled={!totalPages || page >= totalPages}
+            onClick={() => handlePageChange(effectivePage + 1)}
+            disabled={effectivePage >= computedTotalPages}
             className={cn(
               "inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--color-neutral-300)]",
               "bg-white text-[var(--color-neutral-700)] transition-colors hover:bg-[var(--color-neutral-50)]",
               "disabled:cursor-not-allowed disabled:opacity-50"
             )}
+            aria-label="Next page"
           >
             <ChevronRight className="h-4 w-4" />
           </button>

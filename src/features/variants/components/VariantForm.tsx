@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { FormProvider, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -9,6 +9,8 @@ import type { UnitOption } from "../types";
 import { FormInput } from "@/components/forms/form-input";
 import { FormSelect } from "@/components/forms/form-select";
 import { FormSubmitButton } from "@/components/forms/form-submit-button";
+import { CheckCircle2, XCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const variantFormSchema = z.object({
   productId: z
@@ -43,6 +45,8 @@ const variantFormSchema = z.object({
   salePrice: z
     .number({ message: "Sale price is required" })
     .min(0, "Sale price cannot be negative"),
+  inStock: z.boolean().optional().default(true),
+  outOfStock: z.boolean().optional(),
 });
 
 export type VariantFormValues = z.infer<typeof variantFormSchema>;
@@ -81,6 +85,13 @@ function VariantForm({
   isLoading = false,
   submitLabel = "Save Variant",
 }: VariantFormProps) {
+  const initialInStock =
+    initialData?.inStock !== undefined
+      ? initialData.inStock
+      : initialData?.outOfStock !== undefined
+      ? !initialData.outOfStock
+      : true;
+
   const methods = useForm<VariantFormValues>({
     resolver: zodResolver(variantFormSchema),
     defaultValues: {
@@ -92,8 +103,34 @@ function VariantForm({
       unitValue: initialData?.unitValue,
       basePrice: initialData?.basePrice,
       salePrice: initialData?.salePrice,
+      inStock: initialInStock,
+      outOfStock: !initialInStock,
     },
   });
+
+  useEffect(() => {
+    if (initialData) {
+      const isStock =
+        initialData.inStock !== undefined
+          ? initialData.inStock
+          : initialData.outOfStock !== undefined
+          ? !initialData.outOfStock
+          : true;
+
+      methods.reset({
+        productId: fixedProductId || initialData.productId || "",
+        variantName: initialData.variantName || "",
+        sku: initialData.sku || "",
+        slug: initialData.slug || "",
+        unitId: initialData.unitId || "",
+        unitValue: initialData.unitValue,
+        basePrice: initialData.basePrice,
+        salePrice: initialData.salePrice,
+        inStock: isStock,
+        outOfStock: !isStock,
+      });
+    }
+  }, [initialData, fixedProductId, methods]);
 
   const selectedUnitId = useWatch({
     control: methods.control,
@@ -143,15 +180,21 @@ function VariantForm({
       return;
     }
 
+    const inStockVal = methods.getValues("inStock") ?? true;
+
     const submissionPayload: VariantFormValues = {
       ...data,
       unitValue: Number(data.unitValue),
       basePrice: Number(data.basePrice),
       salePrice: Number(data.salePrice),
+      inStock: Boolean(inStockVal),
+      outOfStock: !inStockVal,
     };
 
     await onSubmit(submissionPayload);
   };
+
+  const currentInStock = methods.watch("inStock") ?? true;
 
   return (
     <FormProvider {...methods}>
@@ -234,7 +277,64 @@ function VariantForm({
           />
         </div>
 
-        <div className="flex justify-end pt-4">
+        {/* Stock Availability Toggle Card */}
+        <div className="p-4 rounded-2xl border border-cream-border bg-cream-50/70 flex items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-neutral-900">Stock Availability</span>
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border shadow-2xs",
+                  currentInStock
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    : "bg-rose-50 text-rose-700 border-rose-200"
+                )}
+              >
+                {currentInStock ? (
+                  <>
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                    <span>In Stock</span>
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="w-3 h-3 text-rose-600" />
+                    <span>Out of Stock</span>
+                  </>
+                )}
+              </span>
+            </div>
+            <p className="text-[11px] text-neutral-500">
+              {currentInStock
+                ? "This variant is in stock and available for customers to order on the store."
+                : "This variant is marked as out of stock. Customers will see 'Out of Stock'."}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            role="switch"
+            aria-checked={Boolean(currentInStock)}
+            onClick={() =>
+              methods.setValue("inStock", !currentInStock, {
+                shouldDirty: true,
+              })
+            }
+            className={cn(
+              "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+              currentInStock ? "bg-emerald-600" : "bg-neutral-300"
+            )}
+            title={currentInStock ? "Click to set Out of Stock" : "Click to set In Stock"}
+          >
+            <span
+              className={cn(
+                "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out",
+                currentInStock ? "translate-x-5" : "translate-x-0"
+              )}
+            />
+          </button>
+        </div>
+
+        <div className="flex justify-end pt-2">
           <FormSubmitButton
             isLoading={isLoading}
             className="h-11 rounded-xl bg-[var(--color-secondary-600)] px-6 text-sm font-semibold text-white hover:bg-[var(--color-secondary-700)]"

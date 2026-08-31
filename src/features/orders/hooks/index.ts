@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { cartKeys, orderKeys, adminOrderKeys, checkoutKeys } from "@/lib/api/query-keys";
+import { cartKeys, orderKeys, adminOrderKeys, checkoutKeys, deliveryKeys } from "@/lib/api/query-keys";
 import {
   getOrders,
   getOrder,
@@ -11,12 +11,17 @@ import {
   cancelOrderAdmin,
   getAdminOrders,
   getAdminOrder,
-  updateOrderStatus,
+  confirmAdminOrder,
+  processAdminOrder,
+  packAdminOrder,
+  assignOrderDelivery,
   getCheckoutSummary,
+  type AssignDeliveryInput,
 } from "../api/get-orders";
 import type {
   DeliveryMethod,
   GetOrdersParams,
+  AdminOrdersListParams,
   PlaceOrderInput,
   UpdateOrderStatusInput,
 } from "../types";
@@ -77,17 +82,28 @@ export function useCancelOrderAdmin() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, reason }: { id: number; reason?: string }) =>
-      cancelOrderAdmin(id, { reason }),
+    mutationFn: ({
+      id,
+      reason,
+      note,
+    }: {
+      id: string | number;
+      reason?: string;
+      note?: string;
+    }) => cancelOrderAdmin(id, { reason, note }),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: adminOrderKeys.all });
-      queryClient.invalidateQueries({ queryKey: adminOrderKeys.detail(variables.id) });
+      queryClient.invalidateQueries({
+        queryKey: adminOrderKeys.detail(variables.id),
+      });
       queryClient.invalidateQueries({ queryKey: orderKeys.all });
     },
   });
 }
 
-export function useAdminOrders(params?: GetOrdersParams) {
+export const useCancelAdminOrder = useCancelOrderAdmin;
+
+export function useAdminOrders(params?: AdminOrdersListParams) {
   return useQuery({
     queryKey: adminOrderKeys.list(
       params as Record<string, unknown> | undefined
@@ -96,24 +112,70 @@ export function useAdminOrders(params?: GetOrdersParams) {
   });
 }
 
-export function useAdminOrder(id: number | null) {
+export function useAdminOrder(id: string | number | null) {
   return useQuery({
-    queryKey: adminOrderKeys.detail(id ?? 0),
+    queryKey: adminOrderKeys.detail(id ?? ""),
     queryFn: () => getAdminOrder(id!),
     enabled: !!id,
   });
 }
 
-export function useUpdateOrderStatus() {
+export function useConfirmAdminOrder() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, status }: UpdateOrderStatusInput & { id: number }) =>
-      updateOrderStatus(id, { status }),
+    mutationFn: ({ id, note }: { id: string | number; note?: string }) =>
+      confirmAdminOrder(id, note),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: adminOrderKeys.all });
-      queryClient.invalidateQueries({ queryKey: adminOrderKeys.detail(variables.id) });
-      queryClient.invalidateQueries({ queryKey: orderKeys.all });
+      queryClient.invalidateQueries({
+        queryKey: adminOrderKeys.detail(variables.id),
+      });
+    },
+  });
+}
+
+export function useProcessAdminOrder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, note }: { id: string | number; note?: string }) =>
+      processAdminOrder(id, note),
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: adminOrderKeys.all });
+      queryClient.invalidateQueries({
+        queryKey: adminOrderKeys.detail(variables.id),
+      });
+    },
+  });
+}
+
+export function usePackAdminOrder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, note }: { id: string | number; note?: string }) =>
+      packAdminOrder(id, note),
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: adminOrderKeys.all });
+      queryClient.invalidateQueries({
+        queryKey: adminOrderKeys.detail(variables.id),
+      });
+    },
+  });
+}
+
+export function useAssignOrderDelivery() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: AssignDeliveryInput) => assignOrderDelivery(input),
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: adminOrderKeys.all });
+      queryClient.invalidateQueries({
+        queryKey: adminOrderKeys.detail(variables.orderId),
+      });
+      queryClient.invalidateQueries({ queryKey: deliveryKeys.all });
     },
   });
 }
@@ -131,3 +193,4 @@ export function useCheckoutSummary(
       }),
   });
 }
+

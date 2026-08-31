@@ -4,6 +4,8 @@ import type {
   ForgotPasswordInput,
   VerifyOtpInput,
   ResendOtpInput,
+  ResendRegisterOtpInput,
+  ResendForgotPasswordOtpInput,
   ResetPasswordInput,
   SendEmailOtpInput,
   VerifyEmailOtpInput,
@@ -43,6 +45,12 @@ export async function sendEmailOtpApi(data: SendEmailOtpInput) {
   });
 }
 
+export async function resendRegisterOtpApi(data: ResendRegisterOtpInput) {
+  return apiClient.post<null>("/api/auth/resend-register-otp", {
+    email: data.email.trim(),
+  });
+}
+
 export async function verifyEmailOtpApi(data: VerifyEmailOtpInput) {
   return apiClient.post<{ verificationToken: string }>("/api/auth/verify-email-otp", {
     email: data.email.trim(),
@@ -51,6 +59,14 @@ export async function verifyEmailOtpApi(data: VerifyEmailOtpInput) {
 }
 
 export async function forgotPasswordApi(data: ForgotPasswordInput) {
+  const response = await apiClient.post<null>("/api/auth/forgot-password", {
+    email: data.email.trim(),
+  });
+
+  return response;
+}
+
+export async function resendForgotPasswordOtpApi(data: ResendForgotPasswordOtpInput) {
   const response = await apiClient.post<null>("/api/auth/forgot-password", {
     email: data.email.trim(),
   });
@@ -67,12 +83,9 @@ export async function verifyOtpApi(data: VerifyOtpInput) {
   return response;
 }
 
+// Deprecated alias for backward compatibility
 export async function resendOtpApi(data: ResendOtpInput) {
-  const response = await apiClient.post<null>("/api/auth/resend-otp", {
-    email: data.email.trim(),
-  });
-
-  return response;
+  return resendForgotPasswordOtpApi(data);
 }
 
 export async function resetPasswordApi(data: ResetPasswordInput) {

@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useState, useEffect, useMemo } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -45,6 +46,7 @@ export type ProductFormValues = z.infer<typeof productFormSchema>;
 export interface ProductOption {
   value: string;
   label: string;
+  slug?: string;
 }
 
 interface ProductFormProps {
@@ -75,6 +77,42 @@ function ProductForm({
   isLoading = false,
   submitLabel = "Save Product",
 }: ProductFormProps) {
+  // Helper to compute prefix from brand slug and category slug
+  const computePrefix = (brandVal?: string, catVal?: string): string => {
+    const b = brands.find((item) => item.value === brandVal);
+    const c = categories.find((item) => item.value === catVal);
+    const bSlug = b?.slug?.trim() || "";
+    const cSlug = c?.slug?.trim() || "";
+
+    if (bSlug && cSlug) {
+      return `${bSlug}-${cSlug}-`;
+    }
+    if (bSlug) {
+      return `${bSlug}-`;
+    }
+    if (cSlug) {
+      return `${cSlug}-`;
+    }
+    return "";
+  };
+
+  const initialBrandId = initialData?.brandId || "";
+  const initialCatId = initialData?.categoryId || "";
+  const initialPrefix = computePrefix(initialBrandId, initialCatId);
+
+  const extractInitialExtraSlug = (fullSlug?: string, prefix?: string): string => {
+    if (!fullSlug) return "";
+    if (prefix && fullSlug.startsWith(prefix)) {
+      return fullSlug.slice(prefix.length);
+    }
+    return fullSlug;
+  };
+
+  const [extraSlug, setExtraSlug] = useState<string>(() =>
+    extractInitialExtraSlug(initialData?.slug, initialPrefix)
+  );
+  const [extraSlugError, setExtraSlugError] = useState<string | null>(null);
+
   const methods = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
     defaultValues: {
@@ -89,6 +127,64 @@ function ProductForm({
       description: initialData?.description || "",
     },
   });
+
+  const selectedBrandId = methods.watch("brandId");
+  const selectedCategoryId = methods.watch("categoryId");
+
+  // Dynamic non-editable prefix based on currently selected Brand and Category
+  const slugPrefix = useMemo(
+    () => computePrefix(selectedBrandId, selectedCategoryId),
+    [selectedBrandId, selectedCategoryId, brands, categories]
+  );
+
+  // Sync combined slug into form state whenever prefix or extraSlug updates
+  useEffect(() => {
+    const fullSlug = `${slugPrefix}${extraSlug}`.trim();
+    methods.setValue("slug", fullSlug, {
+      shouldValidate: methods.formState.isSubmitted,
+    });
+  }, [slugPrefix, extraSlug, methods]);
+
+  const handleExtraSlugChange = (raw: string) => {
+    // Format slug characters: keep alphanumeric, hyphens, underscores, replace spaces with hyphen
+    const formatted = raw
+      .replace(/\s+/g, "-")
+      .replace(/[^a-zA-Z0-9_-]/g, "");
+    setExtraSlug(formatted);
+    if (extraSlugError) setExtraSlugError(null);
+    methods.clearErrors("slug");
+  };
+
+  const handleFormSubmit = async (formData: ProductFormValues) => {
+    // 1. Validate brand selection
+    if (!formData.brandId) {
+      methods.setError("brandId", { message: "Please select a brand" });
+      return;
+    }
+
+    // 2. Validate category selection
+    if (!formData.categoryId) {
+      methods.setError("categoryId", { message: "Please select a category" });
+      return;
+    }
+
+    // 3. Admin must add an extra slug for the product (cannot be empty)
+    if (!extraSlug.trim()) {
+      const msg = "Please enter an additional slug for the product (cannot be empty)";
+      setExtraSlugError(msg);
+      methods.setError("slug", {
+        type: "manual",
+        message: msg,
+      });
+      return;
+    }
+
+    const finalSlug = `${slugPrefix}${extraSlug.trim()}`;
+    await onSubmit({
+      ...formData,
+      slug: finalSlug,
+    });
+  };
 
   const categoryOptions = [
     { label: "Select Category", value: "" },
@@ -108,9 +204,7 @@ function ProductForm({
   return (
     <FormProvider {...methods}>
       <form
-        onSubmit={methods.handleSubmit(async (data) => {
-          await onSubmit(data);
-        })}
+        onSubmit={methods.handleSubmit(handleFormSubmit)}
         className="space-y-6"
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -120,26 +214,20 @@ function ProductForm({
             placeholder="e.g. Banana Chips"
           />
 
-          <FormInput
-            name="slug"
-            label="Product Slug"
-            placeholder="e.g. BANANA_CHIPS"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <FormSelect
-            name="categoryId"
-            label="Category"
-            placeholder="Select category"
-            options={categoryOptions}
-          />
-
           <FormSelect
             name="brandId"
             label="Brand"
             placeholder="Select brand"
             options={brandOptions}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormSelect
+            name="categoryId"
+            label="Category"
+            placeholder="Select category"
+            options={categoryOptions}
           />
 
           <FormSelect
@@ -150,22 +238,89 @@ function ProductForm({
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Custom Product Slug Field with Non-Editable Prefix and Editable Extra Slug */}
+          <div className="pt-0 mb-3">
+            <label className="block text-xs font-semibold text-[var(--color-neutral-800)] mb-1">
+              Product Slug <span className="text-red-500">*</span>
+            </label>
+
+            <div
+              className={`flex items-stretch rounded-lg border transition-all ${
+                extraSlugError || methods.formState.errors.slug
+                  ? "border-red-500 ring-2 ring-red-500/10"
+                  : "border-neutral-200 focus-within:border-secondary-600 focus-within:ring-2 focus-within:ring-secondary-600/20"
+              } bg-white overflow-hidden`}
+            >
+              {/* Non-editable prefix (Brand Slug + Category Slug) */}
+              <div
+                className="flex items-center px-3 bg-neutral-100/90 border-r border-neutral-200 text-neutral-600 font-mono text-xs select-none max-w-[60%] shrink-0 truncate"
+                title={
+                  slugPrefix
+                    ? `Fixed Prefix: ${slugPrefix}`
+                    : "Select Brand & Category to auto-generate prefix"
+                }
+              >
+                {slugPrefix ? (
+                  <span className="font-semibold text-neutral-800 tracking-wide truncate">
+                    {slugPrefix}
+                  </span>
+                ) : (
+                  <span className="text-neutral-400 italic text-[11px]">
+                    [brand]-[category]-
+                  </span>
+                )}
+              </div>
+
+              {/* Editable extra slug for the product */}
+              <input
+                type="text"
+                value={extraSlug}
+                onChange={(e) => handleExtraSlugChange(e.target.value)}
+                placeholder="e.g. banana-chips"
+                className="flex-1 min-w-0 px-3 py-2 text-sm text-neutral-900 bg-transparent outline-none font-mono placeholder:text-neutral-400 placeholder:font-sans"
+              />
+            </div>
+
+            {/* Helper message / live preview / error */}
+            <div className="mt-1.5 min-h-[18px]">
+              {extraSlugError || methods.formState.errors.slug?.message ? (
+                <p className="text-xs text-red-500 font-medium">
+                  {extraSlugError || methods.formState.errors.slug?.message}
+                </p>
+              ) : (
+                <p className="text-[11px] text-neutral-500 font-mono flex items-center gap-1 flex-wrap">
+                  <span className="font-sans font-medium text-neutral-600">Full Slug:</span>
+                  {slugPrefix || extraSlug ? (
+                    <span className="text-secondary-700 font-semibold bg-neutral-100 px-1.5 py-0.5 rounded border border-neutral-200">
+                      {slugPrefix}
+                      <span className={extraSlug ? "text-secondary-800 font-bold" : "text-neutral-400 italic font-normal"}>
+                        {extraSlug || "enter-extra-slug"}
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="text-neutral-400 italic font-sans">
+                      Select brand and category to generate prefix
+                    </span>
+                  )}
+                </p>
+              )}
+            </div>
+          </div>
+
           <FormSelect
             name="vegType"
             label="Dietary Type"
             placeholder="Select dietary type"
             options={vegTypeOptions}
           />
-
-          <div className="pt-6">
-            <FormCheckbox
-              name="isFeatured"
-              label="Featured Product"
-              description="Display this product prominently in featured sections"
-            />
-          </div>
         </div>
+
+        <FormCheckbox
+          name="isFeatured"
+          label="Featured Product"
+          description="Display this product prominently in featured sections"
+        />
 
         <FormTextarea
           name="shortDescription"

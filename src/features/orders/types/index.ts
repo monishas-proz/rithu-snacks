@@ -170,14 +170,62 @@ export interface CheckoutSummary {
   appliedCoupon?: unknown;
 }
 
+export interface AdminOrdersListParams {
+  page?: number;
+  pageSize?: number;
+  limit?: number;
+  search?: string;
+  customerId?: string;
+  status?: OrderStatus;
+  paymentStatus?: PaymentStatus;
+  sortBy?:
+    | "orderNumber"
+    | "createdAt"
+    | "updatedAt"
+    | "placedAt"
+    | "totalAmount"
+    | "orderStatus"
+    | "paymentStatus";
+  sortOrder?: "asc" | "desc";
+}
+
+export interface OrderItemDisplay {
+  id: string;
+  productName: string;
+  productSlug?: string;
+  variantName?: string;
+  sku?: string;
+  quantity: number;
+  price: number;
+  total: number;
+  image?: string | null;
+}
+
+export interface OrderTotals {
+  subtotal: number;
+  taxAmount: number;
+  shippingAmount: number;
+  discountAmount: number;
+  totalAmount: number;
+}
+
 export const ORDER_STATUSES = [
-  "PENDING",
-  "CONFIRMED",
-  "PROCESSING",
-  "PACKED",
-  "SHIPPED",
-  "DELIVERED",
-  "CANCELLED",
-  "RETURNED",
+  "pending",
+  "confirmed",
+  "processing",
+  "packed",
+  "shipped",
+  "out_for_delivery",
+  "delivered",
+  "cancelled",
+  "returned",
+] as const;
+
+export const PAYMENT_STATUSES = [
+  "pending",
+  "paid",
+  "failed",
+  "refunded",
+  "partial_refund",
 ] as const;
 

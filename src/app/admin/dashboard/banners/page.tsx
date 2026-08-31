@@ -1,118 +1,388 @@
 "use client";
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Plus, Pencil, Trash2 } from "lucide-react";
-import { ColumnDef } from "@tanstack/react-table";
+import { useState, useMemo, useEffect } from "react";
+import Image from "next/image";
+import { Plus, Pencil, Trash2, Calendar, ExternalLink } from "lucide-react";
+import type { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DataTable } from "@/components/admin/data-table/DataTable";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
-import { AdminBreadcrumb } from "@/components/admin/AdminBreadcrumb";
-import { AdminPageHeader, AdminContent } from "@/components/admin/AdminPageHeader";
+import {
+  AdminPageHeader,
+  AdminContent,
+} from "@/components/admin/AdminPageHeader";
 import { FormModal } from "@/components/common/FormModal";
-import { useBanners, useCreateBanner, useUpdateBanner, useDeleteBanner } from "@/features/banners/hooks";
-import type { BannerListItem } from "@/features/banners/types";
-
-const bannerSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  subtitle: z.string().optional(),
-  image: z.string().min(1, "Image is required"),
-  link: z.string().optional(),
-  position: z.string().optional(),
-  sortOrder: z.number().int().min(0),
-  isActive: z.boolean(),
-  startsAt: z.string().optional(),
-  expiresAt: z.string().optional(),
-});
-
-type BannerFormData = z.infer<typeof bannerSchema>;
+import { SearchInput } from "@/components/ui/search-input";
+import {
+  useBanners,
+  useBannerPositions,
+  useCreateBanner,
+  useUpdateBanner,
+  useDeleteBanner,
+} from "@/features/banners/hooks";
+import { BannerForm } from "@/features/banners/components";
+import type { BannerDto } from "@/features/banners/types";
 
 export default function AdminBannersPage() {
-  const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingBanner, setEditingBanner] = useState<BannerListItem | null>(null);
+  const [search, setSearch] = useState("");
+  const [selectedPositionFilter, setSelectedPositionFilter] = useState<string>("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
-  const { data, isLoading, error, refetch } = useBanners();
-  const deleteMutation = useDeleteBanner();
-  const createMutation = useCreateBanner();
-  const updateMutation = useUpdateBanner();
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [selectedBanner, setSelectedBanner] = useState<BannerDto | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    uuid: string;
+    title: string;
+  } | null>(null);
 
-  const banners = data?.data ?? [];
+  useEffect(() => {
+    setPage(1);
+  }, [search, selectedPositionFilter]);
 
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<BannerFormData>({
-    resolver: zodResolver(bannerSchema),
-    defaultValues: { title: "", subtitle: "", image: "", link: "", position: "", sortOrder: 0, isActive: true },
+  // Main banners query
+  const { data, isLoading, error, refetch } = useBanners({
+    page,
+    limit: pageSize,
+    search: search || undefined,
+    bannerPositionId: selectedPositionFilter || undefined,
   });
 
-  const openCreateModal = () => {
-    setEditingBanner(null);
-    reset({ title: "", subtitle: "", image: "", link: "", position: "", sortOrder: 0, isActive: true });
-    setModalOpen(true);
-  };
+  // Reference queries for banner positions dropdown
+  const { data: positionsData } = useBannerPositions({ limit: 100 });
 
-  const openEditModal = (banner: BannerListItem) => {
-    setEditingBanner(banner);
-    reset({
-      title: banner.title, subtitle: banner.subtitle || "", image: banner.image,
-      link: banner.link || "", position: banner.position || "",
-      sortOrder: banner.sortOrder, isActive: banner.isActive,
-      startsAt: banner.startsAt ? new Date(banner.startsAt).toISOString().split("T")[0] : "",
-      expiresAt: banner.expiresAt ? new Date(banner.expiresAt).toISOString().split("T")[0] : "",
-    });
-    setModalOpen(true);
-  };
+  const createMutation = useCreateBanner();
+  const updateMutation = useUpdateBanner();
+  const deleteMutation = useDeleteBanner();
 
-  const onSubmit = (formData: BannerFormData) => {
-    const data = {
-      ...formData,
-      startsAt: formData.startsAt ? new Date(formData.startsAt) : undefined,
-      expiresAt: formData.expiresAt ? new Date(formData.expiresAt) : undefined,
-    };
-    if (editingBanner) {
-      updateMutation.mutate({ id: editingBanner.id, data }, { onSuccess: () => { setModalOpen(false); reset(); } });
-    } else {
-      createMutation.mutate(data, { onSuccess: () => { setModalOpen(false); reset(); } });
+  const banners = data?.data ?? [];
+  const positions = positionsData?.data ?? [];
+
+  const positionOptions = useMemo(() => {
+    return positions.map((p) => ({
+      value: p.id,
+      label: `${p.name} (${p.slug})`,
+    }));
+  }, [positions]);
+
+  const positionFilterOptions = useMemo(() => {
+    return [
+      { value: "", label: "All Positions" },
+      ...positionOptions,
+    ];
+  }, [positionOptions]);
+
+  const formatDateDisplay = (dateVal: unknown): string => {
+    if (!dateVal) return "";
+    try {
+      const d = new Date(dateVal as string | Date);
+      if (isNaN(d.getTime())) return "";
+      return d.toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+    } catch {
+      return "";
     }
   };
 
-  const columns: ColumnDef<BannerListItem, unknown>[] = [
-    { accessorKey: "title", header: "Title", cell: ({ row }) => (<div><p className="font-medium">{row.original.title}</p>{row.original.subtitle && <p className="text-xs text-muted-foreground">{row.original.subtitle}</p>}</div>) },
-    { accessorKey: "image", header: "Image", cell: ({ row }) => (<div className="h-10 w-16 overflow-hidden rounded bg-muted"><img src={row.original.image} alt={row.original.title} className="h-full w-full object-cover" /></div>) },
-    { accessorKey: "position", header: "Position", cell: ({ row }) => row.original.position || "-" },
-    { accessorKey: "sortOrder", header: "Sort" },
-    { accessorKey: "isActive", header: "Status", cell: ({ row }) => (<Badge variant={row.original.isActive ? "success" : "secondary"}>{row.original.isActive ? "Active" : "Inactive"}</Badge>) },
-    { id: "actions", header: "Actions", cell: ({ row }) => (<div className="flex items-center gap-1"><Button variant="ghost" size="icon" onClick={() => openEditModal(row.original)}><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => setDeleteId(row.original.id)}><Trash2 className="h-4 w-4 text-error-600" /></Button></div>) },
+  const columns: ColumnDef<BannerDto>[] = [
+    {
+      accessorKey: "imageUrl",
+      header: "Banner (3:1)",
+      cell: ({ row }) => {
+        const imageUrl = row.original.imageUrl;
+        return (
+          <div className="relative aspect-[3/1] w-28 flex-shrink-0 overflow-hidden rounded-lg border border-[var(--color-neutral-200)] bg-[var(--color-neutral-100)] flex items-center justify-center">
+            {imageUrl ? (
+              <Image
+                src={imageUrl}
+                alt={row.original.title || "Banner"}
+                fill
+                className="object-cover"
+                sizes="112px"
+              />
+            ) : (
+              <span className="text-[10px] text-[var(--color-neutral-400)]">
+                No image
+              </span>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "title",
+      header: "Title & Link",
+      cell: ({ row }) => (
+        <div className="min-w-[160px]">
+          <p className="font-semibold text-[var(--color-neutral-900)]">
+            {row.original.title || "Untitled Banner"}
+          </p>
+          {row.original.linkUrl ? (
+            <a
+              href={row.original.linkUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-[var(--color-primary-600)] hover:underline mt-0.5"
+            >
+              <ExternalLink className="h-3 w-3" />
+              <span className="truncate max-w-[200px]">
+                {row.original.linkUrl}
+              </span>
+            </a>
+          ) : (
+            <p className="text-xs text-[var(--color-neutral-400)] mt-0.5">
+              No link attached
+            </p>
+          )}
+        </div>
+      ),
+    },
+    {
+      accessorKey: "bannerPosition",
+      header: "Position",
+      cell: ({ row }) => (
+        <span className="inline-flex items-center rounded-md bg-[var(--color-primary-50)] px-2 py-1 text-xs font-medium text-[var(--color-primary-700)] ring-1 ring-inset ring-[var(--color-primary-700)]/10">
+          {row.original.bannerPosition?.name || row.original.bannerPosition?.slug || "—"}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "sortOrder",
+      header: "Order",
+      cell: ({ row }) => (
+        <span className="text-sm font-medium text-[var(--color-neutral-700)]">
+          {row.original.sortOrder}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "schedule",
+      header: "Schedule",
+      cell: ({ row }) => {
+        const starts = formatDateDisplay(row.original.startsAt);
+        const ends = formatDateDisplay(row.original.endsAt);
+
+        if (!starts && !ends) {
+          return (
+            <span className="text-xs text-[var(--color-neutral-500)]">
+              Always Active
+            </span>
+          );
+        }
+
+        return (
+          <div className="flex items-center gap-1.5 text-xs text-[var(--color-neutral-600)]">
+            <Calendar className="h-3.5 w-3.5 text-[var(--color-neutral-400)]" />
+            <span>
+              {starts || "Now"} — {ends || "Forever"}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "isActive",
+      header: "Status",
+      cell: ({ row }) => (
+        <Badge
+          variant={row.original.isActive ? "success" : "secondary"}
+          className="text-xs"
+        >
+          {row.original.isActive ? "Active" : "Inactive"}
+        </Badge>
+      ),
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => {
+        const banner = row.original;
+        return (
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                setSelectedBanner(banner);
+                setIsEditOpen(true);
+              }}
+              className="h-8 w-8 text-[var(--color-neutral-500)] hover:text-[var(--color-neutral-900)] hover:bg-[var(--color-neutral-100)]"
+              title="Edit Banner"
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() =>
+                setDeleteTarget({
+                  uuid: banner.id,
+                  title: banner.title || "Untitled Banner",
+                })
+              }
+              className="h-8 w-8 text-[var(--color-error-500)] hover:bg-[var(--color-error-50)] hover:text-[var(--color-error-700)]"
+              title="Delete Banner"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        );
+      },
+    },
   ];
 
-  if (isLoading) return <LoadingState text="Loading banners..." />;
-  if (error) return <ErrorState message="Failed to load banners" onRetry={() => refetch()} />;
+  if (isLoading && !data) {
+    return <LoadingState text="Loading banners..." />;
+  }
+
+  if (error) {
+    return (
+      <ErrorState
+        message="Failed to load banners"
+        onRetry={() => refetch()}
+      />
+    );
+  }
 
   return (
-    <div>
-      <AdminBreadcrumb items={[{ label: "Banners" }]} />
-      <AdminPageHeader title="Banners" description="Manage homepage banners" actions={<Button onClick={openCreateModal}><Plus className="mr-2 h-4 w-4" />Add Banner</Button>} />
-      <AdminContent>
-        <DataTable columns={columns} data={banners} searchKey="title" searchPlaceholder="Search banners..." />
-      </AdminContent>
-      <FormModal open={modalOpen} onClose={() => setModalOpen(false)} title={editingBanner ? "Edit Banner" : "Create Banner"} footer={<><Button variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button><Button onClick={handleSubmit(onSubmit)} disabled={isSubmitting}>{isSubmitting ? "Saving..." : "Save"}</Button></>}>
-        <form className="space-y-4">
-          <div><label className="text-sm font-medium">Title *</label><input {...register("title")} className="mt-1 flex h-10 w-full rounded-md border px-3 text-sm" />{errors.title && <p className="text-xs text-error-600 mt-1">{errors.title.message}</p>}</div>
-          <div><label className="text-sm font-medium">Subtitle</label><input {...register("subtitle")} className="mt-1 flex h-10 w-full rounded-md border px-3 text-sm" /></div>
-          <div><label className="text-sm font-medium">Image URL *</label><input {...register("image")} className="mt-1 flex h-10 w-full rounded-md border px-3 text-sm" placeholder="https://..." />{errors.image && <p className="text-xs text-error-600 mt-1">{errors.image.message}</p>}</div>
-          <div><label className="text-sm font-medium">Link</label><input {...register("link")} className="mt-1 flex h-10 w-full rounded-md border px-3 text-sm" placeholder="/products" /></div>
-          <div className="grid grid-cols-2 gap-4">
-            <div><label className="text-sm font-medium">Position</label><input {...register("position")} className="mt-1 flex h-10 w-full rounded-md border px-3 text-sm" placeholder="hero, footer" /></div>
-            <div><label className="text-sm font-medium">Sort Order</label><input type="number" {...register("sortOrder", { valueAsNumber: true })} className="mt-1 flex h-10 w-full rounded-md border px-3 text-sm" /></div>
+    <div className="flex flex-1 min-h-0 flex-col">
+      <AdminPageHeader
+        title="Banners"
+        description="Manage promotional, seasonal, and marketing hero banners with 3:1 aspect ratio."
+      />
+
+      <AdminContent className="flex-1 min-h-0 overflow-hidden">
+        <div className="flex h-full flex-col overflow-hidden bg-[var(--color-background)] py-1 rounded-2xl">
+          {/* Top Bar: Search, Position Filter, Add Button */}
+          <div className="flex-shrink-0 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
+              <SearchInput
+                placeholder="Search banners by title..."
+                defaultValue={search}
+                onSearch={(val) => {
+                  setSearch(val);
+                  setPage(1);
+                }}
+                className="w-full max-w-md"
+              />
+
+              <div className="w-full sm:w-64">
+                <Select
+                  value={selectedPositionFilter}
+                  onChange={(e) => {
+                    setSelectedPositionFilter(e.target.value);
+                    setPage(1);
+                  }}
+                  options={positionFilterOptions}
+                  placeholder="All Positions"
+                  className="h-11 rounded-xl"
+                />
+              </div>
+            </div>
+
+            <Button
+              onClick={() => setIsCreateOpen(true)}
+              className="h-11 rounded-xl bg-[var(--color-secondary-600)] px-5 text-sm font-semibold text-white hover:bg-[var(--color-secondary-700)]"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add Banner
+            </Button>
           </div>
-          <div className="flex items-center gap-2"><input type="checkbox" {...register("isActive")} className="rounded" /><label className="text-sm">Active</label></div>
-        </form>
+
+          {/* Data Table */}
+          <div className="mt-6 flex-1 min-h-0 overflow-hidden flex flex-col">
+            <DataTable
+              columns={columns}
+              data={banners}
+              pageSize={pageSize}
+              pageSizeOptions={[10, 20, 30, 50]}
+              page={data?.meta?.page ?? page}
+              totalPages={data?.meta?.totalPages ?? Math.max(1, Math.ceil((data?.meta?.total ?? banners.length) / pageSize))}
+              totalItems={data?.meta?.total ?? banners.length}
+              onPageChange={setPage}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                setPage(1);
+              }}
+              className="bg-white"
+            />
+          </div>
+        </div>
+      </AdminContent>
+
+      {/* CREATE MODAL */}
+      <FormModal
+        open={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        title="Add New Banner"
+        description="Upload a 3:1 banner image and configure its position and schedule."
+        size="lg"
+      >
+        <BannerForm
+          bannerPositions={positionOptions}
+          isLoading={createMutation.isPending}
+          submitLabel="Add Banner"
+          onSubmit={async (formData) => {
+            await createMutation.mutateAsync(formData);
+            setIsCreateOpen(false);
+          }}
+        />
       </FormModal>
-      <ConfirmDialog open={!!deleteId} onClose={() => setDeleteId(null)} onConfirm={() => { if (deleteId) deleteMutation.mutate(deleteId, { onSuccess: () => setDeleteId(null) }); }} title="Delete Banner" description="Are you sure?" confirmText="Delete" variant="destructive" isLoading={deleteMutation.isPending} />
+
+      {/* EDIT MODAL */}
+      <FormModal
+        open={isEditOpen}
+        onClose={() => {
+          setIsEditOpen(false);
+          setSelectedBanner(null);
+        }}
+        title="Edit Banner"
+        description="Update banner image, link, position, or schedule."
+        size="lg"
+      >
+        {selectedBanner && (
+          <BannerForm
+            initialData={selectedBanner}
+            bannerPositions={positionOptions}
+            isLoading={updateMutation.isPending}
+            submitLabel="Update Banner"
+            onSubmit={async (formData) => {
+              await updateMutation.mutateAsync({
+                uuid: selectedBanner.id,
+                data: formData,
+              });
+              setIsEditOpen(false);
+              setSelectedBanner(null);
+            }}
+          />
+        )}
+      </FormModal>
+
+      {/* DELETE CONFIRMATION DIALOG */}
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={async () => {
+          if (deleteTarget) {
+            await deleteMutation.mutateAsync(deleteTarget.uuid);
+            setDeleteTarget(null);
+          }
+        }}
+        title="Delete Banner"
+        description={`Are you sure you want to permanently delete "${deleteTarget?.title}"? This action cannot be undone.`}
+        confirmText="Delete Banner"
+        variant="destructive"
+        isLoading={deleteMutation.isPending}
+      />
     </div>
   );
 }

@@ -16,18 +16,20 @@ function SearchInput({
   onSearch,
   debounceMs = 300,
   placeholder = "Search...",
+  value: propValue,
+  defaultValue,
   ...props
 }: SearchInputProps) {
   const [value, setValue] = React.useState(
-    props.value !== undefined ? props.value : (props.defaultValue || "")
+    propValue !== undefined ? propValue : (defaultValue || "")
   );
   const onSearchRef = React.useRef(onSearch);
 
   React.useEffect(() => {
-    if (props.value !== undefined) {
-      setValue(props.value);
+    if (propValue !== undefined) {
+      setValue(propValue);
     }
-  }, [props.value]);
+  }, [propValue]);
 
   React.useEffect(() => {
     onSearchRef.current = onSearch;

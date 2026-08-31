@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Upload, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ImageCropperModal } from "./ImageCropperModal";
 
 interface ImageUploadProps {
   value?: string;
@@ -10,6 +11,9 @@ interface ImageUploadProps {
   accept?: string;
   className?: string;
   disabled?: boolean;
+  cropWidth?: number;
+  cropHeight?: number;
+  enableCrop?: boolean;
 }
 
 function ImageUpload({
@@ -18,16 +22,48 @@ function ImageUpload({
   accept = "image/*",
   className,
   disabled,
+  cropWidth = 500,
+  cropHeight = 500,
+  enableCrop = true,
 }: ImageUploadProps) {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [urlInput, setUrlInput] = React.useState("");
 
+  // Crop state
+  const [cropSrc, setCropSrc] = React.useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const preview = URL.createObjectURL(file);
-    onChange(preview);
+
+    if (!enableCrop) {
+      const preview = URL.createObjectURL(file);
+      onChange(preview);
+      e.target.value = "";
+      return;
+    }
+
+    setSelectedFile(file);
+    setCropSrc(URL.createObjectURL(file));
     e.target.value = "";
+  };
+
+  const handleCropConfirm = (_croppedFile: File, previewUrl: string) => {
+    if (cropSrc) {
+      URL.revokeObjectURL(cropSrc);
+    }
+    setCropSrc(null);
+    setSelectedFile(null);
+    onChange(previewUrl);
+  };
+
+  const handleCropCancel = () => {
+    if (cropSrc) {
+      URL.revokeObjectURL(cropSrc);
+    }
+    setCropSrc(null);
+    setSelectedFile(null);
   };
 
   const handleUrlSubmit = () => {
@@ -119,6 +155,20 @@ function ImageUpload({
           Add
         </button>
       </div>
+
+      {/* Image Cropper Modal */}
+      <ImageCropperModal
+        open={Boolean(cropSrc)}
+        imageSrc={cropSrc}
+        originalFileName={selectedFile?.name}
+        mimeType={selectedFile?.type || "image/jpeg"}
+        title="Crop Image"
+        description={`Reposition and zoom to fit the ${cropWidth} × ${cropHeight} px area.`}
+        cropWidth={cropWidth}
+        cropHeight={cropHeight}
+        onCropConfirm={handleCropConfirm}
+        onCancel={handleCropCancel}
+      />
     </div>
   );
 }

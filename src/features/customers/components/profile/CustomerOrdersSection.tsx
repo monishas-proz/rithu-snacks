@@ -61,28 +61,28 @@ export function CustomerOrdersSection({
     const s = status?.toUpperCase() || "";
     if (s === "DELIVERED") {
       return (
-        <span className="inline-flex items-center justify-center px-3.5 py-0.5 rounded-full text-xs font-medium bg-[#EAF7EE] text-[#1E833F]">
+        <span className="inline-flex items-center justify-center px-3.5 py-0.5 rounded-full text-xs font-medium bg-success-50 text-success-700">
           Delivered
         </span>
       );
     }
     if (s === "RETURNED") {
       return (
-        <span className="inline-flex items-center justify-center px-3.5 py-0.5 rounded-full text-xs font-medium bg-[#FEF7E7] text-[#9A6900]">
+        <span className="inline-flex items-center justify-center px-3.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700">
           Returned
         </span>
       );
     }
     if (s === "CANCELLED") {
       return (
-        <span className="inline-flex items-center justify-center px-3.5 py-0.5 rounded-full text-xs font-medium bg-[#FDE8E8] text-[#9B1C1C]">
+        <span className="inline-flex items-center justify-center px-3.5 py-0.5 rounded-full text-xs font-medium bg-error-50 text-error-700">
           Cancelled
         </span>
       );
     }
     if (s === "SHIPPED") {
       return (
-        <span className="inline-flex items-center justify-center px-3.5 py-0.5 rounded-full text-xs font-medium bg-[#EBF3FF] text-[#1D63D6]">
+        <span className="inline-flex items-center justify-center px-3.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
           Shipped
         </span>
       );
@@ -115,7 +115,7 @@ export function CustomerOrdersSection({
       <div className="overflow-x-auto">
         <table className="w-full min-w-[580px] text-left text-sm">
           <thead>
-            <tr className="border-b border-[#F2EFE9]">
+            <tr className="border-b border-cream-border-subtle">
               <th className="py-4 px-6 text-xs font-semibold uppercase tracking-wider text-neutral-400 font-mono">
                 Order ID
               </th>
@@ -130,7 +130,7 @@ export function CustomerOrdersSection({
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#F2EFE9]">
+          <tbody className="divide-y divide-cream-border-subtle">
             {orders.map((order) => {
               const formattedOrderNumber = order.orderNumber?.startsWith("#")
                 ? order.orderNumber
@@ -169,19 +169,9 @@ export function CustomerOrdersSection({
         </table>
       </div>
 
-      {/* Footer: View All Orders Link matching screenshot */}
-      <div className="py-5 text-center border-t border-[#F2EFE9]">
-        <Link
-          href="/admin/dashboard/orders"
-          className="inline-block text-xs font-semibold uppercase tracking-wider text-[#801B2B] hover:underline"
-        >
-          View All Orders
-        </Link>
-      </div>
-
       {/* Pagination Footer (if multi-page) */}
       {meta && meta.totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-[#F2EFE9] px-6 py-3 bg-neutral-50/50">
+        <div className="flex items-center justify-between border-t border-cream-border-subtle px-6 py-3 bg-neutral-50/50">
           <p className="text-xs text-neutral-500">
             Page <span className="font-medium text-neutral-900">{meta.page}</span> of{" "}
             <span className="font-medium text-neutral-900">{meta.totalPages}</span> ({meta.total} orders)
@@ -192,7 +182,7 @@ export function CustomerOrdersSection({
               size="sm"
               disabled={meta.page <= 1}
               onClick={() => onPageChange?.(meta.page - 1)}
-              className="h-8 text-xs px-3 rounded-lg border-[#EDE8E1] hover:bg-neutral-100"
+              className="h-8 text-xs px-3 rounded-lg border-cream-border hover:bg-neutral-100"
             >
               Previous
             </Button>
@@ -201,7 +191,7 @@ export function CustomerOrdersSection({
               size="sm"
               disabled={meta.page >= meta.totalPages}
               onClick={() => onPageChange?.(meta.page + 1)}
-              className="h-8 text-xs px-3 rounded-lg border-[#EDE8E1] hover:bg-neutral-100"
+              className="h-8 text-xs px-3 rounded-lg border-cream-border hover:bg-neutral-100"
             >
               Next
             </Button>

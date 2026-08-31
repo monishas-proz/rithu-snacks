@@ -5,7 +5,10 @@ import { getUnits, getUnit } from "../api/get-units";
 import type { GetAdminUnitsParams } from "../types";
 import { unitKeys } from "@/lib/api/query-keys";
 
-export function useUnits(params?: GetAdminUnitsParams) {
+export function useUnits(
+  params?: GetAdminUnitsParams,
+  options?: { enabled?: boolean }
+) {
   const queryParams: Record<
     string,
     string | number | boolean | undefined
@@ -20,6 +23,7 @@ export function useUnits(params?: GetAdminUnitsParams) {
     queryKey: unitKeys.list(queryParams),
     queryFn: () => getUnits(queryParams),
     placeholderData: keepPreviousData,
+    ...options,
   });
 }
 

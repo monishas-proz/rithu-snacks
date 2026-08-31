@@ -44,21 +44,10 @@ export interface ReviewResponse {
   updatedAt: Date;
 }
 
-export interface CreateReviewInput {
-  variantId: string;
-  orderItemId: string;
-  rating: number;
-  title?: string | null;
-  comment?: string | null;
-  images?: string[];
-}
-
-export interface UpdateReviewInput {
-  rating?: number;
-  title?: string | null;
-  comment?: string | null;
-  images?: string[];
-}
+export type {
+  CreateReviewInput,
+  UpdateReviewInput,
+} from "../validations/review.schema";
 
 export interface PublicReviewItem {
   id: string;

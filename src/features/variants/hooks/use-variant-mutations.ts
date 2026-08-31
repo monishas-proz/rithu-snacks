@@ -6,7 +6,9 @@ import {
   createAdminVariant,
   updateAdminVariant,
   deleteAdminVariant,
+  bulkEditVariants,
 } from "../api/get-variants";
+import type { BulkEditVariantsInput } from "../types";
 
 export function useCreateVariant() {
   const queryClient = useQueryClient();
@@ -43,6 +45,17 @@ export function useUpdateVariant() {
       queryClient.invalidateQueries({
         queryKey: variantKeys.detail(variables.variantUuid),
       });
+    },
+  });
+}
+
+export function useBulkEditVariants() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: BulkEditVariantsInput) => bulkEditVariants(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: variantKeys.all });
     },
   });
 }
@@ -115,6 +128,34 @@ export function useUpdateVariantImage() {
       queryClient.invalidateQueries({ queryKey: variantKeys.all });
       queryClient.invalidateQueries({
         queryKey: [...variantKeys.all, "images", variables.variantUuid],
+      });
+    },
+  });
+}
+
+export function useSetPrimaryVariantImage() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      productUuid,
+      variantUuid,
+      imageUuid,
+    }: {
+      productUuid: string;
+      variantUuid: string;
+      imageUuid: string;
+    }) => {
+      const { setPrimaryAdminVariantImage } = await import("../api/get-variants");
+      return setPrimaryAdminVariantImage(productUuid, variantUuid, imageUuid);
+    },
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: variantKeys.all });
+      queryClient.invalidateQueries({
+        queryKey: [...variantKeys.all, "images", variables.variantUuid],
+      });
+      queryClient.invalidateQueries({
+        queryKey: variantKeys.detail(variables.variantUuid),
       });
     },
   });

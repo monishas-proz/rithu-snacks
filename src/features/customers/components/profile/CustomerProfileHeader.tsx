@@ -66,7 +66,7 @@ export function CustomerTopBar({ customer }: CustomerTopBarProps) {
         {customer.email ? (
           <a
             href={`mailto:${customer.email}`}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-lg border border-[#801B2B] text-[#801B2B] bg-white hover:bg-[#801B2B]/5 text-xs font-semibold transition-colors shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-lg border border-secondary-600 text-secondary-600 bg-white hover:bg-secondary-50 text-xs font-semibold transition-colors shadow-2xs"
           >
             <Mail className="h-3.5 w-3.5" />
             <span>Email</span>
@@ -90,7 +90,7 @@ export function CustomerTopBar({ customer }: CustomerTopBarProps) {
               e.stopPropagation();
               setIsMoreOpen((prev) => !prev);
             }}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#EDE8E1] bg-white hover:bg-neutral-50 text-neutral-700 hover:text-neutral-900 transition-colors shadow-[0_1px_2px_rgba(0,0,0,0.02)] cursor-pointer"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-cream-border bg-white hover:bg-neutral-50 text-neutral-700 hover:text-neutral-900 transition-colors shadow-2xs cursor-pointer"
             aria-expanded={isMoreOpen}
             aria-haspopup="true"
             aria-label="More options"
@@ -100,7 +100,7 @@ export function CustomerTopBar({ customer }: CustomerTopBarProps) {
 
           {isMoreOpen && (
             <div
-              className="absolute right-0 mt-1.5 w-40 rounded-xl border border-[#EDE8E1] bg-white p-1.5 shadow-lg z-50"
+              className="absolute right-0 mt-1.5 w-40 rounded-xl border border-cream-border bg-white p-1.5 shadow-lg z-50"
               onMouseDown={(e) => e.stopPropagation()}
               onClick={(e) => e.stopPropagation()}
             >
@@ -150,11 +150,11 @@ export function CustomerProfileHeader({
     : "₹0.00";
 
   return (
-    <div className="rounded-2xl border border-[#EDE8E1] bg-white p-6 sm:p-7 shadow-[0_1px_3px_rgba(0,0,0,0.02)] h-full flex flex-col justify-center">
+    <div className="rounded-2xl border border-cream-border bg-white p-6 sm:p-7 shadow-xs h-full flex flex-col justify-center">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 w-full my-auto">
         {/* Left Subsection: Avatar & Personal Details */}
         <div className="flex items-center gap-4 sm:gap-5 min-w-0 flex-1">
-          <div className="relative h-20 w-20 sm:h-22 sm:w-22 rounded-full overflow-hidden border border-[#EDE8E1] bg-[#F5F2EC] flex items-center justify-center shrink-0 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          <div className="relative h-20 w-20 sm:h-22 sm:w-22 rounded-full overflow-hidden border border-cream-border bg-cream-100 flex items-center justify-center shrink-0 shadow-2xs">
             {customer.profileImage ? (
               <Image
                 src={customer.profileImage}
@@ -163,7 +163,7 @@ export function CustomerProfileHeader({
                 className="object-cover"
               />
             ) : (
-              <span className="text-2xl sm:text-3xl font-bold text-[#801B2B]">
+              <span className="text-2xl sm:text-3xl font-bold text-secondary-600">
                 {initial}
               </span>
             )}
@@ -188,15 +188,15 @@ export function CustomerProfileHeader({
         </div>
 
         {/* Subtle Vertical Divider */}
-        <div className="hidden sm:block w-px self-stretch bg-[#EDE8E1] mx-4 sm:mx-6 my-1" />
+        <div className="hidden sm:block w-px self-stretch bg-cream-border mx-4 sm:mx-6 my-1" />
 
         {/* Right Subsection: Spent & Orders Stats */}
-        <div className="flex sm:flex-col justify-between sm:justify-center gap-4 sm:gap-4 w-full sm:w-auto pt-4 sm:pt-0 border-t sm:border-t-0 border-[#EDE8E1] shrink-0 sm:min-w-[130px]">
+        <div className="flex sm:flex-col justify-between sm:justify-center gap-4 sm:gap-4 w-full sm:w-auto pt-4 sm:pt-0 border-t sm:border-t-0 border-cream-border shrink-0 sm:min-w-[130px]">
           <div>
             <p className="text-xs font-medium uppercase tracking-wider text-neutral-500 font-mono">
               Total Spent
             </p>
-            <p className="text-xl sm:text-2xl font-bold text-[#801B2B] font-mono leading-tight mt-0.5">
+            <p className="text-xl sm:text-2xl font-bold text-secondary-600 font-mono leading-tight mt-0.5">
               {formattedSpent}
             </p>
           </div>

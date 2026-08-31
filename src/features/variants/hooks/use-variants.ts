@@ -11,6 +11,8 @@ import {
 import type {
   GetAdminVariantsParams,
   CustomerGlobalVariantListParams,
+  AdminVariantListParams,
+  GetVariantPriceHistoryParams,
 } from "../types";
 
 export function useCustomerVariants(params?: CustomerGlobalVariantListParams) {
@@ -23,6 +25,7 @@ export function useCustomerVariants(params?: CustomerGlobalVariantListParams) {
     productIds: params?.productIds?.length ? params.productIds.join(",") : undefined,
     sortBy: params?.sortBy ?? "createdAt",
     sortOrder: params?.sortOrder ?? "desc",
+    isActive:false
   };
 
   return useQuery({
@@ -33,11 +36,15 @@ export function useCustomerVariants(params?: CustomerGlobalVariantListParams) {
   });
 }
 
-export function useVariants(params?: GetAdminVariantsParams) {
+export function useVariants(
+  params?: AdminVariantListParams,
+  options?: { enabled?: boolean }
+) {
   return useQuery({
     queryKey: variantKeys.list((params ?? {}) as Record<string, unknown>),
     queryFn: () => getAdminVariants(params),
     placeholderData: keepPreviousData,
+    ...options,
   });
 }
 
@@ -86,6 +93,43 @@ export function useVariantImages(
       return getAdminVariantImages(productUuid, variantUuid);
     },
     enabled: !!productUuid && !!variantUuid,
+  });
+}
+
+export function useVariantPriceHistory(
+  variantUuid: string | null,
+  params?: GetVariantPriceHistoryParams,
+  options?: { enabled?: boolean }
+) {
+  return useQuery({
+    queryKey: variantUuid
+      ? ([...variantKeys.all, "price-history", variantUuid, params ?? {}] as const)
+      : (["variants", "price-history"] as const),
+    queryFn: async () => {
+      if (!variantUuid) return { data: [], meta: undefined };
+      const { getVariantPriceHistory } = await import("../api/get-variants");
+      return getVariantPriceHistory(variantUuid, params);
+    },
+    enabled: !!variantUuid && (options?.enabled ?? true),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useVariantPriceHistoryChart(
+  variantUuid: string | null,
+  period: string = "1y",
+  options?: { enabled?: boolean }
+) {
+  return useQuery({
+    queryKey: variantUuid
+      ? ([...variantKeys.all, "price-history-chart", variantUuid, period] as const)
+      : (["variants", "price-history-chart"] as const),
+    queryFn: async () => {
+      if (!variantUuid) return [];
+      const { getVariantPriceHistoryChart } = await import("../api/get-variants");
+      return getVariantPriceHistoryChart(variantUuid, period);
+    },
+    enabled: !!variantUuid && (options?.enabled ?? true),
   });
 }
 

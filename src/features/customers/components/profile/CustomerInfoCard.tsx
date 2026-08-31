@@ -16,10 +16,10 @@ interface CustomerInfoCardProps {
 
 export function CustomerInfoCard({ customer }: CustomerInfoCardProps) {
   return (
-    <div className="rounded-2xl border border-[#EDE8E1] bg-white p-6 sm:p-7 shadow-[0_1px_3px_rgba(0,0,0,0.02)] h-full flex flex-col justify-center">
+    <div className="rounded-2xl border border-cream-border bg-white p-6 sm:p-7 shadow-xs h-full flex flex-col justify-center">
       <div className="space-y-4 my-auto w-full">
         {/* Header matching screenshot monospace tracked style */}
-        <div className="border-b border-[#EDE8E1] pb-3">
+        <div className="border-b border-cream-border pb-3">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-500 font-mono">
             Contact Information
           </h3>

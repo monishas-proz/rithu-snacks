@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -27,10 +27,11 @@ import {
   type LucideIcon,
   Ruler,
   Layers,
+  UserCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { logoutApi } from "@/features/auth/api/auth.api";
 import { Drawer } from "@/components/common/drawer";
 
@@ -52,6 +53,7 @@ const sidebarItems: SidebarItem[] = [
       { label: "Variants", href: "/admin/dashboard/variants", icon: Layers },
       { label: "Categories", href: "/admin/dashboard/categories", icon: FolderTree },
       { label: "Brands", href: "/admin/dashboard/brands", icon: Crown },
+      { label: "Reviews", href: "/admin/dashboard/reviews", icon: Star },
       { label: "GST Rates", href: "/admin/dashboard/gst-rates", icon: Receipt },
       { label: "HSN Codes", href: "/admin/dashboard/hsn-codes", icon: Hash },
       { label: "Units", href: "/admin/dashboard/units", icon: Ruler },
@@ -64,6 +66,7 @@ const sidebarItems: SidebarItem[] = [
     icon: ShoppingCart,
     children: [
       { label: "Orders", href: "/admin/dashboard/orders", icon: ShoppingCart },
+      { label: "Deliveries", href: "/admin/dashboard/delivery", icon: Truck },
       { label: "Customers", href: "/admin/dashboard/customers", icon: Users },
     ],
   },
@@ -98,6 +101,7 @@ const sidebarItems: SidebarItem[] = [
     icon: Shield,
     children: [
       { label: "Users", href: "/admin/dashboard/users", icon: Users },
+      { label: "Staff", href: "/admin/dashboard/users/staff", icon: UserCheck },
       { label: "Roles", href: "/admin/dashboard/roles", icon: Shield },
       { label: "Permissions", href: "/admin/dashboard/permissions", icon: Shield },
       // { label: "Customers", href: "/admin/dashboard/customers", icon: Users },
@@ -216,9 +220,31 @@ function SidebarNavigation({
   pathname: string;
   onNavigate?: () => void;
 }) {
+  const { data: session } = useSession();
+  const userRole = (session?.user as { role?: string })?.role;
+  const isStaff = userRole === "STAFF";
+
+  const navigationItems = useMemo(() => {
+    return sidebarItems
+      .map((item) => {
+        if (!item.children) return item;
+        const filteredChildren = item.children.filter((child) => {
+          if (child.href === "/admin/dashboard/delivery") {
+            return isStaff;
+          }
+          if (child.href === "/admin/dashboard/orders") {
+            return !isStaff;
+          }
+          return true;
+        });
+        return { ...item, children: filteredChildren };
+      })
+      .filter((item) => !item.children || item.children.length > 0);
+  }, [isStaff]);
+
   return (
     <nav className="flex-1 space-y-1.5 overflow-y-auto scrollbar-hide px-3 pb-4">
-      {sidebarItems.map((item) => (
+      {navigationItems.map((item) => (
         <SidebarItemComponent
           key={item.href}
           item={item}

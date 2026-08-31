@@ -16,6 +16,8 @@ import {
   useAdminCustomerDetail,
   useAdminCustomerAddresses,
   useAdminCustomerOrders,
+  useAdminCustomerWishlist,
+  useAdminCustomerCart,
 } from "@/features/customers/hooks";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
@@ -35,30 +37,46 @@ export default function AdminCustomerProfilePage() {
     refetch: refetchProfile,
   } = useAdminCustomerDetail(customerId);
 
-  // Use the canonical customer UUID for related entities
-  const targetUuid = customer?.id || customerId;
+  // Extract canonical customer identifier strictly from Profile API response
+  const profileId = customer?.id;
 
-  // 2. Customer Addresses Query
+  // 2. Customer Addresses Query (strictly depends on profileId)
   const {
     data: addresses,
     isLoading: isLoadingAddresses,
     error: addressesError,
     refetch: refetchAddresses,
-  } = useAdminCustomerAddresses(targetUuid);
+  } = useAdminCustomerAddresses(profileId);
 
-  // 3. Customer Orders Query (with pagination)
+  // 3. Customer Orders Query (strictly depends on profileId)
   const [orderPage, setOrderPage] = React.useState(1);
   const {
     data: ordersResponse,
     isLoading: isLoadingOrders,
     error: ordersError,
     refetch: refetchOrders,
-  } = useAdminCustomerOrders(targetUuid, {
+  } = useAdminCustomerOrders(profileId, {
     page: orderPage,
     pageSize: 10,
     sortBy: "createdAt",
     sortOrder: "desc",
   });
+
+  // 4. Customer Wishlist Query (strictly depends on profileId)
+  const {
+    data: wishlistResponse,
+    isLoading: isLoadingWishlist,
+    error: wishlistError,
+    refetch: refetchWishlist,
+  } = useAdminCustomerWishlist(profileId);
+
+  // 5. Customer Cart Query (strictly depends on profileId)
+  const {
+    data: cartResponse,
+    isLoading: isLoadingCart,
+    error: cartError,
+    refetch: refetchCart,
+  } = useAdminCustomerCart(profileId);
 
   // Default active tab to "orders" matching screenshot
   const [activeTab, setActiveTab] = React.useState<ProfileTab>("orders");
@@ -109,7 +127,7 @@ export default function AdminCustomerProfilePage() {
   }
 
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-6 pb-12">
+    <div className="w-full space-y-5">
       {/* Top Header & Breadcrumb Actions */}
       <CustomerTopBar customer={customer} />
 
@@ -132,9 +150,9 @@ export default function AdminCustomerProfilePage() {
       </div>
 
       {/* Middle Section: Tabbed Container matching screenshot */}
-      <div className="rounded-2xl border border-[#EDE8E1] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.02)] overflow-hidden">
+      <div className="rounded-2xl border border-cream-border bg-white shadow-xs overflow-hidden">
         {/* Tab Navigation Header Bar */}
-        <div className="bg-[#F8F6F2] border-b border-[#EDE8E1] px-4 sm:px-6">
+        <div className="bg-cream-100 border-b border-cream-border px-4 sm:px-6">
           <div className="flex items-center gap-6 sm:gap-8 overflow-x-auto scrollbar-hide">
             {tabs.map((tab) => {
               const isActive = activeTab === tab.id;
@@ -146,7 +164,7 @@ export default function AdminCustomerProfilePage() {
                   onClick={() => setActiveTab(tab.id)}
                   className={`py-3.5 px-1 font-mono text-xs sm:text-sm font-semibold tracking-wide transition-all border-b-2 whitespace-nowrap cursor-pointer ${
                     isActive
-                      ? "border-[#801B2B] text-[#801B2B]"
+                      ? "border-secondary-600 text-secondary-600"
                       : "border-transparent text-neutral-500 hover:text-neutral-800"
                   }`}
                 >
@@ -180,11 +198,21 @@ export default function AdminCustomerProfilePage() {
           )}
 
           {activeTab === "wishlist" && (
-            <CustomerWishlistSection />
+            <CustomerWishlistSection
+              wishlist={wishlistResponse?.items}
+              isLoading={isLoadingWishlist}
+              error={wishlistError as Error | null}
+              onRetry={refetchWishlist}
+            />
           )}
 
           {activeTab === "cart" && (
-            <CustomerCartSection />
+            <CustomerCartSection
+              cart={cartResponse}
+              isLoading={isLoadingCart}
+              error={cartError as Error | null}
+              onRetry={refetchCart}
+            />
           )}
         </div>
       </div>

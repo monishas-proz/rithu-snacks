@@ -79,7 +79,7 @@ export default function InventoryHistoryPage() {
   const transactionData = data?.data?.data ?? [];
 
   return (
-    <div>
+    <div className="flex flex-1 min-h-0 flex-col">
       <AdminBreadcrumb
         items={[
           { label: "Dashboard", href: "/admin/dashboard" },
@@ -91,42 +91,47 @@ export default function InventoryHistoryPage() {
         title="Inventory History"
         description="View all inventory transactions"
       />
-      <AdminContent>
-        <div className="mb-4 space-y-2">
-          <label className="text-sm font-medium">Inventory ID</label>
-          <input
-            type="text"
-            className="w-full max-w-md border rounded-md p-2"
-            placeholder="Enter inventory ID"
-            value={inventoryId}
-            onChange={(e) => setInventoryId(e.target.value)}
+      <AdminContent className="flex-1 min-h-0 overflow-hidden">
+        <div className="flex-shrink-0 mb-4 flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="flex-1 max-w-md">
+            <input
+              type="text"
+              className="w-full border border-neutral-300 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:border-secondary-600"
+              placeholder="Enter inventory ID..."
+              value={inventoryId}
+              onChange={(e) => setInventoryId(e.target.value)}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-semibold text-neutral-600 whitespace-nowrap">Filter by type:</label>
+            <select
+              className="h-10 rounded-xl border border-neutral-300 bg-white px-3 text-xs text-neutral-700 focus:border-secondary-600 focus:outline-none cursor-pointer"
+              value={params.type ?? ""}
+              onChange={(e) =>
+                setParams((prev) => ({
+                  ...prev,
+                  type: e.target.value || undefined,
+                }))
+              }
+            >
+              <option value="">All Types</option>
+              <option value="PURCHASE">Purchase</option>
+              <option value="SALE">Sale</option>
+              <option value="RETURN">Return</option>
+              <option value="ADJUSTMENT">Adjustment</option>
+              <option value="DAMAGE">Damage</option>
+              <option value="TRANSFER">Transfer</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+          <DataTable
+            columns={columns}
+            data={transactionData}
+            className="bg-white border border-neutral-200"
           />
         </div>
-        <div className="mb-4">
-          <label className="text-sm font-medium mr-2">Filter by type:</label>
-          <select
-            className="border rounded-md p-2"
-            value={params.type ?? ""}
-            onChange={(e) =>
-              setParams((prev) => ({
-                ...prev,
-                type: e.target.value || undefined,
-              }))
-            }
-          >
-            <option value="">All</option>
-            <option value="PURCHASE">Purchase</option>
-            <option value="SALE">Sale</option>
-            <option value="RETURN">Return</option>
-            <option value="ADJUSTMENT">Adjustment</option>
-            <option value="DAMAGE">Damage</option>
-            <option value="TRANSFER">Transfer</option>
-          </select>
-        </div>
-        <DataTable
-          columns={columns}
-          data={transactionData}
-        />
       </AdminContent>
     </div>
   );

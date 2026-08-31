@@ -18,19 +18,22 @@ import {
 import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FormModal } from "@/components/common/FormModal";
 import { SearchInput } from "@/components/ui/search-input";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { Plus, Pencil, Trash2, Eye } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { AdminProductResponse } from "@/features/products/types";
 import { ProductForm } from "@/features/products/components/ProductForm";
 
 export default function AdminProductsPage() {
   const [search, setSearch] = useState("");
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>("");
 
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const [pageSize, setPageSize] = useState(10);
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -38,17 +41,25 @@ export default function AdminProductsPage() {
   const [selectedProduct, setSelectedProduct] =
     useState<AdminProductResponse | null>(null);
 
-  // Main Products Query
+  // Main Products Query (filtered by search and selected category)
   const { data, isLoading, error, refetch } = useProducts({
     page,
     pageSize,
     search: search || undefined,
+    categoryId: selectedCategoryFilter || undefined,
   });
 
-  // Reference queries for relations
+  // Reference queries for categories filter & modal form dropdowns
+  const isModalOpen = isCreateOpen || isEditOpen;
   const { data: categoriesData } = useCategories({ pageSize: 100 });
-  const { data: brandsData } = useBrands({ limit: 100 });
-  const { data: hsnData } = useHsnCodes({ pageSize: 100 });
+  const { data: brandsData } = useBrands(
+    { limit: 100 },
+    { enabled: isModalOpen }
+  );
+  const { data: hsnData } = useHsnCodes(
+    { pageSize: 100 },
+    { enabled: isModalOpen }
+  );
 
   const createMutation = useCreateProduct();
   const updateMutation = useUpdateProduct();
@@ -59,37 +70,31 @@ export default function AdminProductsPage() {
   const brands = brandsData?.data ?? [];
   const hsnCodes = hsnData?.data ?? [];
 
-  // Mappings for table lookup
-  const categoryMap = useMemo(() => {
-    return new Map(
-      categories.map((c) => [String(c.id), c.name])
-    );
+  // Filter Options for category dropdown in toolbar
+  const categoryFilterOptions = useMemo(() => {
+    return [
+      { value: "", label: "All Categories" },
+      ...categories.map((c: any) => ({
+        value: String(c.uuid || c.id),
+        label: c.name,
+      })),
+    ];
   }, [categories]);
 
-  const brandMap = useMemo(() => {
-    return new Map(
-      brands.map((b) => [b.uuid || String(b.id), b.name])
-    );
-  }, [brands]);
-
-  const hsnMap = useMemo(() => {
-    return new Map(
-      hsnCodes.map((h) => [h.id, h.code])
-    );
-  }, [hsnCodes]);
-
-  // Options for form dropdowns
+  // Options for form dropdowns (used only when modal is open)
   const categoryOptions = useMemo(() => {
-    return categories.map((c) => ({
-      value: String(c.id),
+    return categories.map((c: any) => ({
+      value: String(c.id || c.uuid),
       label: c.name,
+      slug: c.slug,
     }));
   }, [categories]);
 
   const brandOptions = useMemo(() => {
-    return brands.map((b) => ({
+    return brands.map((b: any) => ({
       value: b.uuid || String(b.id),
       label: b.name,
+      slug: b.slug,
     }));
   }, [brands]);
 
@@ -116,46 +121,31 @@ export default function AdminProductsPage() {
       ),
     },
     {
-      accessorKey: "categoryId",
+      accessorKey: "categoryName",
       header: "Category",
-      cell: ({ row }) => {
-        const catName = row.original.categoryId
-          ? categoryMap.get(row.original.categoryId)
-          : null;
-        return (
-          <span className="text-[var(--color-neutral-700)]">
-            {catName || "—"}
-          </span>
-        );
-      },
+      cell: ({ row }) => (
+        <span className="text-[var(--color-neutral-700)]">
+          {row.original.categoryName || "—"}
+        </span>
+      ),
     },
     {
-      accessorKey: "brandId",
+      accessorKey: "brandName",
       header: "Brand",
-      cell: ({ row }) => {
-        const brandName = row.original.brandId
-          ? brandMap.get(row.original.brandId)
-          : null;
-        return (
-          <span className="text-[var(--color-neutral-700)]">
-            {brandName || "—"}
-          </span>
-        );
-      },
+      cell: ({ row }) => (
+        <span className="text-[var(--color-neutral-700)]">
+          {row.original.brandName || "—"}
+        </span>
+      ),
     },
     {
-      accessorKey: "hsnCodeId",
+      accessorKey: "hsnCodeName",
       header: "HSN Code",
-      cell: ({ row }) => {
-        const hsnCode = row.original.hsnCodeId
-          ? hsnMap.get(row.original.hsnCodeId)
-          : null;
-        return (
-          <span className="font-medium text-[var(--color-neutral-700)]">
-            {hsnCode || "—"}
-          </span>
-        );
-      },
+      cell: ({ row }) => (
+        <span className="font-medium text-[var(--color-neutral-700)]">
+          {row.original.hsnCodeName || "—"}
+        </span>
+      ),
     },
     {
       accessorKey: "vegType",
@@ -215,7 +205,15 @@ export default function AdminProductsPage() {
       id: "actions",
       header: "Actions",
       cell: ({ row }) => (
-        <div className="flex gap-2">
+        <div className="flex items-center gap-1">
+          <Link
+            href={`/admin/dashboard/products/${row.original.id}`}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md text-[var(--color-neutral-500)] hover:text-secondary-600 hover:bg-neutral-100 transition-colors"
+            title="View Product Details"
+          >
+            <Eye className="h-4 w-4" />
+          </Link>
+
           <Button
             variant="ghost"
             size="icon"
@@ -223,6 +221,7 @@ export default function AdminProductsPage() {
               setSelectedProduct(row.original);
               setIsEditOpen(true);
             }}
+            title="Edit Product"
           >
             <Pencil className="h-4 w-4 text-[var(--color-neutral-500)]" />
           </Button>
@@ -231,6 +230,7 @@ export default function AdminProductsPage() {
             variant="ghost"
             size="icon"
             onClick={() => setDeleteId(row.original.id)}
+            title="Delete Product"
           >
             <Trash2 className="h-4 w-4 text-[var(--color-error-600)]" />
           </Button>
@@ -262,15 +262,30 @@ export default function AdminProductsPage() {
       <AdminContent className="flex-1 min-h-0 overflow-hidden">
         <div className="flex h-full flex-col overflow-hidden bg-[var(--color-background)] py-1 rounded-2xl">
           <div className="flex-shrink-0 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <SearchInput
-              placeholder="Search products..."
-              defaultValue={search}
-              onSearch={(val) => {
-                setSearch(val);
-                setPage(1);
-              }}
-              className="w-full max-w-md"
-            />
+            <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
+              <SearchInput
+                placeholder="Search products..."
+                defaultValue={search}
+                onSearch={(val) => {
+                  setSearch(val);
+                  setPage(1);
+                }}
+                className="w-full max-w-md"
+              />
+
+              <div className="w-full sm:w-64">
+                <Select
+                  value={selectedCategoryFilter}
+                  onChange={(e) => {
+                    setSelectedCategoryFilter(e.target.value);
+                    setPage(1);
+                  }}
+                  options={categoryFilterOptions}
+                  placeholder="All Categories"
+                  className="h-11 rounded-xl"
+                />
+              </div>
+            </div>
 
             <Button
               onClick={() => setIsCreateOpen(true)}
@@ -286,10 +301,15 @@ export default function AdminProductsPage() {
               columns={columns}
               data={products}
               pageSize={pageSize}
+              pageSizeOptions={[10, 20, 30, 50]}
               page={data?.meta?.page ?? page}
-              totalPages={data?.meta?.totalPages ?? 1}
-              totalItems={data?.meta?.total ?? 0}
+              totalPages={data?.meta?.totalPages ?? Math.max(1, Math.ceil((data?.meta?.total ?? products.length) / pageSize))}
+              totalItems={data?.meta?.total ?? products.length}
               onPageChange={setPage}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                setPage(1);
+              }}
               className="bg-white"
             />
           </div>

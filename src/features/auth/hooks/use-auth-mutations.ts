@@ -7,6 +7,8 @@ import {
   forgotPasswordApi,
   verifyOtpApi,
   resendOtpApi,
+  resendRegisterOtpApi,
+  resendForgotPasswordOtpApi,
   resetPasswordApi,
   refreshTokenApi,
   logoutApi,
@@ -18,6 +20,8 @@ import type {
   ForgotPasswordInput,
   VerifyOtpInput,
   ResendOtpInput,
+  ResendRegisterOtpInput,
+  ResendForgotPasswordOtpInput,
   ResetPasswordInput,
   SendEmailOtpInput,
   VerifyEmailOtpInput,
@@ -53,6 +57,12 @@ export function useVerifyEmailOtp() {
   });
 }
 
+export function useResendRegisterOtp() {
+  return useMutation({
+    mutationFn: (data: ResendRegisterOtpInput) => resendRegisterOtpApi(data),
+  });
+}
+
 export function useForgotPassword() {
   return useMutation({
     mutationFn: (data: ForgotPasswordInput) => forgotPasswordApi(data),
@@ -62,6 +72,13 @@ export function useForgotPassword() {
 export function useVerifyOtp() {
   return useMutation({
     mutationFn: (data: VerifyOtpInput) => verifyOtpApi(data),
+  });
+}
+
+export function useResendForgotPasswordOtp() {
+  return useMutation({
+    mutationFn: (data: ResendForgotPasswordOtpInput) =>
+      resendForgotPasswordOtpApi(data),
   });
 }
 
