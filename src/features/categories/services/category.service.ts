@@ -9,6 +9,7 @@ import type {
   UpdateCategoryInput,
   GetAdminCategoriesParams,
   AdminCategoryResponse,
+  AdminCategoriesCountResponse,
 } from "../types";
 import type {
   CreateAdminCategoryInput,
@@ -171,9 +172,10 @@ export const categoryService = {
     };
   },
 
-  async countAdminCategories(params: GetAdminCategoriesParams = {}): Promise<{ count: number }> {
-    const count = await categoryRepository.countAdminCategories(params);
-    return { count };
+  async countAdminCategories(
+    params: GetAdminCategoriesParams = {}
+  ): Promise<AdminCategoriesCountResponse> {
+    return categoryRepository.countAdminCategories(params);
   },
 
   async getAdminCategoryByUuid(uuid: string): Promise<AdminCategoryResponse> {

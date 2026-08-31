@@ -5,6 +5,7 @@ import type {
   GetAdminVariantsParams,
   AdminVariantListParams,
   GetVariantPriceHistoryParams,
+  AdminVariantsCountResponse,
 } from "../types";
 
 export const variantInclude = Prisma.validator<Prisma.ProductVariantInclude>()({
@@ -132,7 +133,7 @@ export const variantRepository = {
     };
   },
 
-  async buildAdminVariantsWhere(
+  async buildAdminVariantsBaseWhere(
     params: AdminVariantListParams
   ): Promise<Prisma.ProductVariantWhereInput> {
     const where: Prisma.ProductVariantWhereInput = {
@@ -141,14 +142,6 @@ export const variantRepository = {
         deleted_at: null,
       },
     };
-
-    if (typeof params.isActive === "boolean") {
-      where.isActive = params.isActive;
-    }
-
-    if (typeof params.outOfStock === "boolean") {
-      where.out_of_stock = params.outOfStock;
-    }
 
     // Filter by Product UUIDs
     const allProductIds = [...(params.productIds || [])];
@@ -234,9 +227,99 @@ export const variantRepository = {
     return where;
   },
 
-  async countAdminVariants(params: AdminVariantListParams): Promise<number> {
-    const where = await this.buildAdminVariantsWhere(params);
-    return db.productVariant.count({ where });
+  async buildAdminVariantsWhere(
+    params: AdminVariantListParams
+  ): Promise<Prisma.ProductVariantWhereInput> {
+    const where = await this.buildAdminVariantsBaseWhere(params);
+
+    if (typeof params.isActive === "boolean") {
+      where.isActive = params.isActive;
+    }
+
+    if (typeof params.outOfStock === "boolean") {
+      where.out_of_stock = params.outOfStock;
+    }
+
+    if (params.vegType) {
+      where.product = {
+        ...(where.product as Prisma.ProductWhereInput),
+        veg_type: params.vegType,
+      };
+    }
+
+    return where;
+  },
+
+  async countAdminVariants(
+    params: AdminVariantListParams
+  ): Promise<AdminVariantsCountResponse> {
+    const baseWhere = await this.buildAdminVariantsBaseWhere(params);
+
+    const [
+      active,
+      inactive,
+      inStock,
+      outOfStock,
+      veg,
+      nonveg,
+      vegan,
+      na,
+      all,
+    ] = await Promise.all([
+      db.productVariant.count({ where: { ...baseWhere, isActive: true } }),
+      db.productVariant.count({ where: { ...baseWhere, isActive: false } }),
+      db.productVariant.count({ where: { ...baseWhere, out_of_stock: false } }),
+      db.productVariant.count({ where: { ...baseWhere, out_of_stock: true } }),
+      db.productVariant.count({
+        where: {
+          ...baseWhere,
+          product: {
+            ...(baseWhere.product as Prisma.ProductWhereInput),
+            veg_type: "veg",
+          },
+        },
+      }),
+      db.productVariant.count({
+        where: {
+          ...baseWhere,
+          product: {
+            ...(baseWhere.product as Prisma.ProductWhereInput),
+            veg_type: "nonveg",
+          },
+        },
+      }),
+      db.productVariant.count({
+        where: {
+          ...baseWhere,
+          product: {
+            ...(baseWhere.product as Prisma.ProductWhereInput),
+            veg_type: "vegan",
+          },
+        },
+      }),
+      db.productVariant.count({
+        where: {
+          ...baseWhere,
+          product: {
+            ...(baseWhere.product as Prisma.ProductWhereInput),
+            veg_type: "na",
+          },
+        },
+      }),
+      db.productVariant.count({ where: baseWhere }),
+    ]);
+
+    return {
+      active,
+      inactive,
+      inStock,
+      outOfStock,
+      veg,
+      nonveg,
+      vegan,
+      na,
+      all,
+    };
   },
 
   async findAdminVariants(params: AdminVariantListParams) {

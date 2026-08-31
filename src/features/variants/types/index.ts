@@ -95,6 +95,7 @@ export interface AdminVariantListParams {
   unitIds?: string[];
   isActive?: boolean;
   outOfStock?: boolean;
+  vegType?: "veg" | "nonveg" | "vegan" | "na";
   minPrice?: number;
   maxPrice?: number;
   sortBy?:
@@ -149,5 +150,18 @@ export interface BulkEditVariantItem {
   outOfStock?: boolean;
 }
 
+export interface AdminVariantsCountResponse {
+  active: number;
+  inactive: number;
+  inStock: number;
+  outOfStock: number;
+  veg: number;
+  nonveg: number;
+  vegan: number;
+  na: number;
+  all: number;
+}
+
 export type { BulkEditVariantsInput, BulkEditVariantItemInput } from "../validations/admin-variant.schema";
+
 

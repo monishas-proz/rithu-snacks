@@ -112,3 +112,19 @@ export interface DeliveryTransitionResult {
   shipmentStatus: string;
   orderStatus: string;
 }
+
+export interface DeliveryStatusCounts {
+  pending: number;
+  picked_up: number;
+  in_transit: number;
+  out_for_delivery: number;
+  delivered: number;
+  failed: number;
+  total: number;
+}
+
+export interface StaffDeliveriesCountResponse {
+  today: DeliveryStatusCounts;
+  allTime: DeliveryStatusCounts;
+}
+

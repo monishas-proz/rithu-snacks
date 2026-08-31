@@ -143,3 +143,14 @@ export interface GetAdminProductsResult {
   };
 }
 
+export interface AdminProductsCountResponse {
+  active: number;
+  inactive: number;
+  veg: number;
+  nonveg: number;
+  vegan: number;
+  na: number;
+  all: number;
+}
+
+

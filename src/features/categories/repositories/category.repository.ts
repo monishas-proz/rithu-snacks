@@ -1,6 +1,10 @@
 import { db } from "@/lib/db/prisma";
 import { Prisma } from "@/generated/prisma";
-import type { GetCategoriesParams, GetAdminCategoriesParams } from "../types";
+import type {
+  GetCategoriesParams,
+  GetAdminCategoriesParams,
+  AdminCategoriesCountResponse,
+} from "../types";
 
 const categoryListInclude = Prisma.validator<Prisma.ProductCategoryInclude>()({
   _count: { select: { children: true } },
@@ -121,9 +125,32 @@ export const categoryRepository = {
     });
   },
 
-  async countAdminCategories(params: GetAdminCategoriesParams = {}): Promise<number> {
-    const where = buildAdminCategoryWhere(params);
-    return db.productCategory.count({ where });
+  async countAdminCategories(
+    params: GetAdminCategoriesParams = {}
+  ): Promise<AdminCategoriesCountResponse> {
+    const baseWhere: Prisma.ProductCategoryWhereInput = {
+      deleted_at: null,
+    };
+
+    if (params.search) {
+      baseWhere.OR = [
+        { name: { contains: params.search } },
+        { description: { contains: params.search } },
+        { slug: { contains: params.search } },
+      ];
+    }
+
+    const [active, inactive, all] = await Promise.all([
+      db.productCategory.count({ where: { ...baseWhere, isActive: true } }),
+      db.productCategory.count({ where: { ...baseWhere, isActive: false } }),
+      db.productCategory.count({ where: baseWhere }),
+    ]);
+
+    return {
+      active,
+      inactive,
+      all,
+    };
   },
 
   async findAdminAll(params: GetAdminCategoriesParams = {}) {

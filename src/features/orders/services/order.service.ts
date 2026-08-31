@@ -7,6 +7,7 @@ import type {
   OrderListItemResponse,
   OrderListResponse,
   OrderStatusTransitionResponse,
+  AdminOrdersCountResponse,
 } from "../types";
 import type {
   CustomerCreateOrderInput,
@@ -247,9 +248,8 @@ export const orderService = {
 
   async countAdminOrders(
     query: AdminOrdersListInput
-  ): Promise<{ count: number }> {
-    const count = await orderRepository.countAdminOrders(query);
-    return { count };
+  ): Promise<AdminOrdersCountResponse> {
+    return orderRepository.countAdminOrders(query);
   },
 
   async getAdminOrderByUuid(uuid: string): Promise<OrderDetailResponse> {

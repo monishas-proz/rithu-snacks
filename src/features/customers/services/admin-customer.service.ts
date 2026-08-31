@@ -10,6 +10,7 @@ import type {
   AdminCustomerAddressDto,
   AdminCustomerOrdersResponse,
   AdminCustomerCartDto,
+  AdminCustomersCountResponse,
 } from "../types/admin-customer.types";
 
 export const adminCustomerService = {
@@ -21,9 +22,8 @@ export const adminCustomerService = {
 
   async countAdminCustomers(
     params: AdminCustomerListInput
-  ): Promise<{ count: number }> {
-    const count = await adminCustomerRepository.countAdminCustomers(params);
-    return { count };
+  ): Promise<AdminCustomersCountResponse> {
+    return adminCustomerRepository.countAdminCustomers(params);
   },
 
   async getCustomerDetail(uuid: string): Promise<AdminCustomerDetailDto> {
