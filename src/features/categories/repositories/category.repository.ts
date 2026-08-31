@@ -38,7 +38,29 @@ function buildCategoryWhere(params: GetCategoriesParams): Prisma.ProductCategory
   return where;
 }
 
+function buildAdminCategoryWhere(params: GetAdminCategoriesParams = {}): Prisma.ProductCategoryWhereInput {
+  const where: Prisma.ProductCategoryWhereInput = {
+    deleted_at: null,
+  };
+
+  if (typeof params.isActive === "boolean") {
+    where.isActive = params.isActive;
+  }
+
+  if (params.search) {
+    where.OR = [
+      { name: { contains: params.search } },
+      { description: { contains: params.search } },
+      { slug: { contains: params.search } },
+    ];
+  }
+
+  return where;
+}
+
 export const categoryRepository = {
+  buildAdminCategoryWhere,
+
   async findAll(params: GetCategoriesParams = {}) {
     const where = buildCategoryWhere(params);
     return db.productCategory.findMany({
@@ -99,22 +121,16 @@ export const categoryRepository = {
     });
   },
 
+  async countAdminCategories(params: GetAdminCategoriesParams = {}): Promise<number> {
+    const where = buildAdminCategoryWhere(params);
+    return db.productCategory.count({ where });
+  },
+
   async findAdminAll(params: GetAdminCategoriesParams = {}) {
     const page = params.page ?? 1;
-    const pageSize = params.pageSize ?? 10;
+    const pageSize = params.pageSize ?? params.limit ?? 10;
 
-    const where: Prisma.ProductCategoryWhereInput = {
-      isActive: true,
-      deleted_at: null,
-    };
-
-    if (params.search) {
-      where.OR = [
-        { name: { contains: params.search } },
-        { description: { contains: params.search } },
-        { slug: { contains: params.search } },
-      ];
-    }
+    const where = buildAdminCategoryWhere(params);
 
     const [data, total] = await Promise.all([
       db.productCategory.findMany({
@@ -133,7 +149,7 @@ export const categoryRepository = {
         limit: pageSize,
         pageSize,
         total,
-        totalPages: Math.ceil(total / pageSize),
+        totalPages: Math.ceil(total / pageSize) || 1,
       },
     };
   },

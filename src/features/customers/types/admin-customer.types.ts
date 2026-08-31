@@ -48,6 +48,7 @@ export interface AdminCustomerDetailDto {
 export interface AdminCustomerAddressDto {
   id: string; // customer_addresses.uuid
   type: string; // home / work / other
+  addressType: "shipping" | "billing";
   fullName: string;
   phone: string;
   addressLine1: string;

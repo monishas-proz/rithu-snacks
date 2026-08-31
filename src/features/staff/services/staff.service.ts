@@ -106,6 +106,11 @@ export const staffService = {
     };
   },
 
+  async countStaff(params: GetStaffParams = {}): Promise<{ count: number }> {
+    const count = await staffRepository.countStaff(params);
+    return { count };
+  },
+
   async getStaffByUuid(uuid: string): Promise<StaffResponse> {
     const staff = await staffRepository.findStaffByUuid(uuid);
     if (!staff) {

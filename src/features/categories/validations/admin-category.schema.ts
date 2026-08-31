@@ -54,9 +54,35 @@ export type UpdateAdminCategoryInput = z.infer<
 export const adminCategoriesQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1).optional(),
   pageSize: z.coerce.number().int().min(1).max(100).default(10).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
   search: z.string().trim().optional(),
+  isActive: z.boolean().optional(),
 });
 
 export type AdminCategoriesQueryInput = z.infer<
   typeof adminCategoriesQuerySchema
 >;
+
+export const adminCategoryListSchema = z
+  .object({
+    page: z.number().int().min(1, "page must be at least 1").default(1).optional(),
+    pageSize: z
+      .number()
+      .int()
+      .min(1, "pageSize must be at least 1")
+      .max(100, "pageSize cannot exceed 100")
+      .default(10)
+      .optional(),
+    limit: z
+      .number()
+      .int()
+      .min(1, "limit must be at least 1")
+      .max(100, "limit cannot exceed 100")
+      .optional(),
+    search: z.string().trim().optional(),
+    isActive: z.boolean().optional(),
+  })
+  .strict();
+
+export type AdminCategoryListInput = z.infer<typeof adminCategoryListSchema>;
+

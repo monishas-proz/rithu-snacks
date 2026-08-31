@@ -15,12 +15,20 @@ function generateReferralCode(uuidOrId?: string): string {
   return `REF${prefix}${rand}`.slice(0, 15);
 }
 
+async function resolveActiveUser(sessionUserId: string) {
+  const user = await userRepository.findById(sessionUserId);
+  if (!user || !user.internalId) {
+    throw ApiError.notFound("User account not found");
+  }
+  if (!user.isActive || user.is_active === false) {
+    throw ApiError.forbidden("Your account is inactive or blocked. Please contact support.");
+  }
+  return user;
+}
+
 export const customerProfileService = {
   async getCustomerProfile(sessionUserId: string): Promise<CustomerProfileResponse> {
-    const user = await userRepository.findById(sessionUserId);
-    if (!user) {
-      throw ApiError.notFound("User account not found");
-    }
+    const user = await resolveActiveUser(sessionUserId);
 
     let profile = await customerProfileRepository.findByUserId(user.internalId);
 
@@ -48,10 +56,7 @@ export const customerProfileService = {
     sessionUserId: string,
     data: UpdateCustomerProfileInput
   ): Promise<CustomerProfileResponse> {
-    const user = await userRepository.findById(sessionUserId);
-    if (!user) {
-      throw ApiError.notFound("User account not found");
-    }
+    const user = await resolveActiveUser(sessionUserId);
 
     let existingProfile = await customerProfileRepository.findByUserId(user.internalId);
 
@@ -118,10 +123,7 @@ export const customerProfileService = {
     sessionUserId: string,
     formData: FormData
   ): Promise<{ profileImage: string }> {
-    const user = await userRepository.findById(sessionUserId);
-    if (!user) {
-      throw ApiError.notFound("User account not found");
-    }
+    const user = await resolveActiveUser(sessionUserId);
 
     let profile = await customerProfileRepository.findByUserId(user.internalId);
     if (!profile) {
@@ -174,10 +176,7 @@ export const customerProfileService = {
   async removeCustomerProfileImage(
     sessionUserId: string
   ): Promise<{ profileImage: null }> {
-    const user = await userRepository.findById(sessionUserId);
-    if (!user) {
-      throw ApiError.notFound("User account not found");
-    }
+    const user = await resolveActiveUser(sessionUserId);
 
     const profile = await customerProfileRepository.findByUserId(user.internalId);
     if (!profile || !profile.profile_image) {

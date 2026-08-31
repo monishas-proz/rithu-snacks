@@ -61,17 +61,13 @@ export const staffRepository = {
     });
   },
 
-  async findStaffList(params: GetStaffParams = {}) {
-    const page = params.page ?? 1;
-    const limit = params.limit ?? params.pageSize ?? 10;
-    const skip = (page - 1) * limit;
-
+  buildStaffWhere(params: GetStaffParams = {}): Prisma.UserWhereInput {
     const where: Prisma.UserWhereInput = {
       role: { slug: "staff" },
       deleted_at: null,
     };
 
-    if (params.isActive !== undefined) {
+    if (typeof params.isActive === "boolean") {
       where.is_active = params.isActive;
     }
 
@@ -83,6 +79,21 @@ export const staffRepository = {
         { phone: { contains: search } },
       ];
     }
+
+    return where;
+  },
+
+  async countStaff(params: GetStaffParams = {}): Promise<number> {
+    const where = this.buildStaffWhere(params);
+    return db.user.count({ where });
+  },
+
+  async findStaffList(params: GetStaffParams = {}) {
+    const page = params.page ?? 1;
+    const limit = params.limit ?? params.pageSize ?? 10;
+    const skip = (page - 1) * limit;
+
+    const where = this.buildStaffWhere(params);
 
     const sortField = params.sortBy ?? "createdAt";
     const sortOrder = params.sortOrder ?? "desc";

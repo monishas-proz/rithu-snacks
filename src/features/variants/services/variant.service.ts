@@ -237,6 +237,13 @@ export const variantService = {
     };
   },
 
+  async countAdminVariants(
+    params: AdminVariantListParams = {}
+  ): Promise<{ count: number }> {
+    const count = await variantRepository.countAdminVariants(params);
+    return { count };
+  },
+
   async getAdminVariants(
     productUuid: string,
     params: GetAdminVariantsParams = {}

@@ -80,12 +80,9 @@ export function formatAdminCustomer(
 }
 
 export const adminCustomerRepository = {
-  async findAdminCustomers(
+  buildAdminCustomerWhere(
     params: AdminCustomerListInput
-  ): Promise<AdminCustomerListResponse> {
-    const page = params.page ?? 1;
-    const pageSize = params.pageSize ?? 20;
-
+  ): Prisma.customer_profilesWhereInput {
     const userWhere: Prisma.UserWhereInput = {
       deleted_at: null,
       role: {
@@ -97,7 +94,7 @@ export const adminCustomerRepository = {
       userWhere.status = params.status;
     }
 
-    if (params.isActive !== undefined) {
+    if (typeof params.isActive === "boolean") {
       userWhere.is_active = params.isActive;
     }
 
@@ -118,9 +115,12 @@ export const adminCustomerRepository = {
     }
 
     const where: Prisma.customer_profilesWhereInput = {
-      is_active: true,
       users_customer_profiles_user_idTousers: userWhere,
     };
+
+    if (typeof params.isActive === "boolean") {
+      where.is_active = params.isActive;
+    }
 
     if (params.gender) {
       where.gender = params.gender;
@@ -149,6 +149,22 @@ export const adminCustomerRepository = {
         },
       ];
     }
+
+    return where;
+  },
+
+  async countAdminCustomers(params: AdminCustomerListInput): Promise<number> {
+    const where = this.buildAdminCustomerWhere(params);
+    return db.customer_profiles.count({ where });
+  },
+
+  async findAdminCustomers(
+    params: AdminCustomerListInput
+  ): Promise<AdminCustomerListResponse> {
+    const page = params.page ?? 1;
+    const pageSize = params.pageSize ?? 20;
+
+    const where = this.buildAdminCustomerWhere(params);
 
     const sortOrder = params.sortOrder ?? "desc";
     let orderBy: Prisma.customer_profilesOrderByWithRelationInput = {
@@ -202,7 +218,6 @@ export const adminCustomerRepository = {
           { customer_profiles_customer_profiles_user_idTousers: { uuid } },
         ],
         deleted_at: null,
-        is_active: true,
         role: {
           slug: "customer",
         },
@@ -212,6 +227,47 @@ export const adminCustomerRepository = {
         customer_profiles_customer_profiles_user_idTousers: true,
       },
     });
+  },
+
+  async updateCustomerStatus(
+    uuid: string,
+    isActive: boolean,
+    adminUserId?: bigint | number
+  ): Promise<AdminCustomerDetailDto | null> {
+    const user = await this.findCustomerUserByUuid(uuid);
+    if (!user) return null;
+
+    const newStatus = isActive ? "active" : "inactive";
+    const isBlocked = isActive ? 0 : 1;
+    const blockedAt = isActive ? null : new Date();
+
+    await db.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: user.id },
+        data: {
+          is_active: isActive,
+          status: newStatus,
+          is_blocked: isBlocked,
+          blocked_at: blockedAt,
+          updatedAt: new Date(),
+          ...(adminUserId ? { updated_by: BigInt(adminUserId) } : {}),
+        },
+      });
+
+      if (user.customer_profiles_customer_profiles_user_idTousers) {
+        await tx.customer_profiles.update({
+          where: { id: user.customer_profiles_customer_profiles_user_idTousers.id },
+          data: {
+            is_active: isActive,
+            status: isActive,
+            updated_at: new Date(),
+            ...(adminUserId ? { updated_by: BigInt(adminUserId) } : {}),
+          },
+        });
+      }
+    });
+
+    return this.findCustomerByUuid(uuid);
   },
 
   async findCustomerByUuid(uuid: string): Promise<AdminCustomerDetailDto | null> {
@@ -271,6 +327,7 @@ export const adminCustomerRepository = {
     return addresses.map((addr) => ({
       id: addr.uuid || String(addr.id),
       type: addr.label || "home",
+      addressType: addr.addressType === "billing" ? "billing" : "shipping",
       fullName: addr.full_name,
       phone: addr.phone,
       addressLine1: addr.address_line1,

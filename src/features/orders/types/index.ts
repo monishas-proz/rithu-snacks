@@ -31,6 +31,7 @@ export interface OrderItemResponse {
 export interface OrderAddressResponse {
   id: string; // address.uuid
   type: OrderAddressType;
+  addressType: "shipping" | "billing";
   fullName: string;
   phone: string;
   addressLine1: string;
@@ -149,7 +150,7 @@ export interface GetOrdersResult {
 }
 
 export interface PlaceOrderInput {
-  addressId: string;
+  shippingAddressId: string;
   billingAddressId?: string;
   notes?: string;
 }

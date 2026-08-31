@@ -12,9 +12,12 @@ const userSelect = {
   phone: true,
   roleId: true,
   status: true,
+  is_active: true,
+  is_blocked: true,
   avatar: true,
   createdAt: true,
   updatedAt: true,
+  deleted_at: true,
   role: {
     select: {
       name: true,
@@ -33,6 +36,8 @@ function formatUser<T extends Record<string, any>>(user: T) {
     roleId: typeof user.roleId === "bigint" ? Number(user.roleId) : user.roleId,
     custId: user.cust_id ?? null,
     roleName: user.role?.name,
+    isActive: Boolean(user.is_active),
+    isBlocked: user.is_blocked !== null && Number(user.is_blocked) > 0,
   };
 }
 

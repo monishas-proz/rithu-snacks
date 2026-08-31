@@ -898,8 +898,9 @@ model CustomerAddress {
   uuid                                       String?   @default("UUID()") @db.VarChar(255)
   userId                                     BigInt    @map("user_id") @db.UnsignedBigInt
   cust_id                                    BigInt?
-  label                                      String?   @db.VarChar(50)
-  full_name                                  String    @db.VarChar(150)
+  label                                      String?                          @db.VarChar(50)
+  addressType                                customer_addresses_address_type  @default(shipping) @map("address_type")
+  full_name                                  String                           @db.VarChar(150)
   phone                                      String    @db.VarChar(20)
   address_line1                              String    @db.VarChar(255)
   address_line2                              String?   @db.VarChar(255)
@@ -2386,5 +2387,10 @@ model variant_price_history {
   @@index([created_by], map: "fk_vph_created_by")
   @@index([updated_by], map: "fk_vph_updated_by")
   @@map("variant_price_history")
+}
+
+enum customer_addresses_address_type {
+  shipping
+  billing
 }
 

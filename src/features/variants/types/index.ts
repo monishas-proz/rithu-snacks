@@ -85,13 +85,16 @@ export interface GetAdminVariantsParams {
 export interface AdminVariantListParams {
   page?: number;
   pageSize?: number;
+  limit?: number;
   search?: string;
+  productId?: string;
   productIds?: string[];
   brandIds?: string[];
   categoryIds?: string[];
   measurementTypes?: Array<"weight" | "volume" | "count">;
   unitIds?: string[];
   isActive?: boolean;
+  outOfStock?: boolean;
   minPrice?: number;
   maxPrice?: number;
   sortBy?:

@@ -171,6 +171,11 @@ export const categoryService = {
     };
   },
 
+  async countAdminCategories(params: GetAdminCategoriesParams = {}): Promise<{ count: number }> {
+    const count = await categoryRepository.countAdminCategories(params);
+    return { count };
+  },
+
   async getAdminCategoryByUuid(uuid: string): Promise<AdminCategoryResponse> {
     const category = await categoryRepository.findByUuid(uuid);
     if (!category) {

@@ -14,6 +14,9 @@ async function resolveInternalUser(sessionUserId: string) {
   if (!user || !user.internalId) {
     throw ApiError.unauthorized("User not found or unauthorized");
   }
+  if (!user.isActive || user.is_active === false) {
+    throw ApiError.forbidden("Your account is inactive or blocked. Please contact support.");
+  }
   return user;
 }
 
@@ -141,5 +144,11 @@ export const wishlistService = {
     }
 
     return wishlistRepository.findActiveWishlistByUserId(customer.id);
+  },
+
+  async getWishlistCount(sessionUserId: string): Promise<{ count: number }> {
+    const user = await resolveInternalUser(sessionUserId);
+    const count = await wishlistRepository.getWishlistItemCount(BigInt(user.internalId));
+    return { count };
   },
 };

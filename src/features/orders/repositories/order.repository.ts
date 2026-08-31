@@ -100,9 +100,11 @@ export function formatOrderAddress(
   address?: Prisma.OrderAddressGetPayload<typeof orderAddressInclude> | null
 ): OrderAddressResponse | null {
   if (!address) return null;
+  const addressType = address.type === "billing" ? "billing" : "shipping";
   return {
     id: address.uuid || String(address.id),
     type: address.type,
+    addressType,
     fullName: address.full_name,
     phone: address.phone,
     addressLine1: address.address_line1,
@@ -589,12 +591,7 @@ export const orderRepository = {
     return order ? formatOrderDetail(order) : null;
   },
 
-  async findAdminOrders(
-    params: AdminOrdersListInput
-  ): Promise<OrderListResponse<OrderListItemResponse>> {
-    const page = params.page ?? 1;
-    const pageSize = params.pageSize ?? 20;
-
+  buildAdminOrdersWhere(params: AdminOrdersListInput): Prisma.OrderWhereInput {
     const where: Prisma.OrderWhereInput = {
       is_active: true,
     };
@@ -621,6 +618,22 @@ export const orderRepository = {
         { user: { cust_id: { contains: s } } },
       ];
     }
+
+    return where;
+  },
+
+  async countAdminOrders(params: AdminOrdersListInput): Promise<number> {
+    const where = this.buildAdminOrdersWhere(params);
+    return db.order.count({ where });
+  },
+
+  async findAdminOrders(
+    params: AdminOrdersListInput
+  ): Promise<OrderListResponse<OrderListItemResponse>> {
+    const page = params.page ?? 1;
+    const pageSize = params.pageSize ?? 20;
+
+    const where = this.buildAdminOrdersWhere(params);
 
     const sortOrder = params.sortOrder ?? "desc";
     let orderBy: Prisma.OrderOrderByWithRelationInput = { createdAt: sortOrder };

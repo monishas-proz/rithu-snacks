@@ -101,16 +101,12 @@ export const productRepository = {
     };
   },
 
-  async findAdminList(
+  buildAdminProductWhere(
     params: AdminProductListParams,
     resolvedCategoryInternalId?: bigint,
     resolvedBrandInternalId?: bigint,
     resolvedHsnCodeInternalId?: bigint
-  ) {
-    const page = params.page ?? 1;
-    const limit = params.limit ?? params.pageSize ?? 10;
-    const skip = (page - 1) * limit;
-
+  ): Prisma.ProductWhereInput {
     const where: Prisma.ProductWhereInput = {
       deleted_at: null,
     };
@@ -153,6 +149,41 @@ export const productRepository = {
         { sku: { contains: search } },
       ];
     }
+
+    return where;
+  },
+
+  async countAdminList(
+    params: AdminProductListParams,
+    resolvedCategoryInternalId?: bigint,
+    resolvedBrandInternalId?: bigint,
+    resolvedHsnCodeInternalId?: bigint
+  ): Promise<number> {
+    const where = this.buildAdminProductWhere(
+      params,
+      resolvedCategoryInternalId,
+      resolvedBrandInternalId,
+      resolvedHsnCodeInternalId
+    );
+    return db.product.count({ where });
+  },
+
+  async findAdminList(
+    params: AdminProductListParams,
+    resolvedCategoryInternalId?: bigint,
+    resolvedBrandInternalId?: bigint,
+    resolvedHsnCodeInternalId?: bigint
+  ) {
+    const page = params.page ?? 1;
+    const limit = params.limit ?? params.pageSize ?? 10;
+    const skip = (page - 1) * limit;
+
+    const where = this.buildAdminProductWhere(
+      params,
+      resolvedCategoryInternalId,
+      resolvedBrandInternalId,
+      resolvedHsnCodeInternalId
+    );
 
     const sortField = params.sortBy ?? "createdAt";
     const sortOrder = params.sortOrder ?? "desc";

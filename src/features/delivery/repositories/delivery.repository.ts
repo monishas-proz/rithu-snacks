@@ -263,14 +263,10 @@ export const deliveryRepository = {
     });
   },
 
-  async findStaffDeliveries(
+  buildStaffDeliveriesWhere(
     staffInternalId: bigint,
     params: StaffDeliveryListInput
-  ) {
-    const page = params.page ?? 1;
-    const limit = params.limit ?? 10;
-    const skip = (page - 1) * limit;
-
+  ): Prisma.shipmentsWhereInput {
     const where: Prisma.shipmentsWhereInput = {
       delivery_staff_id: staffInternalId,
       is_active: true,
@@ -278,6 +274,10 @@ export const deliveryRepository = {
 
     if (params.status) {
       where.status = params.status;
+    }
+
+    if (params.assignmentStatus) {
+      where.assignment_status = params.assignmentStatus;
     }
 
     if (params.search) {
@@ -291,6 +291,27 @@ export const deliveryRepository = {
         ],
       };
     }
+
+    return where;
+  },
+
+  async countStaffDeliveries(
+    staffInternalId: bigint,
+    params: StaffDeliveryListInput
+  ): Promise<number> {
+    const where = this.buildStaffDeliveriesWhere(staffInternalId, params);
+    return db.shipments.count({ where });
+  },
+
+  async findStaffDeliveries(
+    staffInternalId: bigint,
+    params: StaffDeliveryListInput
+  ) {
+    const page = params.page ?? 1;
+    const limit = params.limit ?? params.pageSize ?? 10;
+    const skip = (page - 1) * limit;
+
+    const where = this.buildStaffDeliveriesWhere(staffInternalId, params);
 
     const sortOrder = params.sortOrder ?? "desc";
     const sortBy = params.sortBy ?? "createdAt";

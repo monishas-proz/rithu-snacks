@@ -62,16 +62,24 @@ function formatReviewResponse(review: any): ReviewResponse {
   };
 }
 
+async function resolveActiveCustomer(sessionUserId: string) {
+  const customer = await userRepository.findById(sessionUserId);
+  if (!customer) {
+    throw ApiError.unauthorized("Customer not found");
+  }
+  if (!customer.isActive || customer.is_active === false) {
+    throw ApiError.forbidden("Your account is inactive or blocked. Please contact support.");
+  }
+  return customer;
+}
+
 export const reviewService = {
   async createCustomerReview(
     sessionUserId: string,
     input: CreateReviewInput
   ): Promise<ReviewResponse> {
     // 1. Resolve Customer
-    const customer = await userRepository.findById(sessionUserId);
-    if (!customer) {
-      throw ApiError.unauthorized("Customer not found");
-    }
+    const customer = await resolveActiveCustomer(sessionUserId);
     const customerId = BigInt(customer.internalId || customer.id);
 
     // 2. Resolve & Validate Order Item & Customer Ownership
@@ -130,10 +138,7 @@ export const reviewService = {
     sessionUserId: string,
     params: CustomerReviewListInput
   ) {
-    const customer = await userRepository.findById(sessionUserId);
-    if (!customer) {
-      throw ApiError.unauthorized("Customer not found");
-    }
+    const customer = await resolveActiveCustomer(sessionUserId);
     const customerId = BigInt(customer.internalId || customer.id);
 
     const result = await reviewRepository.findCustomerReviews(
@@ -159,10 +164,7 @@ export const reviewService = {
     sessionUserId: string,
     uuid: string
   ): Promise<ReviewResponse> {
-    const customer = await userRepository.findById(sessionUserId);
-    if (!customer) {
-      throw ApiError.unauthorized("Customer not found");
-    }
+    const customer = await resolveActiveCustomer(sessionUserId);
     const customerId = BigInt(customer.internalId || customer.id);
 
     const review = await reviewRepository.findCustomerReviewByUuid(
@@ -186,10 +188,7 @@ export const reviewService = {
     uuid: string,
     input: UpdateReviewInput
   ): Promise<ReviewResponse> {
-    const customer = await userRepository.findById(sessionUserId);
-    if (!customer) {
-      throw ApiError.unauthorized("Customer not found");
-    }
+    const customer = await resolveActiveCustomer(sessionUserId);
     const customerId = BigInt(customer.internalId || customer.id);
 
     const existing = await reviewRepository.findCustomerReviewByUuid(
@@ -221,10 +220,7 @@ export const reviewService = {
     sessionUserId: string,
     uuid: string
   ): Promise<void> {
-    const customer = await userRepository.findById(sessionUserId);
-    if (!customer) {
-      throw ApiError.unauthorized("Customer not found");
-    }
+    const customer = await resolveActiveCustomer(sessionUserId);
     const customerId = BigInt(customer.internalId || customer.id);
 
     const existing = await reviewRepository.findCustomerReviewByUuid(

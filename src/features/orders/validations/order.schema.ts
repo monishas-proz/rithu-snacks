@@ -22,7 +22,7 @@ export const PAYMENT_STATUS_ENUM = [
 
 export const customerCreateOrderSchema = z
   .object({
-    addressId: z.string().uuid("Invalid addressId UUID format"),
+    shippingAddressId: z.string().uuid("Invalid shippingAddressId UUID format"),
     billingAddressId: z.string().uuid("Invalid billingAddressId UUID format").optional(),
     notes: z.string().max(500, "Notes cannot exceed 500 characters").optional(),
   })

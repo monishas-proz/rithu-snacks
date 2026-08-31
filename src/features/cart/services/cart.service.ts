@@ -101,6 +101,9 @@ async function resolveInternalUserId(sessionUserId: string): Promise<bigint> {
   if (!user) {
     throw ApiError.unauthorized("Please login to access your cart");
   }
+  if (!user.isActive || user.is_active === false) {
+    throw ApiError.forbidden("Your account is inactive or blocked. Please contact support.");
+  }
   return BigInt(user.internalId);
 }
 
@@ -222,7 +225,6 @@ export const cartService = {
 
   async getCartCount(sessionUserId: string): Promise<CartCountResponse> {
     const userId = await resolveInternalUserId(sessionUserId);
-    const count = await cartRepository.getCartItemCount(userId);
-    return { count };
+    return cartRepository.getCartItemCount(userId);
   },
 };

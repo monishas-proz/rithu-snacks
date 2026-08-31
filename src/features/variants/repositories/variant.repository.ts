@@ -132,10 +132,9 @@ export const variantRepository = {
     };
   },
 
-  async findAdminVariants(params: AdminVariantListParams) {
-    const page = params.page ?? 1;
-    const pageSize = params.pageSize ?? 20;
-
+  async buildAdminVariantsWhere(
+    params: AdminVariantListParams
+  ): Promise<Prisma.ProductVariantWhereInput> {
     const where: Prisma.ProductVariantWhereInput = {
       deleted_at: null,
       product: {
@@ -147,10 +146,18 @@ export const variantRepository = {
       where.isActive = params.isActive;
     }
 
+    if (typeof params.outOfStock === "boolean") {
+      where.out_of_stock = params.outOfStock;
+    }
+
     // Filter by Product UUIDs
-    if (params.productIds && params.productIds.length > 0) {
+    const allProductIds = [...(params.productIds || [])];
+    if (params.productId && !allProductIds.includes(params.productId)) {
+      allProductIds.push(params.productId);
+    }
+    if (allProductIds.length > 0) {
       const matchingProducts = await db.product.findMany({
-        where: { uuid: { in: params.productIds }, deleted_at: null },
+        where: { uuid: { in: allProductIds }, deleted_at: null },
         select: { id: true },
       });
       where.productId = { in: matchingProducts.map((p) => p.id) };
@@ -223,6 +230,20 @@ export const variantRepository = {
         where.OR = priceConditions;
       }
     }
+
+    return where;
+  },
+
+  async countAdminVariants(params: AdminVariantListParams): Promise<number> {
+    const where = await this.buildAdminVariantsWhere(params);
+    return db.productVariant.count({ where });
+  },
+
+  async findAdminVariants(params: AdminVariantListParams) {
+    const page = params.page ?? 1;
+    const pageSize = params.pageSize ?? params.limit ?? 20;
+
+    const where = await this.buildAdminVariantsWhere(params);
 
     // Sorting
     const sortOrder = params.sortOrder ?? "desc";

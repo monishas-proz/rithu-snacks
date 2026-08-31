@@ -1,6 +1,10 @@
 import { db } from "@/lib/db/prisma";
-import type { Prisma } from "@/generated/prisma";
-import type { CustomerAddressResponse } from "../types/customer-address.types";
+import type { Prisma, customer_addresses_address_type } from "@/generated/prisma";
+import type {
+  CustomerAddressResponse,
+  CustomerAddressListParams,
+  AddressType,
+} from "../types/customer-address.types";
 
 export function formatCustomerAddress(addr: {
   id: bigint;
@@ -8,6 +12,8 @@ export function formatCustomerAddress(addr: {
   userId: bigint;
   cust_id: bigint | null;
   label: string | null;
+  addressType?: customer_addresses_address_type | string | null;
+  address_type?: string | null;
   full_name: string;
   phone: string;
   address_line1: string;
@@ -23,9 +29,14 @@ export function formatCustomerAddress(addr: {
   createdAt: Date;
   updatedAt: Date;
 }): CustomerAddressResponse {
+  const rawType = addr.addressType || addr.address_type || "shipping";
+  const addressType: AddressType =
+    rawType === "billing" ? "billing" : "shipping";
+
   return {
     id: addr.uuid || String(addr.id),
     label: addr.label ?? null,
+    addressType,
     fullName: addr.full_name,
     phone: addr.phone,
     addressLine1: addr.address_line1,
@@ -44,14 +55,25 @@ export function formatCustomerAddress(addr: {
 }
 
 export const customerAddressRepository = {
-  async findActiveByUserId(userId: bigint | number, tx?: Prisma.TransactionClient) {
+  async findActiveByUserId(
+    userId: bigint | number,
+    params: CustomerAddressListParams = {},
+    tx?: Prisma.TransactionClient
+  ) {
     const client = tx || db;
+
+    const where: Prisma.CustomerAddressWhereInput = {
+      userId: BigInt(userId),
+      is_active: true,
+      deleted_at: null,
+    };
+
+    if (params.addressType) {
+      where.addressType = params.addressType;
+    }
+
     const list = await client.customerAddress.findMany({
-      where: {
-        userId: BigInt(userId),
-        is_active: true,
-        deleted_at: null,
-      },
+      where,
       orderBy: [
         { isDefault: "desc" },
         { updatedAt: "desc" },
@@ -60,6 +82,51 @@ export const customerAddressRepository = {
     });
 
     return list;
+  },
+
+  async findListWithPagination(
+    userId: bigint | number,
+    params: CustomerAddressListParams = {},
+    tx?: Prisma.TransactionClient
+  ) {
+    const client = tx || db;
+    const page = params.page ?? 1;
+    const limit = params.limit ?? params.pageSize ?? 20;
+
+    const where: Prisma.CustomerAddressWhereInput = {
+      userId: BigInt(userId),
+      is_active: true,
+      deleted_at: null,
+    };
+
+    if (params.addressType) {
+      where.addressType = params.addressType;
+    }
+
+    const [items, total] = await Promise.all([
+      client.customerAddress.findMany({
+        where,
+        orderBy: [
+          { isDefault: "desc" },
+          { updatedAt: "desc" },
+          { createdAt: "desc" },
+        ],
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      client.customerAddress.count({ where }),
+    ]);
+
+    return {
+      data: items.map(formatCustomerAddress),
+      meta: {
+        page,
+        limit,
+        pageSize: limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   },
 
   async findByUuidAndUserId(
@@ -80,13 +147,18 @@ export const customerAddressRepository = {
     return address;
   },
 
-  async countActiveByUserId(userId: bigint | number, tx?: Prisma.TransactionClient) {
+  async countActiveByUserId(
+    userId: bigint | number,
+    addressType?: AddressType,
+    tx?: Prisma.TransactionClient
+  ) {
     const client = tx || db;
     return client.customerAddress.count({
       where: {
         userId: BigInt(userId),
         is_active: true,
         deleted_at: null,
+        ...(addressType ? { addressType } : {}),
       },
     });
   },
@@ -114,7 +186,11 @@ export const customerAddressRepository = {
     });
   },
 
-  async clearDefaultAddresses(userId: bigint | number, tx?: Prisma.TransactionClient) {
+  async clearDefaultAddresses(
+    userId: bigint | number,
+    addressType?: AddressType,
+    tx?: Prisma.TransactionClient
+  ) {
     const client = tx || db;
     return client.customerAddress.updateMany({
       where: {
@@ -122,6 +198,7 @@ export const customerAddressRepository = {
         is_active: true,
         deleted_at: null,
         isDefault: true,
+        ...(addressType ? { addressType } : {}),
       },
       data: {
         isDefault: false,

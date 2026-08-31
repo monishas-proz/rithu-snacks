@@ -257,6 +257,45 @@ export const productService = {
     };
   },
 
+  async countAdminProducts(params: AdminProductListInput): Promise<{ count: number }> {
+    let resolvedCategoryInternalId: bigint | undefined = undefined;
+    let resolvedBrandInternalId: bigint | undefined = undefined;
+    let resolvedHsnCodeInternalId: bigint | undefined = undefined;
+
+    if (params.categoryId) {
+      const category = await categoryRepository.findByUuid(params.categoryId);
+      if (!category) {
+        return { count: 0 };
+      }
+      resolvedCategoryInternalId = category.id;
+    }
+
+    if (params.brandId) {
+      const brand = await brandRepository.findByUuid(params.brandId);
+      if (!brand) {
+        return { count: 0 };
+      }
+      resolvedBrandInternalId = brand.id;
+    }
+
+    if (params.hsnCodeId) {
+      const hsnCode = await hsnCodeRepository.findByUuid(params.hsnCodeId);
+      if (!hsnCode) {
+        return { count: 0 };
+      }
+      resolvedHsnCodeInternalId = hsnCode.id;
+    }
+
+    const count = await productRepository.countAdminList(
+      params,
+      resolvedCategoryInternalId,
+      resolvedBrandInternalId,
+      resolvedHsnCodeInternalId
+    );
+
+    return { count };
+  },
+
   async getAdminProductByUuid(uuid: string): Promise<AdminProductResponse> {
     const product = await productRepository.findByUuid(uuid);
     if (!product) {

@@ -82,7 +82,9 @@ export interface AdminCategoryResponse {
 export interface GetAdminCategoriesParams {
   page?: number;
   pageSize?: number;
+  limit?: number;
   search?: string;
+  isActive?: boolean;
 }
 
 export interface CustomerCategoryDto {
