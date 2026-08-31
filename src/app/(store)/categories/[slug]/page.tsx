@@ -146,7 +146,7 @@ export default function CategoryProductsPage({
   const isLoading = isCategoryLoading || isVariantsLoading;
 
   return (
-    <div className="min-h-screen bg-[#FCFBF8] pb-20">
+    <div className="min-h-screen bg-cream-50 pb-20">
       {/* Toast alert feedback */}
       {toastMessage && (
         <div className="fixed top-24 right-4 z-50 rounded-xl bg-[var(--brown-800)] text-white px-5 py-3 shadow-xl text-sm font-medium animate-in fade-in-0 duration-200">
@@ -155,7 +155,7 @@ export default function CategoryProductsPage({
       )}
 
       {/* Header Banner */}
-      <div className="bg-gradient-to-b from-[var(--brown-100)] to-[#FCFBF8] border-b border-[var(--brown-200)] py-8 md:py-12">
+      <div className="bg-gradient-to-b from-[var(--brown-100)] to-cream-50 border-b border-[var(--brown-200)] py-8 md:py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Breadcrumb */}
           <nav className="flex items-center gap-2 text-xs sm:text-sm text-[var(--brown-600)] mb-4">

@@ -33,18 +33,20 @@ function useToast() {
 
 const APP_TOAST_EVENT = "app-toast-event";
 const recentToasts = new Map<string, number>();
-const DEDUPE_TIME_MS = 2000;
+const DEDUPE_TIME_MS = 2500;
 
 export const toast = {
   show: (toastData: Omit<Toast, "id">) => {
     if (typeof window === "undefined") return;
 
-    const dedupeKey = `${toastData.variant}:${toastData.title}:${toastData.description || ""}`;
+    // Deduplicate based on message content to prevent dual toasts from MutationCache & components
+    const content = (toastData.description || toastData.title || "").trim().toLowerCase();
+    const dedupeKey = `${toastData.variant}:${content}`;
     const now = Date.now();
     const lastShown = recentToasts.get(dedupeKey);
 
     if (lastShown && now - lastShown < DEDUPE_TIME_MS) {
-      return; // Skip duplicate toast within 2-second window
+      return; // Skip duplicate toast within dedupe window
     }
 
     recentToasts.set(dedupeKey, now);
@@ -77,13 +79,25 @@ export const toast = {
 function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = React.useState<Toast[]>([]);
 
-  const addToast = React.useCallback((toast: Omit<Toast, "id">) => {
-    const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-    setToasts((prev) => [...prev, { ...toast, id }]);
+  const addToast = React.useCallback((newToast: Omit<Toast, "id">) => {
+    const newContent = (newToast.description || newToast.title || "").trim().toLowerCase();
 
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, toast.duration ?? 5000);
+    setToasts((prev) => {
+      const alreadyActive = prev.some((t) => {
+        const existingContent = (t.description || t.title || "").trim().toLowerCase();
+        return t.variant === newToast.variant && existingContent === newContent;
+      });
+      if (alreadyActive) {
+        return prev;
+      }
+
+      const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+      setTimeout(() => {
+        setToasts((current) => current.filter((t) => t.id !== id));
+      }, newToast.duration ?? 5000);
+
+      return [...prev, { ...newToast, id }];
+    });
   }, []);
 
   const removeToast = React.useCallback((id: string) => {
@@ -119,41 +133,41 @@ const toastVariantStyles: Record<
   { progressTrack: string; progressBar: string }
 > = {
   success: {
-    progressTrack: "bg-[#EAE4DF]",
-    progressBar: "bg-[#2E1E16]",
+    progressTrack: "bg-cream-border",
+    progressBar: "bg-neutral-900",
   },
   error: {
-    progressTrack: "bg-[#FCE8E8]",
-    progressBar: "bg-[#C92A2A]",
+    progressTrack: "bg-error-100",
+    progressBar: "bg-error-600",
   },
   warning: {
-    progressTrack: "bg-[#F7F0E1]",
-    progressBar: "bg-[#8D6508]",
+    progressTrack: "bg-amber-100",
+    progressBar: "bg-amber-700",
   },
   info: {
-    progressTrack: "bg-[#F7E6EA]",
-    progressBar: "bg-[#6B1124]",
+    progressTrack: "bg-secondary-100",
+    progressBar: "bg-secondary-600",
   },
 };
 
 const toastIcons: Record<ToastVariant, React.ReactNode> = {
   success: (
-    <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#2E1E16] text-white">
+    <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white">
       <Check className="h-3 w-3 stroke-[3]" />
     </div>
   ),
   error: (
-    <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#C92A2A] text-white">
+    <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-error-600 text-white">
       <span className="text-[11px] font-black leading-none select-none">!</span>
     </div>
   ),
   warning: (
-    <div className="flex h-5 w-5 shrink-0 items-center justify-center text-[#8D6508]">
-      <AlertTriangle className="h-5 w-5 fill-[#8D6508] text-white" />
+    <div className="flex h-5 w-5 shrink-0 items-center justify-center text-amber-700">
+      <AlertTriangle className="h-5 w-5 fill-amber-700 text-white" />
     </div>
   ),
   info: (
-    <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#6B1124] text-white">
+    <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-secondary-600 text-white">
       <span className="font-serif italic font-bold text-[11px] leading-none select-none">i</span>
     </div>
   ),
@@ -256,5 +270,5 @@ function ToastContainer({ toasts, removeToast }: ToastContainerProps) {
   return createPortal(content, document.body);
 }
 
-export { ToastProvider, useToast, toast };
+export { ToastProvider, useToast };
 export type { Toast, ToastVariant };

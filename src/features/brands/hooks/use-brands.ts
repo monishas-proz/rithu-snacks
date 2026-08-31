@@ -5,7 +5,10 @@ import { brandKeys } from "@/lib/api/query-keys";
 import { getBrands, getBrand } from "../api/get-brands";
 import type { GetBrandsParams } from "../types";
 
-export function useBrands(params?: GetBrandsParams) {
+export function useBrands(
+  params?: GetBrandsParams,
+  options?: { enabled?: boolean }
+) {
   const queryParams: Record<string, string | number | boolean | undefined> = {};
   if (params?.search) queryParams.search = params.search;
   if (params?.page) queryParams.page = params.page;
@@ -16,6 +19,7 @@ export function useBrands(params?: GetBrandsParams) {
     queryKey: brandKeys.list(queryParams),
     queryFn: () => getBrands(queryParams),
     placeholderData: keepPreviousData,
+    enabled: options?.enabled,
   });
 }
 

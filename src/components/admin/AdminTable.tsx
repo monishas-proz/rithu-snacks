@@ -39,9 +39,9 @@ function AdminTable<TData, TValue>({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-1 min-h-0 flex-col h-full space-y-4">
       {hasSelection && bulkActions && (
-        <div className="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
+        <div className="flex-shrink-0 flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
           <div className="flex items-center gap-3">
             <span className="text-sm font-medium text-primary">
               {selectedCount} row(s) selected
@@ -59,7 +59,7 @@ function AdminTable<TData, TValue>({
       )}
 
       {onExport && (
-        <div className="flex justify-end">
+        <div className="flex-shrink-0 flex justify-end">
           <button
             onClick={handleExport}
             className={cn(
@@ -73,12 +73,14 @@ function AdminTable<TData, TValue>({
         </div>
       )}
 
-      <DataTable
-        key={tableKey}
-        columns={columns}
-        data={data}
-        {...props}
-      />
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+        <DataTable
+          key={tableKey}
+          columns={columns}
+          data={data}
+          {...props}
+        />
+      </div>
     </div>
   );
 }

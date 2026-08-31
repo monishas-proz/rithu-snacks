@@ -28,7 +28,7 @@ export const POST = createApiHandler(
   },
   {
     requireAuth: true,
-    requiredRole: ["CUSTOMER", "ADMIN", "STAFF"],
+    requiredRole: ["Customer", "ADMIN", "STAFF"],
     bodySchema: customerOrdersListSchema,
   }
 );

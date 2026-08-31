@@ -239,7 +239,7 @@ export default function AdminUsersPage() {
   const isRoleMutating = resetPasswordMutation.isPending;
 
   return (
-    <div>
+    <div className="flex flex-1 min-h-0 flex-col">
       <AdminBreadcrumb items={[{ label: "Users" }]} />
       <AdminPageHeader
         title="Users"
@@ -251,14 +251,17 @@ export default function AdminUsersPage() {
           </Button>
         }
       />
-      <AdminContent>
-        <DataTable
-          columns={columns}
-          data={users}
-          searchKey="name"
-          searchPlaceholder="Search users..."
-          pageSize={20}
-        />
+      <AdminContent className="flex-1 min-h-0 overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+          <DataTable
+            columns={columns}
+            data={users}
+            searchKey="name"
+            searchPlaceholder="Search users..."
+            pageSize={20}
+            className="bg-white border border-neutral-200"
+          />
+        </div>
       </AdminContent>
 
       <FormModal

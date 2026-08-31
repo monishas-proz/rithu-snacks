@@ -28,7 +28,7 @@ export default function AdminUnitsPage() {
   const [search, setSearch] = useState("");
 
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const [pageSize, setPageSize] = useState(10);
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
@@ -200,10 +200,15 @@ export default function AdminUnitsPage() {
               columns={columns}
               data={units}
               pageSize={pageSize}
+              pageSizeOptions={[10, 20, 30, 50]}
               page={data?.meta?.page ?? page}
-              totalPages={data?.meta?.totalPages ?? 1}
-              totalItems={data?.meta?.total ?? 0}
+              totalPages={data?.meta?.totalPages ?? Math.max(1, Math.ceil((data?.meta?.total ?? units.length) / pageSize))}
+              totalItems={data?.meta?.total ?? units.length}
               onPageChange={setPage}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                setPage(1);
+              }}
               className="bg-white"
             />
           </div>

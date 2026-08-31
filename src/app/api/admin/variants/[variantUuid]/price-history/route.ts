@@ -29,12 +29,20 @@ export const GET = createApiHandler(
         variantUuid,
         params
       );
+      const meta = result.meta
+        ? {
+            page: result.meta.page,
+            limit: result.meta.pageSize,
+            total: result.meta.total,
+            totalPages: result.meta.totalPages,
+          }
+        : undefined;
 
       return apiSuccess(
         result.data,
         "Variant price history fetched successfully",
         200,
-        result.meta
+        meta
       );
     },
     POST: async (_request, context) => {
@@ -49,11 +57,20 @@ export const GET = createApiHandler(
         body
       );
 
+      const meta = result.meta
+        ? {
+            page: result.meta.page,
+            limit: result.meta.pageSize,
+            total: result.meta.total,
+            totalPages: result.meta.totalPages,
+          }
+        : undefined;
+
       return apiSuccess(
         result.data,
         "Variant price history fetched successfully",
         200,
-        result.meta
+        meta
       );
     },
   },

@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import AuthFormLayout from "@/components/auth/AuthFormLayout";
-import { useSendEmailOtp } from "@/features/auth";
+import { useSendEmailOtp, authFlowState } from "@/features/auth";
 import { FormInput } from "@/components/forms/form-input";
 import { FormPasswordInput } from "@/components/forms/FormPasswordInput";
 import { FormSubmitButton } from "@/components/forms/form-submit-button";
@@ -144,16 +144,15 @@ function RegisterForm() {
     if (typeof window !== "undefined") {
       sessionStorage.setItem("pending_registration", JSON.stringify(regData));
     }
+    authFlowState.setRegistrationEmail(regData.email);
 
     sendEmailOtpMutation.mutate(
       { email: regData.email },
       {
         onSuccess: () => {
-          const targetUrl = `/verify-otp?email=${encodeURIComponent(
-            regData.email
-          )}&from=register${
+          const targetUrl = `/register/verify-otp${
             callbackUrl !== "/"
-              ? `&callbackUrl=${encodeURIComponent(callbackUrl)}`
+              ? `?callbackUrl=${encodeURIComponent(callbackUrl)}`
               : ""
           }`;
           router.push(targetUrl);

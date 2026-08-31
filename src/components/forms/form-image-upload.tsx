@@ -1,21 +1,40 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { useController, useFormContext } from "react-hook-form";
 import Image from "next/image";
 import { Upload, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ImageCropperModal } from "@/components/common";
 
 interface FormImageUploadProps {
   name: string;
   label: string;
-  folder? : string;
+  folder?: string;
+  cropWidth?: number;
+  cropHeight?: number;
+  enableCrop?: boolean;
+  className?: string;
+  aspectRatioClassName?: string;
 }
 
-function FormImageUpload({ name, label, folder = "uploads" }: FormImageUploadProps) {
+function FormImageUpload({
+  name,
+  label,
+  folder = "categories",
+  cropWidth = 500,
+  cropHeight = 500,
+  enableCrop = true,
+  className,
+  aspectRatioClassName = "h-48",
+}: FormImageUploadProps) {
   const { control } = useFormContext();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isUploading, setIsUploading] = React.useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+
+  // Crop state
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const {
     field,
@@ -27,18 +46,13 @@ function FormImageUpload({ name, label, folder = "uploads" }: FormImageUploadPro
 
   const imageUrl = field.value as string;
 
-  const handleFileChange = async (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const uploadFile = async (file: File) => {
     try {
       setIsUploading(true);
 
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("folder", "categories");
+      formData.append("folder", folder);
 
       const response = await fetch("/api/admin/upload", {
         method: "POST",
@@ -54,11 +68,49 @@ function FormImageUpload({ name, label, folder = "uploads" }: FormImageUploadPro
 
       // Save uploaded image path in the form
       field.onChange(result.data.path);
-
-    } catch (error) {
-      console.error("Image upload error:", error);
+    } catch (err) {
+      console.error("Image upload error:", err);
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!enableCrop) {
+      uploadFile(file);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      return;
+    }
+
+    setSelectedFile(file);
+    setCropSrc(URL.createObjectURL(file));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleCropConfirm = async (croppedFile: File) => {
+    if (cropSrc) {
+      URL.revokeObjectURL(cropSrc);
+    }
+    setCropSrc(null);
+    setSelectedFile(null);
+    await uploadFile(croppedFile);
+  };
+
+  const handleCropCancel = () => {
+    if (cropSrc) {
+      URL.revokeObjectURL(cropSrc);
+    }
+    setCropSrc(null);
+    setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -71,8 +123,10 @@ function FormImageUpload({ name, label, folder = "uploads" }: FormImageUploadPro
       <div
         onClick={() => fileInputRef.current?.click()}
         className={cn(
-          "relative flex h-48 cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-[var(--color-neutral-300)] bg-[var(--color-neutral-50)] transition-all hover:border-[var(--color-primary-500)] hover:bg-white",
-          error && "border-[var(--color-error-500)]"
+          "relative flex cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-[var(--color-neutral-300)] bg-[var(--color-neutral-50)] transition-all hover:border-[var(--color-primary-500)] hover:bg-white overflow-hidden",
+          aspectRatioClassName,
+          error && "border-[var(--color-error-500)]",
+          className
         )}
       >
         {imageUrl ? (
@@ -110,10 +164,10 @@ function FormImageUpload({ name, label, folder = "uploads" }: FormImageUploadPro
 
             <div>
               <p className="font-medium text-[var(--color-neutral-700)]">
-                Upload Category Image
+                Upload Image
               </p>
               <p className="text-sm text-[var(--color-neutral-500)]">
-                Click to browse (JPG, PNG, WEBP)
+                Click to browse (JPG, PNG, WEBP) • {cropWidth} × {cropHeight} px
               </p>
             </div>
           </div>
@@ -133,6 +187,20 @@ function FormImageUpload({ name, label, folder = "uploads" }: FormImageUploadPro
           {error.message}
         </p>
       )}
+
+      {/* Image Cropper Modal */}
+      <ImageCropperModal
+        open={Boolean(cropSrc)}
+        imageSrc={cropSrc}
+        originalFileName={selectedFile?.name}
+        mimeType={selectedFile?.type || "image/jpeg"}
+        title={`Crop ${label || "Image"}`}
+        description={`Reposition and zoom to fit the ${cropWidth} × ${cropHeight} px area.`}
+        cropWidth={cropWidth}
+        cropHeight={cropHeight}
+        onCropConfirm={handleCropConfirm}
+        onCancel={handleCropCancel}
+      />
     </div>
   );
 }

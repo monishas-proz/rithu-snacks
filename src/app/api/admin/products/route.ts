@@ -15,7 +15,7 @@ export const GET = createApiHandler(
       const result = await productService.getAdminProducts({
         page: query?.page ?? 1,
         pageSize: query?.pageSize ?? 10,
-        search: query?.search,
+        search: query?.search
       });
 
       return apiSuccess(result.data, "Products fetched successfully", 200, result.meta);

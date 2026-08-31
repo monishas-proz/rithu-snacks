@@ -146,7 +146,5 @@ export interface BulkEditVariantItem {
   outOfStock?: boolean;
 }
 
-export interface BulkEditVariantsInput {
-  variants: BulkEditVariantItem[];
-}
+export type { BulkEditVariantsInput, BulkEditVariantItemInput } from "../validations/admin-variant.schema";
 

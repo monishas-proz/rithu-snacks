@@ -38,7 +38,10 @@ export function useCustomerCategory(uuid: string | null) {
   });
 }
 
-export function useCategories(params?: GetCategoriesParams) {
+export function useCategories(
+  params?: GetCategoriesParams,
+  options?: { enabled?: boolean }
+) {
   const queryParams: Record<string, string | number | boolean | undefined> = {};
 
   if (params?.page !== undefined) {
@@ -61,6 +64,7 @@ export function useCategories(params?: GetCategoriesParams) {
     queryKey: categoryKeys.list(queryParams),
     queryFn: () => getCategories(queryParams),
     placeholderData: keepPreviousData,
+    enabled: options?.enabled,
   });
 }
 

@@ -2,10 +2,20 @@ import { apiClient } from "@/lib/api/api-client";
 import type { BrandListItem, BrandDetail, GetBrandsResult } from "../types";
 
 export async function getBrands(params?: Record<string, string | number | boolean | undefined | null>) {
+  const page = Number(params?.page) || 1;
+  const limit = Number(params?.limit ?? params?.pageSize) || 10;
   const response = await apiClient.get<BrandListItem[]>("/api/brands", { params });
+  const total = response.meta?.total ?? response.data?.length ?? 0;
+  const totalPages = response.meta?.totalPages ?? Math.max(1, Math.ceil(total / limit));
   return {
-    data: response.data!,
-    meta: response.meta!,
+    data: response.data ?? [],
+    meta: {
+      page: response.meta?.page ?? page,
+      limit: response.meta?.limit ?? limit,
+      pageSize: response.meta?.pageSize ?? limit,
+      total,
+      totalPages,
+    },
   } satisfies GetBrandsResult;
 }
 

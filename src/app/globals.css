@@ -50,29 +50,40 @@
   --primary-800: #634c08;
   --primary-900: #322604;
 
-  /* Secondary */
-  --secondary-50: #f8f3f2;
+  /* Secondary (Brand Maroon) */
+  --secondary-base: #7a2224;
+  --secondary-50: #fbf3f2;
   --secondary-100: #f0e7e5;
-  --secondary-200: #ded1cf;
-  --secondary-300: #bda3a0;
-  --secondary-400: #9c7570;
-  --secondary-500: #7b4740;
-  --secondary-600: #5a1911;
-  --secondary-700: #4a140d;
-  --secondary-800: #2a0b07;
-  --secondary-900: #1a0604;
+  --secondary-200: #e3c8c4;
+  --secondary-300: #d0a7a2;
+  --secondary-400: #b0706a;
+  --secondary-500: #94433e;
+  --secondary-600: #7a2224;
+  --secondary-700: #5a1911;
+  --secondary-800: #40100f;
+  --secondary-900: #260706;
+
+  /* Cream & Warm Neutral (Surfaces & Borders) */
+  --cream-50: #fcfaf7;
+  --cream-100: #faf6f0;
+  --cream-200: #f7f2ec;
+  --cream-300: #f3ede6;
+  --cream-border: #ede4d9;
+  --cream-border-subtle: #ebe1d6;
+  --cream-border-hover: #d8cbbc;
+  --cream-white: #fff6ec;
 
   /* Neutral */
   --neutral-50: #fafaf9;
   --neutral-100: #f5f5f4;
   --neutral-200: #e7e5e4;
   --neutral-300: #d6d3d1;
-  --neutral-400: #a8a29e;
-  --neutral-500: #78716c;
+  --neutral-400: #a2968c;
+  --neutral-500: #7c7169;
   --neutral-600: #57534e;
-  --neutral-700: #44403c;
+  --neutral-700: #4a423d;
   --neutral-800: #292524;
-  --neutral-900: #1c1917;
+  --neutral-900: #211c1a;
 
   /* Success */
   --success-50: #ecfdf5;
@@ -168,6 +179,16 @@
   --color-secondary-800: var(--secondary-800);
   --color-secondary-900: var(--secondary-900);
 
+  /* Cream & Warm Neutrals */
+  --color-cream-50: var(--cream-50);
+  --color-cream-100: var(--cream-100);
+  --color-cream-200: var(--cream-200);
+  --color-cream-300: var(--cream-300);
+  --color-cream-border: var(--cream-border);
+  --color-cream-border-subtle: var(--cream-border-subtle);
+  --color-cream-border-hover: var(--cream-border-hover);
+  --color-cream-white: var(--cream-white);
+
   /* Neutral */
   --color-neutral-50: var(--neutral-50);
   --color-neutral-100: var(--neutral-100);
@@ -203,6 +224,19 @@
   --color-error-700: var(--error-700);
   --color-error-800: var(--error-800);
   --color-error-900: var(--error-900);
+
+  /* Brown Storefront Scale */
+  --color-brown-50: var(--brown-50);
+  --color-brown-100: var(--brown-100);
+  --color-brown-200: var(--brown-200);
+  --color-brown-300: var(--brown-300);
+  --color-brown-400: var(--brown-400);
+  --color-brown-500: var(--brown-500);
+  --color-brown-600: var(--brown-600);
+  --color-brown-700: var(--brown-700);
+  --color-brown-800: var(--brown-800);
+  --color-brown-900: var(--brown-900);
+  --color-brown-950: var(--brown-950);
 }
 
 body {

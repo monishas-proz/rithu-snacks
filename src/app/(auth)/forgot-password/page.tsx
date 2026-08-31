@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { forgotPasswordSchema, type ForgotPasswordInput } from "@/lib/validations/auth";
-import { useForgotPassword } from "@/features/auth";
+import { useForgotPassword, authFlowState } from "@/features/auth";
 import { Mail, ArrowLeft, CheckCircle2, AlertCircle } from "lucide-react";
 import { FormInput } from "@/components/forms/form-input";
 import { FormSubmitButton } from "@/components/forms/form-submit-button";
@@ -33,13 +33,15 @@ function ForgotPasswordForm() {
     methods.clearErrors("root");
     const userEmail = data.email.trim();
 
+    authFlowState.setForgotPasswordEmail(userEmail);
+
     forgotPasswordMutation.mutate(
       { email: userEmail },
       {
         onSuccess: (res) => {
           setSuccess(res.message || "OTP sent to your email.");
-          const targetUrl = `/verify-otp?email=${encodeURIComponent(userEmail)}${
-            fromAdmin ? "&from=admin" : ""
+          const targetUrl = `/forgot-password/verify-otp${
+            fromAdmin ? "?from=admin" : ""
           }`;
           setTimeout(() => {
             router.push(targetUrl);
