@@ -6,7 +6,9 @@ import {
   createAdminVariant,
   updateAdminVariant,
   deleteAdminVariant,
+  bulkEditVariants,
 } from "../api/get-variants";
+import type { BulkEditVariantsInput } from "../types";
 
 export function useCreateVariant() {
   const queryClient = useQueryClient();
@@ -43,6 +45,17 @@ export function useUpdateVariant() {
       queryClient.invalidateQueries({
         queryKey: variantKeys.detail(variables.variantUuid),
       });
+    },
+  });
+}
+
+export function useBulkEditVariants() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: BulkEditVariantsInput) => bulkEditVariants(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: variantKeys.all });
     },
   });
 }

@@ -29,6 +29,8 @@ import {
   Trash2,
   Package,
   Check,
+  CheckCircle2,
+  XCircle,
   ImageIcon,
   Eye,
   LayoutList,
@@ -235,6 +237,37 @@ export default function AdminVariantsPage() {
       ),
     },
     {
+      accessorKey: "outOfStock",
+      header: "Stock",
+      cell: ({ row }) => {
+        const isOutOfStock = Boolean(row.original.outOfStock);
+        const stockCount =
+          typeof row.original.stock === "number" ? row.original.stock : undefined;
+
+        return (
+          <span
+            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+              !isOutOfStock
+                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                : "bg-rose-50 text-rose-700 border-rose-200"
+            }`}
+          >
+            {!isOutOfStock ? (
+              <>
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                <span>In Stock{stockCount !== undefined ? ` (${stockCount})` : ""}</span>
+              </>
+            ) : (
+              <>
+                <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                <span>Out of Stock</span>
+              </>
+            )}
+          </span>
+        );
+      },
+    },
+    {
       accessorKey: "isActive",
       header: "Status",
       cell: ({ row }) => (
@@ -259,20 +292,15 @@ export default function AdminVariantsPage() {
       header: "Actions",
       cell: ({ row }) => (
         <div className="flex gap-1.5">
-          <Button
-            variant="ghost"
-            size="icon"
-            asChild
+          <Link
+            href={`/admin/dashboard/variants/${encodeURIComponent(
+              row.original.id
+            )}?productId=${encodeURIComponent(row.original.productId)}`}
+            className="inline-flex items-center justify-center h-8 w-8 rounded-md text-[var(--color-neutral-500)] hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
             title="View Variant Details"
           >
-            <Link
-              href={`/admin/dashboard/variants/${encodeURIComponent(
-                row.original.id
-              )}?productId=${encodeURIComponent(row.original.productId)}`}
-            >
-              <Eye className="h-4 w-4 text-[var(--color-neutral-500)]" />
-            </Link>
-          </Button>
+            <Eye className="h-4 w-4" />
+          </Link>
 
           <Button
             variant="ghost"
@@ -792,6 +820,8 @@ export default function AdminVariantsPage() {
                     selectedVariant.unitValue,
                   basePrice: selectedVariant.basePrice,
                   salePrice: selectedVariant.salePrice,
+                  inStock: !selectedVariant.outOfStock,
+                  outOfStock: selectedVariant.outOfStock,
                 }}
                 isEditing
                 fixedProductId={selectedVariant.productId}
@@ -808,6 +838,7 @@ export default function AdminVariantsPage() {
                     unitValue: Number(formData.unitValue),
                     basePrice: Number(formData.basePrice),
                     salePrice: Number(formData.salePrice),
+                    outOfStock: !formData.inStock,
                   };
 
                   await updateMutation.mutateAsync({

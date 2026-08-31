@@ -146,6 +146,7 @@ export default function AdminProductDetailsPage() {
   const {
     data: variantsResponse,
     isLoading: isLoadingVariants,
+    refetch: refetchVariants,
   } = useVariants(
     productUuid
       ? {
@@ -591,13 +592,13 @@ export default function AdminProductDetailsPage() {
               className="px-4 py-2 rounded-lg bg-secondary-600 hover:bg-secondary-700 text-cream-white text-xs sm:text-sm font-semibold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
             >
               <Pencil className="w-3.5 h-3.5" />
-              <span>Edit product</span>
+              <span>Edit</span>
             </button>
           </div>
         </section>
 
         {/* Section 2: Stats Cards Grid (3 Cards) */}
-        <section className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+        {/* <section className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
           <div className="bg-white border border-cream-border rounded-2xl p-4 sm:p-5 flex flex-col gap-1.5 shadow-xs">
             <div className="text-[11px] font-bold tracking-wider text-neutral-400 uppercase">
               Price Range
@@ -628,7 +629,7 @@ export default function AdminProductDetailsPage() {
             </div>
             <div className="text-xs text-neutral-400">{stats.lastUpdatedTime || "Recent"}</div>
           </div>
-        </section>
+        </section> */}
 
         {/* Section 3: Two-Column Specifications & Description Grid */}
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
@@ -1283,6 +1284,8 @@ export default function AdminProductDetailsPage() {
         variants={variants}
         onSuccess={() => {
           setIsPriceEditOpen(false);
+          refetchVariants();
+          refetchProduct();
         }}
       />
 
@@ -1437,14 +1440,11 @@ export default function AdminProductDetailsPage() {
                 data: {
                   variantName: formData.variantName,
                   sku: formData.sku,
+                  slug: formData.slug,
                   unitId: formData.unitId,
                   unitValue: Number(formData.unitValue),
                   basePrice: Number(formData.basePrice),
                   salePrice: Number(formData.salePrice),
-                  weightGrams:
-                    formData.weightGrams !== null && formData.weightGrams !== undefined
-                      ? Number(formData.weightGrams)
-                      : null,
                 },
               });
               setIsAddVariantOpen(false);
@@ -1485,6 +1485,8 @@ export default function AdminProductDetailsPage() {
                   : Number(editingVariant.measurement?.value) || 1,
               basePrice: editingVariant.basePrice,
               salePrice: editingVariant.salePrice,
+              inStock: !editingVariant.outOfStock,
+              outOfStock: editingVariant.outOfStock,
             }}
             isEditing
             fixedProductId={canonicalProductId}
@@ -1499,14 +1501,12 @@ export default function AdminProductDetailsPage() {
                   data: {
                     variantName: formData.variantName,
                     sku: formData.sku,
+                    slug: formData.slug,
                     unitId: formData.unitId,
                     unitValue: Number(formData.unitValue),
                     basePrice: Number(formData.basePrice),
                     salePrice: Number(formData.salePrice),
-                    weightGrams:
-                      formData.weightGrams !== null && formData.weightGrams !== undefined
-                        ? Number(formData.weightGrams)
-                        : null,
+                    outOfStock: !formData.inStock,
                   },
                 });
                 setEditingVariant(null);

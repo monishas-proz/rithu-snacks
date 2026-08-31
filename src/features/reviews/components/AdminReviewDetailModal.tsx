@@ -81,7 +81,6 @@ export function AdminReviewDetailModal({
         onClose={onClose}
         title="Review Details"
         description="View customer feedback, ratings, and moderate status"
-        size="lg"
         className="max-w-2xl"
       >
         {isLoading && !review ? (
@@ -341,7 +340,7 @@ export function AdminReviewDetailModal({
         description="This will permanently delete this review from the system and recalculate product rating aggregations. This action cannot be undone."
         confirmText="Yes, Delete"
         cancelText="Cancel"
-        variant="danger"
+        variant="destructive"
         isLoading={deleteMutation.isPending}
       />
     </>

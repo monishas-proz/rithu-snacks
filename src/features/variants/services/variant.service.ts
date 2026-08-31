@@ -13,11 +13,11 @@ import type {
   VariantPriceHistoryResponse,
   GetVariantPriceHistoryParams,
   PriceHistoryChartItem,
-  BulkEditVariantsInput,
 } from "../types";
 import type {
   CreateAdminVariantInput,
   UpdateAdminVariantInput,
+  BulkEditVariantsInput,
 } from "../validations/admin-variant.schema";
 
 function slugify(text: string): string {

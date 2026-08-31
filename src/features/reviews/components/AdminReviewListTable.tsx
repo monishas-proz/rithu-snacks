@@ -310,9 +310,9 @@ export function AdminReviewListTable({
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-1 h-full min-h-0 flex-col overflow-hidden bg-[var(--color-background)] rounded-2xl">
       {/* Top Filter and Controls Bar */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+      <div className="flex-shrink-0 mb-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         {/* Left Side: Search, Rating Filter & Sort */}
         <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap w-full lg:w-auto">
           <div className="w-full sm:w-72">
@@ -381,13 +381,13 @@ export function AdminReviewListTable({
       </div>
 
       {/* Main Table Container */}
-      <div className="bg-white rounded-2xl border border-cream-border shadow-2xs overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
         {isLoading ? (
-          <div className="py-20 flex justify-center">
+          <div className="flex-1 flex items-center justify-center rounded-2xl border border-cream-border bg-white p-12">
             <LoadingState text="Loading reviews..." />
           </div>
         ) : error ? (
-          <div className="p-8">
+          <div className="flex-1 flex items-center justify-center rounded-2xl border border-cream-border bg-white p-12">
             <ErrorState
               title="Failed to load reviews"
               message={(error as Error)?.message || "Please check your network and try again"}
@@ -395,31 +395,33 @@ export function AdminReviewListTable({
             />
           </div>
         ) : reviews.length === 0 ? (
-          <div className="py-16 text-center px-4">
-            <Star className="mx-auto h-10 w-10 text-neutral-300 stroke-1" />
-            <h3 className="mt-3 text-sm font-bold text-neutral-900">
-              No reviews found
-            </h3>
-            <p className="mt-1 text-xs text-neutral-500 max-w-sm mx-auto">
-              {search || ratingFilter || statusFilter !== "all"
-                ? "No reviews match your current search or filter criteria."
-                : "No customer reviews have been submitted yet."}
-            </p>
-            {(search || ratingFilter || statusFilter !== "all") && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setSearch("");
-                  setRatingFilter(undefined);
-                  setStatusFilter("all");
-                  setPage(1);
-                }}
-                className="mt-4 text-xs font-semibold"
-              >
-                Clear all filters
-              </Button>
-            )}
+          <div className="flex-1 flex items-center justify-center rounded-2xl border border-cream-border bg-white p-12 text-center">
+            <div>
+              <Star className="mx-auto h-10 w-10 text-neutral-300 stroke-1" />
+              <h3 className="mt-3 text-sm font-bold text-neutral-900">
+                No reviews found
+              </h3>
+              <p className="mt-1 text-xs text-neutral-500 max-w-sm mx-auto">
+                {search || ratingFilter || statusFilter !== "all"
+                  ? "No reviews match your current search or filter criteria."
+                  : "No customer reviews have been submitted yet."}
+              </p>
+              {(search || ratingFilter || statusFilter !== "all") && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSearch("");
+                    setRatingFilter(undefined);
+                    setStatusFilter("all");
+                    setPage(1);
+                  }}
+                  className="mt-4 text-xs font-semibold"
+                >
+                  Clear all filters
+                </Button>
+              )}
+            </div>
           </div>
         ) : (
           <DataTable
@@ -434,6 +436,7 @@ export function AdminReviewListTable({
               setPageSize(newSize);
               setPage(1);
             }}
+            className="bg-white border border-cream-border shadow-2xs"
           />
         )}
       </div>
@@ -463,7 +466,7 @@ export function AdminReviewListTable({
         description={`Are you sure you want to permanently delete this review for "${reviewToDelete?.product?.name || "this product"}"? This action cannot be undone.`}
         confirmText="Yes, Delete"
         cancelText="Cancel"
-        variant="danger"
+        variant="destructive"
         isLoading={deleteMutation.isPending}
       />
     </div>

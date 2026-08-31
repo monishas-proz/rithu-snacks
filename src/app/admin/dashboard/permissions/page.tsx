@@ -140,7 +140,7 @@ export default function AdminPermissionsPage() {
   const isMutating = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <div>
+    <div className="flex flex-1 min-h-0 flex-col">
       <AdminBreadcrumb items={[{ label: "Permissions" }]} />
       <AdminPageHeader
         title="Permissions"
@@ -152,14 +152,17 @@ export default function AdminPermissionsPage() {
           </Button>
         }
       />
-      <AdminContent>
-        <DataTable
-          columns={columns}
-          data={permissions}
-          searchKey="name"
-          searchPlaceholder="Search permissions..."
-          pageSize={20}
-        />
+      <AdminContent className="flex-1 min-h-0 overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+          <DataTable
+            columns={columns}
+            data={permissions}
+            searchKey="name"
+            searchPlaceholder="Search permissions..."
+            pageSize={20}
+            className="bg-white border border-neutral-200"
+          />
+        </div>
       </AdminContent>
 
       <FormModal

@@ -187,7 +187,7 @@ export default function InventoryStockPage() {
   const inventoryData = data?.data?.data ?? [];
 
   return (
-    <div>
+    <div className="flex flex-1 min-h-0 flex-col">
       <AdminBreadcrumb
         items={[
           { label: "Dashboard", href: "/admin/dashboard" },
@@ -198,14 +198,18 @@ export default function InventoryStockPage() {
       <AdminPageHeader
         title="Inventory Stock"
         description="Manage your inventory stock levels"
-      >
-        <Button onClick={() => setCreateOpen(true)}>Add Inventory</Button>
-      </AdminPageHeader>
-      <AdminContent>
-        <DataTable
-          columns={columns}
-          data={inventoryData}
-        />
+        actions={
+          <Button onClick={() => setCreateOpen(true)}>Add Inventory</Button>
+        }
+      />
+      <AdminContent className="flex-1 min-h-0 overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+          <DataTable
+            columns={columns}
+            data={inventoryData}
+            className="bg-white border border-neutral-200"
+          />
+        </div>
       </AdminContent>
 
       <FormModal

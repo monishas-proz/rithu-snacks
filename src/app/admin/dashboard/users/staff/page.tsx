@@ -223,7 +223,7 @@ export default function AdminStaffPage() {
           <div className="mt-4 flex-1 min-h-0 overflow-hidden flex flex-col">
             {isLoading ? (
               <div className="flex-1 flex items-center justify-center rounded-2xl border border-neutral-200 bg-white p-12">
-                <LoadingState message="Loading staff members..." />
+                <LoadingState text="Loading staff members..." />
               </div>
             ) : error ? (
               <div className="flex-1 flex items-center justify-center rounded-2xl border border-neutral-200 bg-white p-12">

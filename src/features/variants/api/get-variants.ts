@@ -7,6 +7,10 @@ import type {
   CustomerGlobalVariantListParams,
   GetAdminVariantsParams,
   AdminVariantListParams,
+  VariantPriceHistoryResponse,
+  GetVariantPriceHistoryParams,
+  PriceHistoryChartItem,
+  BulkEditVariantsInput,
 } from "../types";
 
 export async function getCustomerVariants(
@@ -264,6 +268,51 @@ export async function uploadVariantImageFiles(
   }
 
   return result.data;
+}
+
+// Price History API
+export async function getVariantPriceHistory(
+  variantUuid: string,
+  params?: GetVariantPriceHistoryParams
+) {
+  const queryParams: Record<string, string | number | undefined> = {};
+  if (params?.page) queryParams.page = params.page;
+  if (params?.pageSize) queryParams.pageSize = params.pageSize;
+  if (params?.fromDate) queryParams.fromDate = params.fromDate;
+  if (params?.toDate) queryParams.toDate = params.toDate;
+  if (params?.sortOrder) queryParams.sortOrder = params.sortOrder;
+
+  const response = await apiClient.get<VariantPriceHistoryResponse[]>(
+    `/api/admin/variants/${variantUuid}/price-history`,
+    { params: queryParams }
+  );
+
+  return {
+    data: response.data ?? [],
+    meta: response.meta,
+  };
+}
+
+export async function getVariantPriceHistoryChart(
+  variantUuid: string,
+  period: string = "1y"
+): Promise<PriceHistoryChartItem[]> {
+  const response = await apiClient.get<PriceHistoryChartItem[]>(
+    `/api/admin/variants/${variantUuid}/price-history/chart`,
+    { params: { period } }
+  );
+  return response.data ?? [];
+}
+
+// Bulk Edit Variants API
+export async function bulkEditVariants(
+  data: BulkEditVariantsInput
+): Promise<AdminVariantResponse[]> {
+  const response = await apiClient.put<AdminVariantResponse[]>(
+    "/api/admin/variants/bulk",
+    data
+  );
+  return response.data ?? [];
 }
 
 // Aliases

@@ -94,6 +94,10 @@ export async function getAdminReviewById(
     `/api/admin/reviews/${encodeURIComponent(reviewId)}`
   );
 
+  if (!response.data) {
+    throw new Error("Failed to fetch review details");
+  }
+
   return response.data;
 }
 
@@ -114,6 +118,10 @@ export async function updateReviewStatus(
     `/api/admin/reviews/${encodeURIComponent(reviewId)}/status`,
     { isApproved }
   );
+
+  if (!response.data) {
+    throw new Error("Failed to update review status");
+  }
 
   return response.data;
 }

@@ -186,7 +186,7 @@ export default function AdminCouponsPage() {
   if (error) return <ErrorState message="Failed to load coupons" onRetry={() => refetch()} />;
 
   return (
-    <div>
+    <div className="flex flex-1 min-h-0 flex-col">
       <AdminBreadcrumb items={[{ label: "Coupons" }]} />
       <AdminPageHeader
         title="Coupons"
@@ -198,14 +198,17 @@ export default function AdminCouponsPage() {
           </Button>
         }
       />
-      <AdminContent>
-        <DataTable
-          columns={columns}
-          data={coupons}
-          searchKey="code"
-          searchPlaceholder="Search coupons..."
-          pageSize={20}
-        />
+      <AdminContent className="flex-1 min-h-0 overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+          <DataTable
+            columns={columns}
+            data={coupons}
+            searchKey="code"
+            searchPlaceholder="Search coupons..."
+            pageSize={20}
+            className="bg-white border border-neutral-200"
+          />
+        </div>
       </AdminContent>
 
       <FormModal

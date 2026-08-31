@@ -132,9 +132,9 @@ function DataTable<TData, TValue>({
 
     
   return (
-    <div className={cn("space-y-4 h-full flex flex-col justify-between rounded-2xl", className)}>
+    <div className={cn("h-full flex flex-col justify-between rounded-2xl overflow-hidden", className)}>
       {searchKey && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 p-3 pb-0 flex-shrink-0">
           <SearchInput
             placeholder={searchPlaceholder}
             defaultValue={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ""}
@@ -144,7 +144,7 @@ function DataTable<TData, TValue>({
         </div>
       )}
 
-      <div className="min-h-0 flex-1 overflow-hidden rounded-2xl">
+      <div className="min-h-0 flex-1 overflow-hidden">
         <div className="h-full overflow-x-auto overflow-y-auto overscroll-x-contain">
           <table className="w-full min-w-[720px] table-auto caption-bottom text-sm border-separate border-spacing-0">
             <thead>
@@ -232,7 +232,7 @@ function DataTable<TData, TValue>({
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 sm:px-5 py-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 sm:px-5 py-2.5 flex-shrink-0 border-t border-neutral-200/80 bg-white">
         <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-sm text-[var(--color-neutral-500)]">
           <p>
             Showing {startEntry}–{endEntry} of {computedTotalItems} entries

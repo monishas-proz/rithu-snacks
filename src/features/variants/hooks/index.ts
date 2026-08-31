@@ -6,11 +6,14 @@ export {
   useAdminVariants,
   useAdminVariant,
   useCustomerVariants,
+  useVariantPriceHistory,
+  useVariantPriceHistoryChart,
 } from "./use-variants";
 
 export {
   useCreateVariant,
   useUpdateVariant,
+  useBulkEditVariants,
   useDeleteVariant,
   useCreateVariantImages,
   useUpdateVariantImage,

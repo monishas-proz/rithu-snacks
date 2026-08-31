@@ -169,7 +169,7 @@ export default function AdminBlogsPage() {
   if (error) return <ErrorState message="Failed to load blogs" onRetry={() => refetch()} />;
 
   return (
-    <div>
+    <div className="flex flex-1 min-h-0 flex-col">
       <AdminBreadcrumb items={[{ label: "Blogs" }]} />
       <AdminPageHeader
         title="Blogs"
@@ -181,14 +181,17 @@ export default function AdminBlogsPage() {
           </Button>
         }
       />
-      <AdminContent>
-        <DataTable
-          columns={columns}
-          data={blogs}
-          searchKey="title"
-          searchPlaceholder="Search blogs..."
-          pageSize={20}
-        />
+      <AdminContent className="flex-1 min-h-0 overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+          <DataTable
+            columns={columns}
+            data={blogs}
+            searchKey="title"
+            searchPlaceholder="Search blogs..."
+            pageSize={20}
+            className="bg-white border border-neutral-200"
+          />
+        </div>
       </AdminContent>
 
       <FormModal
