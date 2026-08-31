@@ -431,6 +431,8 @@ export const adminCustomerRepository = {
                 unit_value: true,
                 product_units: {
                   select: {
+                    id: true,
+                    uuid: true,
                     name: true,
                     code: true,
                     type: true,

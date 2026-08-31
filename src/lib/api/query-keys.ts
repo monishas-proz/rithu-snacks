@@ -39,3 +39,12 @@ export const roleKeys = createQueryKeyFactory("roles");
 export const permissionKeys = createQueryKeyFactory("permissions");
 export const variantKeys = createQueryKeyFactory("variants");
 export const adminCustomerKeys = createQueryKeyFactory("admin-customers");
+export const bannerPositionKeys = createQueryKeyFactory("banner-positions");
+export const bannerKeys = createQueryKeyFactory("banners");
+export const staffKeys = createQueryKeyFactory("staff");
+export const deliveryKeys = createQueryKeyFactory("delivery");
+export const returnKeys = createQueryKeyFactory("returns");
+
+
+
+

@@ -40,15 +40,17 @@ export interface AdminVariantResponse {
   productId: string; // Public Product UUID
   productName: string;
   variantName: string; // Stored DB variant_name e.g. "1 kg"
+  slug: string;
   measurement: VariantMeasurement;
   sku: string;
   basePrice: number;
   salePrice: number;
+  stock?: number;
   primaryImage: string | null;
   isActive: boolean;
+  outOfStock: boolean;
   unitId?: string;
   unitValue?: number;
-  weightGrams?: number | null;
   unitName?: string;
   unitCode?: string;
   createdAt: Date;
@@ -77,6 +79,7 @@ export interface GetAdminVariantsParams {
   search?: string;
   productId?: string;
   productUuid?: string;
+  isActive?: boolean;
 }
 
 export interface AdminVariantListParams {
@@ -109,11 +112,13 @@ export interface VariantPriceHistoryChangedByDto {
 
 export interface VariantPriceHistoryResponse {
   id: string; // history uuid
-  oldBasePrice: number | null;
-  newBasePrice: number | null;
+  oldPrice: number | null;
+  newPrice: number | null;
   oldSalePrice: number | null;
   newSalePrice: number | null;
-  changedAt: Date;
+  oldBasePrice?: number | null;
+  newBasePrice?: number | null;
+  changedAt: Date | string;
   changedBy: VariantPriceHistoryChangedByDto | null;
 }
 
@@ -124,3 +129,24 @@ export interface GetVariantPriceHistoryParams {
   toDate?: string;
   sortOrder?: "asc" | "desc";
 }
+
+export interface PriceHistoryChartItem {
+  month: string; // "YYYY-MM"
+  price: number;
+  salePrice: number;
+}
+
+export interface BulkEditVariantItem {
+  id: string; // variant UUID
+  price?: number;
+  basePrice?: number;
+  salePrice?: number;
+  stock?: number;
+  isActive?: boolean;
+  outOfStock?: boolean;
+}
+
+export interface BulkEditVariantsInput {
+  variants: BulkEditVariantItem[];
+}
+

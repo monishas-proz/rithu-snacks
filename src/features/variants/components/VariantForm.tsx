@@ -4,10 +4,7 @@ import { useMemo } from "react";
 import { FormProvider, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import {
-  getMeasurementFieldConfig,
-  calculateWeightGrams,
-} from "../utils/measurement.util";
+import { getMeasurementFieldConfig } from "../utils/measurement.util";
 import type { UnitOption } from "../types";
 import { FormInput } from "@/components/forms/form-input";
 import { FormSelect } from "@/components/forms/form-select";
@@ -28,6 +25,11 @@ const variantFormSchema = z.object({
     .trim()
     .min(1, "SKU cannot be empty")
     .max(100, "SKU cannot exceed 100 characters"),
+  slug: z
+    .string({ message: "Slug is required" })
+    .trim()
+    .min(1, "Slug cannot be empty")
+    .max(255, "Slug cannot exceed 255 characters"),
   unitId: z
     .string({ message: "Please select a unit" })
     .uuid("Invalid Unit UUID format")
@@ -41,11 +43,6 @@ const variantFormSchema = z.object({
   salePrice: z
     .number({ message: "Sale price is required" })
     .min(0, "Sale price cannot be negative"),
-  weightGrams: z
-    .number()
-    .min(0, "Weight in grams cannot be negative")
-    .optional()
-    .nullable(),
 });
 
 export type VariantFormValues = z.infer<typeof variantFormSchema>;
@@ -90,11 +87,11 @@ function VariantForm({
       productId: fixedProductId || initialData?.productId || "",
       variantName: initialData?.variantName || "",
       sku: initialData?.sku || "",
+      slug: initialData?.slug || "",
       unitId: initialData?.unitId || "",
       unitValue: initialData?.unitValue,
       basePrice: initialData?.basePrice,
       salePrice: initialData?.salePrice,
-      weightGrams: initialData?.weightGrams ?? null,
     },
   });
 
@@ -146,18 +143,11 @@ function VariantForm({
       return;
     }
 
-    // Auto-calculate weightGrams for weight units, or set to null for volume/count
-    const calculatedWeightGrams = calculateWeightGrams(
-      Number(data.unitValue),
-      selectedUnit
-    );
-
     const submissionPayload: VariantFormValues = {
       ...data,
       unitValue: Number(data.unitValue),
       basePrice: Number(data.basePrice),
       salePrice: Number(data.salePrice),
-      weightGrams: calculatedWeightGrams,
     };
 
     await onSubmit(submissionPayload);
@@ -178,7 +168,7 @@ function VariantForm({
           />
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <FormInput
             name="variantName"
             label="Variant Name"
@@ -189,6 +179,12 @@ function VariantForm({
             name="sku"
             label="SKU"
             placeholder="e.g. BANANA-500G, OIL-1L"
+          />
+
+          <FormInput
+            name="slug"
+            label="Slug"
+            placeholder="e.g. banana-chips-500g"
           />
         </div>
 

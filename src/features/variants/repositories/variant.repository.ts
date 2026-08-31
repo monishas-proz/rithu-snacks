@@ -37,6 +37,13 @@ export const variantInclude = Prisma.validator<Prisma.ProductVariantInclude>()({
     },
     orderBy: [{ is_primary: "desc" }, { sort_order: "asc" }],
   },
+  inventories: {
+    select: {
+      id: true,
+      quantity_available: true,
+      quantity_reserved: true,
+    },
+  },
 });
 
 export const variantRepository = {
@@ -64,6 +71,17 @@ export const variantRepository = {
     });
   },
 
+  async findBySlug(slug: string, excludeUuid?: string) {
+    return db.productVariant.findFirst({
+      where: {
+        slug,
+        deleted_at: null,
+        ...(excludeUuid ? { uuid: { not: excludeUuid } } : {}),
+      },
+      include: variantInclude,
+    });
+  },
+
   async findAdminAll(
     params: GetAdminVariantsParams = {},
     productId?: bigint
@@ -78,6 +96,10 @@ export const variantRepository = {
         deleted_at: null,
       },
     };
+
+    if (typeof params.isActive === "boolean") {
+      where.isActive = params.isActive;
+    }
 
     if (params.search) {
       where.OR = [
@@ -121,7 +143,7 @@ export const variantRepository = {
       },
     };
 
-    if (params.isActive !== undefined) {
+    if (typeof params.isActive === "boolean") {
       where.isActive = params.isActive;
     }
 
@@ -261,7 +283,7 @@ export const variantRepository = {
 
   async updateByUuid(
     uuid: string,
-    data: Prisma.ProductVariantUncheckedUpdateInput,
+    data: Prisma.ProductVariantUncheckedUpdateInput & { stock?: number },
     adminId?: bigint | null
   ) {
     return db.$transaction(async (tx) => {
@@ -300,11 +322,137 @@ export const variantRepository = {
         });
       }
 
+      const { stock, ...variantUpdateData } = data;
+
+      if (stock !== undefined) {
+        await tx.inventory.upsert({
+          where: { variantId: existing.id },
+          create: {
+            variantId: existing.id,
+            quantity_available: stock,
+            quantity_reserved: 0,
+            is_active: true,
+            created_by: adminId ?? null,
+            updated_by: adminId ?? null,
+          },
+          update: {
+            quantity_available: stock,
+            updated_by: adminId ?? null,
+          },
+        });
+      }
+
       return tx.productVariant.update({
         where: { id: existing.id },
-        data,
+        data: variantUpdateData,
         include: variantInclude,
       });
+    });
+  },
+
+  async bulkUpdateVariants(
+    items: Array<{
+      id: string; // variant UUID
+      price?: number;
+      basePrice?: number;
+      salePrice?: number;
+      stock?: number;
+      isActive?: boolean;
+      outOfStock?: boolean;
+    }>,
+    adminId?: bigint | null
+  ) {
+    return db.$transaction(async (tx) => {
+      const updatedVariants = [];
+
+      for (const item of items) {
+        const existing = await tx.productVariant.findFirst({
+          where: { uuid: item.id, deleted_at: null },
+          include: { inventories: true },
+        });
+
+        if (!existing) {
+          throw new Error(`Variant with ID '${item.id}' not found`);
+        }
+
+        const effectiveBasePrice =
+          item.price !== undefined ? item.price : item.basePrice;
+
+        const oldBasePrice = Number(existing.base_price);
+        const newBasePrice =
+          effectiveBasePrice !== undefined ? Number(effectiveBasePrice) : oldBasePrice;
+
+        const oldSalePrice = Number(existing.sale_price);
+        const newSalePrice =
+          item.salePrice !== undefined ? Number(item.salePrice) : oldSalePrice;
+
+        const isBasePriceChanged =
+          effectiveBasePrice !== undefined && oldBasePrice !== newBasePrice;
+        const isSalePriceChanged =
+          item.salePrice !== undefined && oldSalePrice !== newSalePrice;
+
+        if (isBasePriceChanged || isSalePriceChanged) {
+          await tx.variant_price_history.create({
+            data: {
+              uuid: crypto.randomUUID(),
+              variant_id: existing.id,
+              old_base_price: oldBasePrice,
+              new_base_price: newBasePrice,
+              old_sale_price: oldSalePrice,
+              new_sale_price: newSalePrice,
+              changed_at: new Date(),
+              is_active: true,
+              created_by: adminId ?? null,
+              updated_by: adminId ?? null,
+            },
+          });
+        }
+
+        const updateData: Prisma.ProductVariantUncheckedUpdateInput = {};
+        if (effectiveBasePrice !== undefined) {
+          updateData.base_price = effectiveBasePrice;
+        }
+        if (item.salePrice !== undefined) {
+          updateData.sale_price = item.salePrice;
+        }
+        if (typeof item.isActive === "boolean") {
+          updateData.isActive = item.isActive;
+        }
+        if (typeof item.outOfStock === "boolean") {
+          updateData.out_of_stock = item.outOfStock;
+        }
+        if (adminId) {
+          updateData.updated_by = adminId;
+        }
+
+        if (item.stock !== undefined) {
+          await tx.inventory.upsert({
+            where: { variantId: existing.id },
+            create: {
+              variantId: existing.id,
+              quantity_available: item.stock,
+              quantity_reserved: 0,
+              is_active: true,
+              created_by: adminId ?? null,
+              updated_by: adminId ?? null,
+            },
+            update: {
+              quantity_available: item.stock,
+              updated_by: adminId ?? null,
+            },
+          });
+        }
+
+        const updated = await tx.productVariant.update({
+          where: { id: existing.id },
+          data: updateData,
+          include: variantInclude,
+        });
+
+        updatedVariants.push(updated);
+      }
+
+      return updatedVariants;
     });
   },
 
@@ -379,5 +527,15 @@ export const variantRepository = {
         totalPages: Math.ceil(total / pageSize),
       },
     };
+  },
+
+  async findPriceHistoryAllByVariantId(variantId: bigint) {
+    return db.variant_price_history.findMany({
+      where: {
+        variant_id: variantId,
+        is_active: true,
+      },
+      orderBy: [{ changed_at: "asc" }, { id: "asc" }],
+    });
   },
 };

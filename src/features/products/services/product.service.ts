@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { db } from "@/lib/db/prisma";
 import { ApiError } from "@/lib/api/api-error";
 import { productRepository } from "../repositories/product.repository";
 import { categoryRepository } from "@/features/categories/repositories/category.repository";
@@ -13,6 +14,7 @@ import type {
 import type {
   CreateAdminProductInput,
   UpdateAdminProductInput,
+  AdminProductListInput,
   VegType,
 } from "../validations/admin-product.schema";
 
@@ -34,28 +36,40 @@ async function formatAdminProductResponse(
     createdAt: Date;
     updatedAt: Date;
     brand?: { id: bigint; uuid: string | null; name: string; isActive: boolean } | null;
-    product_hsn_codes?: { id: bigint; uuid: string | null; code: string; is_active: boolean } | null;
+    product_hsn_codes?: { id: bigint; uuid: string | null; code: string; description: string | null; is_active: boolean } | null;
   },
-  cachedCategoryUuid?: string | null
+  cachedCategory?: { uuid: string | null; name: string | null } | null
 ): Promise<AdminProductResponse> {
   const productUuid = product.uuid || String(product.id);
   
   let categoryUuid: string | null = null;
-  if (cachedCategoryUuid !== undefined && cachedCategoryUuid !== null) {
-    categoryUuid = cachedCategoryUuid;
+  let categoryName: string | null = null;
+  if (cachedCategory !== undefined && cachedCategory !== null) {
+    categoryUuid = cachedCategory.uuid ?? null;
+    categoryName = cachedCategory.name ?? null;
   } else if (product.categoryId) {
     const category = await categoryRepository.findById(product.categoryId);
     categoryUuid = category?.uuid ?? null;
+    categoryName = category?.name ?? null;
   }
 
   const brandUuid = product.brand?.uuid ?? null;
+  const brandName = product.brand?.name ?? null;
+
   const hsnUuid = product.product_hsn_codes?.uuid ?? null;
+  const hsnCodeName =
+    product.product_hsn_codes?.description ||
+    product.product_hsn_codes?.code ||
+    null;
 
   return {
     id: productUuid,
     categoryId: categoryUuid,
+    categoryName,
     brandId: brandUuid,
+    brandName,
     hsnCodeId: hsnUuid,
+    hsnCodeName,
     name: product.name,
     slug: product.slug,
     shortDescription: product.shortDescription ?? null,
@@ -67,6 +81,35 @@ async function formatAdminProductResponse(
     createdAt: product.createdAt,
     updatedAt: product.updatedAt,
   };
+}
+
+async function formatAdminProductList(products: any[]): Promise<AdminProductResponse[]> {
+  const categoryIds = Array.from(
+    new Set(
+      products
+        .map((p) => p.categoryId)
+        .filter((id): id is bigint => id !== null && id !== undefined)
+    )
+  );
+
+  const categories = categoryIds.length > 0
+    ? await db.productCategory.findMany({
+        where: { id: { in: categoryIds } },
+        select: { id: true, uuid: true, name: true },
+      })
+    : [];
+
+  const categoryMap = new Map<string, { uuid: string | null; name: string | null }>();
+  categories.forEach((cat) => {
+    categoryMap.set(String(cat.id), { uuid: cat.uuid, name: cat.name });
+  });
+
+  return Promise.all(
+    products.map((item) => {
+      const cached = item.categoryId ? categoryMap.get(String(item.categoryId)) : null;
+      return formatAdminProductResponse(item, cached);
+    })
+  );
 }
 
 async function getAdminInternalId(email?: string): Promise<bigint | null> {
@@ -130,14 +173,83 @@ export const productService = {
       updated_by: adminId,
     });
 
-    return formatAdminProductResponse(created, category.uuid);
+    return formatAdminProductResponse(created, { uuid: category.uuid, name: category.name });
   },
 
   async getAdminProducts(params: GetAdminProductsParams = {}) {
     const result = await productRepository.findAdminAll(params);
-    const data = await Promise.all(
-      result.data.map((item) => formatAdminProductResponse(item))
+    const data = await formatAdminProductList(result.data);
+
+    return {
+      data,
+      meta: result.meta,
+    };
+  },
+
+  async getAdminProductsList(params: AdminProductListInput) {
+    let resolvedCategoryInternalId: bigint | undefined = undefined;
+    let resolvedBrandInternalId: bigint | undefined = undefined;
+    let resolvedHsnCodeInternalId: bigint | undefined = undefined;
+
+    if (params.categoryId) {
+      const category = await categoryRepository.findByUuid(params.categoryId);
+      if (!category) {
+        return {
+          data: [],
+          meta: {
+            page: params.page ?? 1,
+            limit: params.limit ?? params.pageSize ?? 10,
+            pageSize: params.limit ?? params.pageSize ?? 10,
+            total: 0,
+            totalPages: 1,
+          },
+        };
+      }
+      resolvedCategoryInternalId = category.id;
+    }
+
+    if (params.brandId) {
+      const brand = await brandRepository.findByUuid(params.brandId);
+      if (!brand) {
+        return {
+          data: [],
+          meta: {
+            page: params.page ?? 1,
+            limit: params.limit ?? params.pageSize ?? 10,
+            pageSize: params.limit ?? params.pageSize ?? 10,
+            total: 0,
+            totalPages: 1,
+          },
+        };
+      }
+      resolvedBrandInternalId = brand.id;
+    }
+
+    if (params.hsnCodeId) {
+      const hsnCode = await hsnCodeRepository.findByUuid(params.hsnCodeId);
+      if (!hsnCode) {
+        return {
+          data: [],
+          meta: {
+            page: params.page ?? 1,
+            limit: params.limit ?? params.pageSize ?? 10,
+            pageSize: params.limit ?? params.pageSize ?? 10,
+            total: 0,
+            totalPages: 1,
+          },
+        };
+      }
+      resolvedHsnCodeInternalId = hsnCode.id;
+    }
+
+    const result = await productRepository.findAdminList(
+      params,
+      resolvedCategoryInternalId,
+      resolvedBrandInternalId,
+      resolvedHsnCodeInternalId
     );
+
+    const data = await formatAdminProductList(result.data);
 
     return {
       data,
@@ -165,7 +277,7 @@ export const productService = {
 
     const adminId = await getAdminInternalId(adminEmail);
     const updateData: Prisma.ProductUncheckedUpdateInput = {};
-    let categoryUuid: string | null | undefined = undefined;
+    let cachedCategory: { uuid: string | null; name: string | null } | undefined = undefined;
 
     if (adminId) {
       updateData.updated_by = adminId;
@@ -178,7 +290,7 @@ export const productService = {
         throw ApiError.badRequest("Invalid or inactive category");
       }
       updateData.categoryId = category.id;
-      categoryUuid = category.uuid;
+      cachedCategory = { uuid: category.uuid, name: category.name };
     }
 
     // Resolve Brand UUID if provided
@@ -238,7 +350,7 @@ export const productService = {
       throw ApiError.notFound("Product not found");
     }
 
-    return formatAdminProductResponse(updated, categoryUuid);
+    return formatAdminProductResponse(updated, cachedCategory);
   },
 
   async deleteAdminProduct(uuid: string, adminEmail?: string) {

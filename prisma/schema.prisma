@@ -260,6 +260,7 @@ model User {
   shipment_tracking_shipment_tracking_updated_byTousers               shipment_tracking[]        @relation("shipment_tracking_updated_byTousers")
   shipments_shipments_created_byTousers                               shipments[]                @relation("shipments_created_byTousers")
   shipments_shipments_updated_byTousers                               shipments[]                @relation("shipments_updated_byTousers")
+  shipments_shipments_delivery_staffTousers                           shipments[]                @relation("shipments_delivery_staffTousers")
   shipping_charges_shipping_charges_created_byTousers                 shipping_charges[]         @relation("shipping_charges_created_byTousers")
   shipping_charges_shipping_charges_updated_byTousers                 shipping_charges[]         @relation("shipping_charges_updated_byTousers")
   shipping_zones_shipping_zones_created_byTousers                     shipping_zones[]           @relation("shipping_zones_created_byTousers")
@@ -401,6 +402,7 @@ model ProductVariant {
   productId                                BigInt                   @map("product_id") @db.UnsignedBigInt
   variant_name                             String                   @default("") @map("variant_name") @db.VarChar(100)
   sku                                      String                   @unique(map: "sku") @db.VarChar(100)
+  slug                                     String?                  @unique(map: "idx_variant_slug") @db.VarChar(255)
   unit_value                               Decimal                  @db.Decimal(10, 2)
   unit_id                                  BigInt                   @db.UnsignedBigInt
   base_price                               Decimal                  @default(0.00) @db.Decimal(10, 2)
@@ -409,6 +411,7 @@ model ProductVariant {
   weight_grams                             Decimal?                 @db.Decimal(10, 2)
   is_default                               Boolean                  @default(false)
   isActive                                 Boolean                  @default(true) @map("is_active")
+  out_of_stock                             Boolean                  @default(false) @map("out_of_stock")
   createdAt                                DateTime                 @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt                                DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
   deleted_at                               DateTime?                @db.Timestamp(0)
@@ -428,6 +431,7 @@ model ProductVariant {
   stock_reports                            stock_reports[]
   wishlist_items                           WishlistItem[]
   variant_price_history                    variant_price_history[]
+  reviews                                  Review[]
 
   @@index([created_by], map: "fk_product_variants_created_by")
   @@index([updated_by], map: "fk_product_variants_updated_by")
@@ -743,28 +747,32 @@ model PaymentTransaction {
 }
 
 model Review {
-  id                              BigInt        @id @default(autoincrement()) @db.UnsignedBigInt
-  productId                       BigInt        @map("product_id") @db.UnsignedBigInt
-  userId                          BigInt        @map("user_id") @db.UnsignedBigInt
-  order_item_id                   BigInt?       @db.UnsignedBigInt
-  rating                          Int           @db.UnsignedTinyInt
-  title                           String?       @db.VarChar(150)
-  comment                         String?       @db.Text
-  isApproved                      Boolean       @default(false) @map("is_approved")
-  createdAt                       DateTime      @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt                       DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
-  is_active                       Boolean       @default(true)
-  created_by                      BigInt?       @db.UnsignedBigInt
-  updated_by                      BigInt?       @db.UnsignedBigInt
+  id                              BigInt          @id @default(autoincrement()) @db.UnsignedBigInt
+  uuid                            String?         @unique(map: "idx_reviews_uuid") @db.VarChar(255)
+  productId                       BigInt          @map("product_id") @db.UnsignedBigInt
+  variant_id                      BigInt?         @map("variant_id") @db.UnsignedBigInt
+  userId                          BigInt          @map("user_id") @db.UnsignedBigInt
+  order_item_id                   BigInt?         @db.UnsignedBigInt
+  rating                          Int             @db.UnsignedTinyInt
+  title                           String?         @db.VarChar(150)
+  comment                         String?         @db.Text
+  isApproved                      Boolean         @default(false) @map("is_approved")
+  createdAt                       DateTime        @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt                       DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+  is_active                       Boolean         @default(true)
+  created_by                      BigInt?         @db.UnsignedBigInt
+  updated_by                      BigInt?         @db.UnsignedBigInt
   images                          ReviewImage[]
-  order_items                     OrderItem?    @relation(fields: [order_item_id], references: [id], onUpdate: NoAction, map: "fk_review_orderitem")
-  product                         Product       @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_review_product")
-  user                            User          @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_review_user")
-  users_reviews_created_byTousers User?         @relation("reviews_created_byTousers", fields: [created_by], references: [id], onUpdate: NoAction, map: "fk_reviews_created_by")
-  users_reviews_updated_byTousers User?         @relation("reviews_updated_byTousers", fields: [updated_by], references: [id], onUpdate: NoAction, map: "fk_reviews_updated_by")
+  order_items                     OrderItem?      @relation(fields: [order_item_id], references: [id], onUpdate: NoAction, map: "fk_review_orderitem")
+  product                         Product         @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_review_product")
+  product_variant                 ProductVariant? @relation(fields: [variant_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_review_variant")
+  user                            User            @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_review_user")
+  users_reviews_created_byTousers User?           @relation("reviews_created_byTousers", fields: [created_by], references: [id], onUpdate: NoAction, map: "fk_reviews_created_by")
+  users_reviews_updated_byTousers User?           @relation("reviews_updated_byTousers", fields: [updated_by], references: [id], onUpdate: NoAction, map: "fk_reviews_updated_by")
 
   @@index([order_item_id], map: "fk_review_orderitem")
   @@index([productId], map: "fk_review_product")
+  @@index([variant_id], map: "fk_review_variant")
   @@index([userId], map: "fk_review_user")
   @@index([created_by], map: "fk_reviews_created_by")
   @@index([updated_by], map: "fk_reviews_updated_by")
@@ -1877,6 +1885,7 @@ model return_items {
 
 model return_requests {
   id                                      BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
+  uuid                                    String?                @unique(map: "idx_return_requests_uuid") @db.VarChar(255)
   order_id                                BigInt                 @db.UnsignedBigInt
   user_id                                 BigInt                 @db.UnsignedBigInt
   reason                                  String                 @db.VarChar(255)
@@ -2044,10 +2053,15 @@ model shipment_tracking {
 
 model shipments {
   id                                BigInt              @id @default(autoincrement()) @db.UnsignedBigInt
+  uuid                              String?             @db.VarChar(255)
   order_id                          BigInt              @db.UnsignedBigInt
+  delivery_staff_id                 BigInt?             @db.UnsignedBigInt
   delivery_partner_id               BigInt?             @db.UnsignedBigInt
   tracking_number                   String?             @db.VarChar(150)
   status                            shipments_status    @default(pending)
+  assignment_status                 String?             @default("pending") @db.VarChar(50)
+  accepted_at                       DateTime?           @db.Timestamp(0)
+  delivery_notes                    String?             @db.VarChar(500)
   shipped_at                        DateTime?           @db.Timestamp(0)
   delivered_at                      DateTime?           @db.Timestamp(0)
   created_at                        DateTime            @default(now()) @db.Timestamp(0)
@@ -2058,10 +2072,12 @@ model shipments {
   shipment_tracking                 shipment_tracking[]
   orders                            Order               @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_shipment_order")
   delivery_partners                 delivery_partners?  @relation(fields: [delivery_partner_id], references: [id], onUpdate: NoAction, map: "fk_shipment_partner")
+  delivery_staff                    User?               @relation("shipments_delivery_staffTousers", fields: [delivery_staff_id], references: [id], onUpdate: NoAction, map: "fk_shipment_delivery_staff")
   users_shipments_created_byTousers User?               @relation("shipments_created_byTousers", fields: [created_by], references: [id], onUpdate: NoAction, map: "fk_shipments_created_by")
   users_shipments_updated_byTousers User?               @relation("shipments_updated_byTousers", fields: [updated_by], references: [id], onUpdate: NoAction, map: "fk_shipments_updated_by")
 
   @@index([order_id], map: "fk_shipment_order")
+  @@index([delivery_staff_id], map: "fk_shipment_delivery_staff")
   @@index([delivery_partner_id], map: "fk_shipment_partner")
   @@index([created_by], map: "fk_shipments_created_by")
   @@index([updated_by], map: "fk_shipments_updated_by")

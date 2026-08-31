@@ -39,6 +39,7 @@ export interface CustomerVariantListItemDto {
   basePrice: number;
   salePrice: number;
   primaryImage: string | null;
+  outOfStock?: boolean;
 }
 
 export interface CustomerVariantImageDto {

@@ -367,15 +367,11 @@ export default function AdminVariantsPage() {
               const payload = {
                 variantName: formData.variantName,
                 sku: formData.sku,
+                slug: formData.slug,
                 unitId: formData.unitId,
                 unitValue: Number(formData.unitValue),
                 basePrice: Number(formData.basePrice),
                 salePrice: Number(formData.salePrice),
-                weightGrams:
-                  formData.weightGrams !== null &&
-                  formData.weightGrams !== undefined
-                    ? Number(formData.weightGrams)
-                    : null,
               };
 
               const res = await createMutation.mutateAsync({
@@ -456,7 +452,9 @@ export default function AdminVariantsPage() {
                   productId: selectedVariant.productId,
                   variantName: selectedVariant.variantName,
                   sku: selectedVariant.sku,
+                  slug: selectedVariant.slug || "",
                   unitId:
+                    selectedVariant.measurement?.unitId ||
                     units.find(
                       (u) =>
                         u.code?.toLowerCase() ===
@@ -472,7 +470,6 @@ export default function AdminVariantsPage() {
                     selectedVariant.unitValue,
                   basePrice: selectedVariant.basePrice,
                   salePrice: selectedVariant.salePrice,
-                  weightGrams: selectedVariant.weightGrams,
                 }}
                 isEditing
                 fixedProductId={selectedVariant.productId}
@@ -484,15 +481,11 @@ export default function AdminVariantsPage() {
                   const payload = {
                     variantName: formData.variantName,
                     sku: formData.sku,
+                    slug: formData.slug,
                     unitId: formData.unitId,
                     unitValue: Number(formData.unitValue),
                     basePrice: Number(formData.basePrice),
                     salePrice: Number(formData.salePrice),
-                    weightGrams:
-                      formData.weightGrams !== null &&
-                      formData.weightGrams !== undefined
-                        ? Number(formData.weightGrams)
-                        : null,
                   };
 
                   await updateMutation.mutateAsync({

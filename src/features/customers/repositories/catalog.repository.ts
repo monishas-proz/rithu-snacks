@@ -423,6 +423,7 @@ export const catalogRepository = {
         basePrice: Number(v.base_price),
         salePrice: v.sale_price !== null && Number(v.sale_price) > 0 ? Number(v.sale_price) : Number(v.base_price),
         primaryImage: primaryImg,
+        outOfStock: Boolean(v.out_of_stock),
       };
     });
 
@@ -531,6 +532,7 @@ export const catalogRepository = {
       basePrice: Number(v.base_price),
       salePrice: v.sale_price !== null ? Number(v.sale_price) : Number(v.base_price),
       primaryImage: v.product_variant_images[0]?.image_url ?? null,
+      outOfStock: Boolean(v.out_of_stock),
     }));
 
     return {
@@ -598,6 +600,7 @@ export const catalogRepository = {
       basePrice: Number(variant.base_price),
       salePrice: variant.sale_price !== null ? Number(variant.sale_price) : Number(variant.base_price),
       primaryImage: primaryImg,
+      outOfStock: Boolean(variant.out_of_stock),
       images,
     };
   },
@@ -726,6 +729,7 @@ export const catalogRepository = {
       basePrice: Number(v.base_price),
       salePrice: v.sale_price !== null ? Number(v.sale_price) : Number(v.base_price),
       primaryImage: v.product_variant_images[0]?.image_url ?? null,
+      outOfStock: Boolean(v.out_of_stock),
     }));
 
     return {

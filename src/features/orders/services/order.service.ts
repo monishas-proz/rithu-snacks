@@ -11,6 +11,7 @@ import type {
 import type {
   CustomerCreateOrderInput,
   CustomerOrdersQueryInput,
+  CustomerOrdersListInput,
   AdminOrdersListInput,
   CancelOrderInput,
   ReturnOrderInput,
@@ -183,8 +184,8 @@ export const orderService = {
 
   async getCustomerOrders(
     sessionUserId: string,
-    query: CustomerOrdersQueryInput
-  ): Promise<OrderListResponse<OrderListItemResponse>> {
+    query: CustomerOrdersListInput | CustomerOrdersQueryInput = {}
+  ): Promise<OrderListResponse<OrderDetailResponse>> {
     const user = await userRepository.findById(sessionUserId);
     if (!user || !user.internalId) {
       throw ApiError.unauthorized("User not found");

@@ -1,73 +1,160 @@
 import { ApiError } from "@/lib/api/api-error";
-import { GetBannersParams, GetBannersResult, CreateBannerInput, UpdateBannerInput } from "../types";
-import { bannerRepository } from "../repositories/banner.repository";
+import { userRepository } from "@/features/users/repositories/user.repository";
+import { bannerPositionRepository } from "../repositories/banner-position.repository";
+import {
+  bannerRepository,
+  formatBanner,
+} from "../repositories/banner.repository";
+import type {
+  CreateBannerInput,
+  UpdateBannerInput,
+  BannerListQueryInput,
+  CustomerBannerQueryInput,
+} from "../validations/banner.schema";
+import type {
+  BannerDto,
+  BannerListResponse,
+  CustomerBannerDto,
+} from "../types/banner.types";
+
+import { uploadService } from "@/features/uploads/services/upload.service";
+
+async function resolveInternalUserId(
+  sessionUserId?: string
+): Promise<bigint | undefined> {
+  if (!sessionUserId) return undefined;
+  const user = await userRepository.findById(sessionUserId);
+  return user?.internalId;
+}
+
+async function resolveBannerPosition(positionUuid: string) {
+  const position = await bannerPositionRepository.findByUuid(positionUuid);
+  if (!position) {
+    throw ApiError.notFound("Banner position not found");
+  }
+  return position;
+}
 
 export const bannerService = {
-  async getBanners(params: GetBannersParams): Promise<GetBannersResult> {
-    const page = params.page ?? 1;
-    const limit = params.limit ?? 10;
+  async createBanner(
+    input: CreateBannerInput,
+    sessionUserId?: string
+  ): Promise<BannerDto> {
+    const position = await resolveBannerPosition(input.bannerPositionId);
 
-    const { data, total } = await bannerRepository.findAll({
-      ...params,
-      page,
-      limit,
-    });
+    if (input.startsAt && input.endsAt) {
+      if (input.startsAt.getTime() > input.endsAt.getTime()) {
+        throw ApiError.badRequest("startsAt must be before or equal to endsAt");
+      }
+    }
 
-    return {
-      data,
-      meta: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
+    const userInternalId = await resolveInternalUserId(sessionUserId);
+
+    return bannerRepository.create(
+      {
+        ...input,
+        positionInternalId: position.id,
       },
-    };
+      userInternalId
+    );
   },
 
-  async getBanner(id: number) {
-    const banner = await bannerRepository.findById(id);
+  async getBanners(
+    params: BannerListQueryInput
+  ): Promise<BannerListResponse> {
+    let resolvedPositionId: bigint | undefined = undefined;
 
-    if (!banner) {
+    if (params.bannerPositionId) {
+      const position = await bannerPositionRepository.findByUuid(
+        params.bannerPositionId
+      );
+      if (!position) {
+        return {
+          data: [],
+          meta: {
+            page: params.page ?? 1,
+            limit: params.limit ?? 10,
+            total: 0,
+            totalPages: 1,
+          },
+        };
+      }
+      resolvedPositionId = position.id;
+    }
+
+    return bannerRepository.findAll(params, resolvedPositionId);
+  },
+
+  async getBannerByUuid(uuid: string): Promise<BannerDto> {
+    const record = await bannerRepository.findByUuid(uuid);
+    if (!record) {
+      throw ApiError.notFound("Banner not found");
+    }
+    return formatBanner(record);
+  },
+
+  async updateBanner(
+    uuid: string,
+    input: UpdateBannerInput,
+    sessionUserId?: string
+  ): Promise<BannerDto> {
+    const existing = await bannerRepository.findByUuid(uuid);
+    if (!existing) {
       throw ApiError.notFound("Banner not found");
     }
 
-    return banner;
+    let positionInternalId: bigint | undefined = undefined;
+    if (input.bannerPositionId) {
+      const position = await resolveBannerPosition(input.bannerPositionId);
+      positionInternalId = position.id;
+    }
+
+    const effectiveStartsAt =
+      input.startsAt !== undefined ? input.startsAt : existing.startsAt;
+    const effectiveEndsAt =
+      input.endsAt !== undefined ? input.endsAt : existing.ends_at;
+
+    if (effectiveStartsAt && effectiveEndsAt) {
+      if (effectiveStartsAt.getTime() > effectiveEndsAt.getTime()) {
+        throw ApiError.badRequest("startsAt must be before or equal to endsAt");
+      }
+    }
+
+    const userInternalId = await resolveInternalUserId(sessionUserId);
+
+    return bannerRepository.update(
+      existing.id,
+      {
+        ...input,
+        positionInternalId,
+      },
+      userInternalId
+    );
   },
 
-  async createBanner(input: CreateBannerInput) {
-    return bannerRepository.create({
-      title: input.title,
-      subtitle: input.subtitle ?? null,
-      image: input.image,
-      link: input.link ?? null,
-      position: input.position ?? null,
-      isActive: input.isActive ?? true,
-      sortOrder: input.sortOrder ?? 0,
-      startsAt: input.startsAt ?? null,
-      expiresAt: input.expiresAt ?? null,
-    });
+  async deleteBanner(uuid: string): Promise<void> {
+    const record = await bannerRepository.findByUuid(uuid);
+    if (!record) {
+      throw ApiError.notFound("Banner not found");
+    }
+
+    // Safely delete local image file if stored under /uploads/banners/
+    if (record.image_url) {
+      try {
+        await uploadService.deleteUploadedFile(record.image_url, "banners");
+      } catch (error) {
+        console.error("Failed to delete banner image file:", error);
+      }
+    }
+
+    // Permanently delete database record
+    await bannerRepository.delete(record.id);
   },
 
-  async updateBanner(id: number, input: UpdateBannerInput) {
-    await this.getBanner(id);
-
-    const data: Record<string, unknown> = {};
-
-    if (input.title !== undefined) data.title = input.title;
-    if (input.subtitle !== undefined) data.subtitle = input.subtitle ?? null;
-    if (input.image !== undefined) data.image = input.image;
-    if (input.link !== undefined) data.link = input.link ?? null;
-    if (input.position !== undefined) data.position = input.position ?? null;
-    if (input.isActive !== undefined) data.isActive = input.isActive;
-    if (input.sortOrder !== undefined) data.sortOrder = input.sortOrder;
-    if (input.startsAt !== undefined) data.startsAt = input.startsAt ?? null;
-    if (input.expiresAt !== undefined) data.expiresAt = input.expiresAt ?? null;
-
-    return bannerRepository.update(id, data);
-  },
-
-  async deleteBanner(id: number) {
-    await this.getBanner(id);
-    return bannerRepository.delete(id);
+  async getCustomerActiveBanners(
+    params: CustomerBannerQueryInput
+  ): Promise<CustomerBannerDto[]> {
+    return bannerRepository.findActiveCustomerBanners(params);
   },
 };
+
