@@ -1,4 +1,4 @@
-export { FormInput } from "./form-input";
+export { FormInput, formatSlug } from "./form-input";
 export { FormTextarea } from "./form-textarea";
 export { FormSelect } from "./form-select";
 export { FormCheckbox } from "./form-checkbox";

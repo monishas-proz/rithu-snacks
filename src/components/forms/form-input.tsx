@@ -5,6 +5,10 @@ import { useFormContext, Controller } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "./label";
 
+export function formatSlug(val: string): string {
+  return val.toUpperCase().replace(/[^A-Z0-9_]/g, "");
+}
+
 interface FormInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   name: string;
   label?: string;
@@ -12,6 +16,7 @@ interface FormInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   inputPrefix?: React.ReactNode;
+  isSlug?: boolean;
 }
 
 function FormInput({
@@ -22,9 +27,12 @@ function FormInput({
   leftIcon,
   rightIcon,
   inputPrefix,
+  isSlug,
   ...props
 }: FormInputProps) {
   const { control } = useFormContext();
+  const isSlugField =
+    isSlug ?? (name === "slug" || name.toLowerCase().endsWith("slug"));
 
   return (
     <Controller
@@ -38,14 +46,39 @@ function FormInput({
             {...props}
             value={field.value ?? ""}
             onChange={(e) => {
-              const value =
-                props.type === "number"
-                  ? e.target.value === ""
-                    ? ""
-                    : Number(e.target.value)
-                  : e.target.value;
+              if (props.type === "number") {
+                const value =
+                  e.target.value === "" ? "" : Number(e.target.value);
+                field.onChange(value);
+                return;
+              }
+
+              let value = e.target.value;
+              if (isSlugField) {
+                value = formatSlug(value);
+              }
 
               field.onChange(value);
+            }}
+            onPaste={(e) => {
+              if (isSlugField) {
+                e.preventDefault();
+                const pastedText = e.clipboardData.getData("text");
+                const formatted = formatSlug(pastedText);
+
+                const input = e.currentTarget;
+                const start = input.selectionStart ?? 0;
+                const end = input.selectionEnd ?? 0;
+                const currentValue = String(field.value || "");
+                const nextValue = formatSlug(
+                  currentValue.slice(0, start) +
+                    formatted +
+                    currentValue.slice(end)
+                );
+
+                field.onChange(nextValue);
+              }
+              props.onPaste?.(e);
             }}
             onBlur={field.onBlur}
             name={field.name}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   useAdminCustomers,
   type AdminCustomerListItemDto,
@@ -14,7 +15,7 @@ import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CustomerDetailModal } from "@/features/customers/components/CustomerDetailModal";
+import { SearchInput } from "@/components/ui/search-input";
 import {
   Users,
   UserCheck,
@@ -30,25 +31,11 @@ import type { ColumnDef } from "@tanstack/react-table";
 
 export default function AdminCustomersPage() {
   const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [genderFilter, setGenderFilter] = useState<string>("all");
   const [verificationFilter, setVerificationFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   const pageSize = 20;
-
-  const [selectedCustomer, setSelectedCustomer] = useState<AdminCustomerListItemDto | null>(null);
-  const [detailModalOpen, setDetailModalOpen] = useState(false);
-
-  // Debounce search input
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedSearch(search);
-      setPage(1);
-    }, 400);
-
-    return () => clearTimeout(handler);
-  }, [search]);
 
   // Reset pagination on filter changes
   useEffect(() => {
@@ -74,8 +61,8 @@ export default function AdminCustomersPage() {
       sortOrder: "desc",
     };
 
-    if (debouncedSearch.trim()) {
-      params.search = debouncedSearch.trim();
+    if (search.trim()) {
+      params.search = search.trim();
     }
 
     if (statusFilter !== "all") {
@@ -93,7 +80,7 @@ export default function AdminCustomersPage() {
     }
 
     return params;
-  }, [page, pageSize, debouncedSearch, statusFilter, genderFilter, verificationFilter]);
+  }, [page, pageSize, search, statusFilter, genderFilter, verificationFilter]);
 
   const { data, isLoading, error, refetch } = useAdminCustomers(queryParams);
 
@@ -298,18 +285,13 @@ export default function AdminCustomersPage() {
       header: "Actions",
       cell: ({ row }) => (
         <div className="flex items-center justify-end gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 gap-1 px-2.5 text-xs text-secondary-600 hover:text-secondary-700 hover:bg-secondary-50 cursor-pointer"
-            onClick={() => {
-              setSelectedCustomer(row.original);
-              setDetailModalOpen(true);
-            }}
+          <Link
+            href={`/admin/dashboard/customers/${row.original.id}`}
+            className="inline-flex items-center h-8 gap-1 px-2.5 rounded-lg text-xs font-semibold text-secondary-600 hover:text-secondary-700 hover:bg-secondary-50 cursor-pointer transition-colors"
           >
             <Eye className="h-3.5 w-3.5" />
             View
-          </Button>
+          </Link>
         </div>
       ),
     },
@@ -375,24 +357,15 @@ export default function AdminCustomersPage() {
         {/* <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-neutral-200 bg-white p-4"> */}
           <div className="flex-shrink-0 mt-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             {/* Search Input */}
-            <div className="relative w-full max-w-md">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
-              <input
-                type="text"
-                placeholder="Search by name, email, phone, or customer ID..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="h-11 w-full rounded-xl border border-neutral-300 bg-white pl-10 pr-10 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-              />
-              {search && (
-                <button
-                  onClick={() => setSearch("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 p-1"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
+            <SearchInput
+              placeholder="Search by name, email, phone, or customer ID..."
+              defaultValue={search}
+              onSearch={(val) => {
+                setSearch(val);
+                setPage(1);
+              }}
+              className="w-full max-w-md"
+            />
 
             {/* Filter Dropdowns */}
             <div className="flex flex-wrap items-center gap-2">
@@ -462,16 +435,6 @@ export default function AdminCustomersPage() {
           />
         </div>
       </AdminContent>
-
-      {/* Customer Details Modal */}
-      <CustomerDetailModal
-        customer={selectedCustomer}
-        open={detailModalOpen}
-        onClose={() => {
-          setDetailModalOpen(false);
-          setSelectedCustomer(null);
-        }}
-      />
     </div>
   );
 }

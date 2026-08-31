@@ -20,13 +20,13 @@ import { ErrorState } from "@/components/ui/error-state";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FormModal } from "@/components/common/FormModal";
-import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import { SearchInput } from "@/components/ui/search-input";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { AdminProductResponse } from "@/features/products/types";
 import { ProductForm } from "@/features/products/components/ProductForm";
 
 export default function AdminProductsPage() {
-  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
 
   const [page, setPage] = useState(1);
@@ -37,18 +37,6 @@ export default function AdminProductsPage() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] =
     useState<AdminProductResponse | null>(null);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setSearch(searchInput);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [searchInput]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [search]);
 
   // Main Products Query
   const { data, isLoading, error, refetch } = useProducts({
@@ -274,16 +262,15 @@ export default function AdminProductsPage() {
       <AdminContent className="flex-1 min-h-0 overflow-hidden">
         <div className="flex h-full flex-col overflow-hidden bg-[var(--color-background)] py-1 rounded-2xl">
           <div className="flex-shrink-0 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="relative w-full max-w-md">
-              <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-neutral-400)]" />
-              <input
-                type="text"
-                placeholder="Search products..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                className="h-11 w-full rounded-xl border border-[var(--color-neutral-300)] bg-white pl-11 pr-4 text-sm text-[var(--color-neutral-900)] outline-none transition-all focus:border-[var(--color-primary-500)] focus:ring-2 focus:ring-[var(--color-primary-100)]"
-              />
-            </div>
+            <SearchInput
+              placeholder="Search products..."
+              defaultValue={search}
+              onSearch={(val) => {
+                setSearch(val);
+                setPage(1);
+              }}
+              className="w-full max-w-md"
+            />
 
             <Button
               onClick={() => setIsCreateOpen(true)}

@@ -12,13 +12,13 @@ import { Button } from "@/components/ui/button";
 // import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FormModal } from "@/components/common/FormModal";
-import { Plus, Pencil, Trash2, Search, Filter } from "lucide-react";
+import { Plus, Pencil, Trash2, Filter } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { BrandListItem } from "@/features/brands/types";
 import { BrandForm } from "@/features/brands/components/BrandForm";
+import { SearchInput } from "@/components/ui/search-input";
 
 export default function AdminBrandsPage() {
-  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
 
   const [page, setPage] = useState(1);
@@ -28,19 +28,6 @@ export default function AdminBrandsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedBrand, setSelectedBrand] = useState<BrandListItem | null>(null);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setSearch(searchInput);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [searchInput]);
-
-useEffect(() => {
-  setPage(1);
-}, [search]);
-
 
   const { data, isLoading, error, refetch } = useBrands({
     page,
@@ -160,16 +147,15 @@ useEffect(() => {
 
           {/* Search + Filter */}
           <div className="flex-shrink-0 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="relative w-full max-w-md">
-              <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-neutral-400)]" />
-              <input
-                type="text"
-                placeholder="Search brands..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                className="h-11 w-full rounded-xl border border-[var(--color-neutral-300)] bg-white pl-11 pr-4 text-sm text-[var(--color-neutral-900)] outline-none transition-all focus:border-[var(--color-primary-500)] focus:ring-2 focus:ring-[var(--color-primary-100)]"
-              />
-            </div>
+            <SearchInput
+              placeholder="Search brands..."
+              defaultValue={search}
+              onSearch={(val) => {
+                setSearch(val);
+                setPage(1);
+              }}
+              className="w-full max-w-md"
+            />
 
             <Button
               onClick={() => setIsCreateOpen(true)}

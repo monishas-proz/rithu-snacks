@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider, MutationCache, QueryCache } from "@tanstack/react-query";
 import * as React from "react";
 import { toast } from "@/components/ui/Toast";
+import { ApiClientError } from "@/lib/api/api-client";
 
 interface MetaOptions {
   skipToast?: boolean;
@@ -16,6 +17,14 @@ function makeQueryClient() {
       queries: {
         staleTime: 60 * 1000,
         refetchOnWindowFocus: false,
+        retry: (failureCount, error) => {
+          // If 401 Unauthorized, apiClient already performed silent refresh and retry.
+          // Do not retry 401s further in React Query to prevent infinite/duplicate loops.
+          if (error instanceof ApiClientError && error.status === 401) {
+            return false;
+          }
+          return failureCount < 2;
+        },
       },
     },
     mutationCache: new MutationCache({

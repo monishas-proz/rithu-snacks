@@ -1,9 +1,19 @@
 import { db } from "@/lib/db/prisma";
 import { Prisma } from "@/generated/prisma";
-import type { AdminCustomerListInput } from "../validations/admin-customer.schema";
+import { formatVariantMeasurement } from "@/features/variants/utils/measurement.util";
+import type {
+  AdminCustomerListInput,
+  AdminCustomerOrdersInput,
+} from "../validations/admin-customer.schema";
 import type {
   AdminCustomerListItemDto,
   AdminCustomerListResponse,
+  AdminCustomerDetailDto,
+  AdminCustomerAddressDto,
+  AdminCustomerOrderItemDto,
+  AdminCustomerOrdersResponse,
+  AdminCustomerCartDto,
+  AdminCustomerCartItemDto,
 } from "../types/admin-customer.types";
 
 const adminCustomerInclude = Prisma.validator<Prisma.customer_profilesInclude>()({
@@ -181,6 +191,322 @@ export const adminCustomerRepository = {
         total,
         totalPages: Math.ceil(total / pageSize),
       },
+    };
+  },
+
+  async findCustomerUserByUuid(uuid: string) {
+    return db.user.findFirst({
+      where: {
+        OR: [
+          { uuid },
+          { customer_profiles_customer_profiles_user_idTousers: { uuid } },
+        ],
+        deleted_at: null,
+        is_active: true,
+        role: {
+          slug: "customer",
+        },
+      },
+      include: {
+        role: true,
+        customer_profiles_customer_profiles_user_idTousers: true,
+      },
+    });
+  },
+
+  async findCustomerByUuid(uuid: string): Promise<AdminCustomerDetailDto | null> {
+    const user = await this.findCustomerUserByUuid(uuid);
+    if (!user) return null;
+
+    const profile = user.customer_profiles_customer_profiles_user_idTousers;
+    const isBlocked = user.is_blocked !== null && Number(user.is_blocked) > 0;
+    const profileImage = profile?.profile_image || user.avatar || null;
+
+    let formattedDob: string | null = null;
+    if (profile?.dob) {
+      formattedDob = profile.dob.toISOString().split("T")[0];
+    }
+
+    return {
+      id: user.uuid || String(user.id),
+      customerId: user.cust_id ?? null,
+      name: profile?.name || user.name || "",
+      email: profile?.email || user.email || null,
+      phone: profile?.phone || user.phone || null,
+      profileImage,
+      dob: formattedDob,
+      gender: profile?.gender ?? null,
+      isWhatsapp: Boolean(profile?.is_whatsapp),
+      whatsappNo: profile?.whatsapp_no ?? null,
+      referralCode: profile?.referral_code ?? null,
+      status: user.status,
+      isActive: Boolean(user.is_active),
+      isBlocked,
+      emailVerified: user.email_verified_at !== null,
+      phoneVerified: user.phone_verified_at !== null,
+      lastLoginAt: user.last_login_at ?? null,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+  },
+
+  async findCustomerAddressesByCustomerUuid(
+    uuid: string
+  ): Promise<AdminCustomerAddressDto[] | null> {
+    const user = await this.findCustomerUserByUuid(uuid);
+    if (!user) return null;
+
+    const addresses = await db.customerAddress.findMany({
+      where: {
+        userId: user.id,
+        is_active: true,
+        deleted_at: null,
+      },
+      orderBy: [
+        { isDefault: "desc" },
+        { createdAt: "desc" },
+      ],
+    });
+
+    return addresses.map((addr) => ({
+      id: addr.uuid || String(addr.id),
+      type: addr.label || "home",
+      fullName: addr.full_name,
+      phone: addr.phone,
+      addressLine1: addr.address_line1,
+      addressLine2: addr.address_line2 ?? null,
+      landmark: addr.landmark ?? null,
+      city: addr.city,
+      state: addr.state,
+      pincode: addr.pincode ?? "",
+      country: addr.country,
+      latitude:
+        addr.latitude !== null && addr.latitude !== undefined
+          ? Number(addr.latitude)
+          : null,
+      longitude:
+        addr.longitude !== null && addr.longitude !== undefined
+          ? Number(addr.longitude)
+          : null,
+      isDefault: Boolean(addr.isDefault),
+      createdAt: addr.createdAt,
+      updatedAt: addr.updatedAt,
+    }));
+  },
+
+  async findCustomerOrdersByCustomerUuid(
+    uuid: string,
+    params: AdminCustomerOrdersInput
+  ): Promise<AdminCustomerOrdersResponse | null> {
+    const user = await this.findCustomerUserByUuid(uuid);
+    if (!user) return null;
+
+    const page = params.page ?? 1;
+    const pageSize = params.pageSize ?? 20;
+
+    const where: Prisma.OrderWhereInput = {
+      userId: user.id,
+      is_active: true,
+    };
+
+    if (params.status) {
+      where.order_status = params.status;
+    }
+
+    if (params.paymentStatus) {
+      where.payment_status = params.paymentStatus;
+    }
+
+    if (params.search) {
+      where.orderNumber = { contains: params.search };
+    }
+
+    const sortOrder = params.sortOrder ?? "desc";
+    let orderBy: Prisma.OrderOrderByWithRelationInput = { createdAt: sortOrder };
+
+    if (params.sortBy === "orderNumber") {
+      orderBy = { orderNumber: sortOrder };
+    } else if (params.sortBy === "status") {
+      orderBy = { order_status: sortOrder };
+    } else if (params.sortBy === "totalAmount") {
+      orderBy = { totalAmount: sortOrder };
+    } else if (params.sortBy === "placedAt") {
+      orderBy = { placed_at: sortOrder };
+    } else if (params.sortBy === "createdAt") {
+      orderBy = { createdAt: sortOrder };
+    }
+
+    const [orders, total] = await Promise.all([
+      db.order.findMany({
+        where,
+        orderBy,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        include: {
+          items: {
+            where: { is_active: true },
+            select: { quantity: true },
+          },
+        },
+      }),
+      db.order.count({ where }),
+    ]);
+
+    const data: AdminCustomerOrderItemDto[] = orders.map((order) => {
+      const totalItems = (order.items || []).reduce(
+        (sum, item) => sum + item.quantity,
+        0
+      );
+      return {
+        id: order.uuid || String(order.id),
+        orderNumber: order.orderNumber,
+        status: order.order_status,
+        paymentStatus: order.payment_status,
+        totalAmount: Number(order.totalAmount),
+        totalItems,
+        placedAt: order.placed_at ?? null,
+        createdAt: order.createdAt,
+      };
+    });
+
+    return {
+      data,
+      meta: {
+        page,
+        limit: pageSize,
+        pageSize,
+        total,
+        totalPages: Math.ceil(total / pageSize),
+      },
+    };
+  },
+
+  async findCustomerActiveCartByCustomerUuid(
+    uuid: string
+  ): Promise<AdminCustomerCartDto | null | undefined> {
+    const user = await this.findCustomerUserByUuid(uuid);
+    if (!user) return undefined;
+
+    const cart = await db.cart.findFirst({
+      where: {
+        userId: user.id,
+        status: "active",
+        is_active: true,
+      },
+      include: {
+        items: {
+          where: {
+            is_active: true,
+            variant: {
+              isActive: true,
+              deleted_at: null,
+            },
+            product: {
+              isActive: true,
+              deleted_at: null,
+            },
+          },
+          include: {
+            product: {
+              select: {
+                id: true,
+                uuid: true,
+                name: true,
+                images: {
+                  where: { is_active: true },
+                  orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }],
+                  take: 1,
+                  select: { image_url: true },
+                },
+              },
+            },
+            variant: {
+              select: {
+                id: true,
+                uuid: true,
+                variant_name: true,
+                sku: true,
+                base_price: true,
+                sale_price: true,
+                unit_value: true,
+                product_units: {
+                  select: {
+                    name: true,
+                    code: true,
+                    type: true,
+                  },
+                },
+                product_variant_images: {
+                  where: { is_active: true },
+                  orderBy: [{ is_primary: "desc" }, { sort_order: "asc" }],
+                  take: 1,
+                  select: { image_url: true },
+                },
+              },
+            },
+          },
+          orderBy: { createdAt: "desc" },
+        },
+      },
+    });
+
+    if (!cart) return null;
+
+    let subtotal = 0;
+    let totalItems = 0;
+
+    const items: AdminCustomerCartItemDto[] = [];
+
+    for (const item of cart.items) {
+      if (!item.variant || !item.product || !item.is_active) continue;
+
+      const salePrice =
+        item.variant.sale_price !== null && item.variant.sale_price !== undefined
+          ? Number(item.variant.sale_price)
+          : 0;
+      const basePrice =
+        item.variant.base_price !== null && item.variant.base_price !== undefined
+          ? Number(item.variant.base_price)
+          : 0;
+      const unitPrice = salePrice > 0 ? salePrice : basePrice;
+      const totalPrice = item.quantity * unitPrice;
+
+      subtotal += totalPrice;
+      totalItems += item.quantity;
+
+      const primaryImage =
+        item.variant.product_variant_images?.[0]?.image_url ||
+        item.product.images?.[0]?.image_url ||
+        null;
+
+      const measurement = formatVariantMeasurement(
+        item.variant.product_units,
+        item.variant.unit_value
+      );
+
+      items.push({
+        id: item.uuid || String(item.id),
+        productId: item.product.uuid || String(item.product.id),
+        productName: item.product.name,
+        variantId: item.variant.uuid || String(item.variant.id),
+        variantName: item.variant.variant_name,
+        sku: item.variant.sku,
+        measurement,
+        primaryImage,
+        quantity: item.quantity,
+        unitPrice,
+        totalPrice,
+      });
+    }
+
+    return {
+      id: cart.uuid || String(cart.id),
+      status: cart.status,
+      totalItems,
+      subtotal,
+      createdAt: cart.createdAt,
+      updatedAt: cart.updatedAt,
+      items,
     };
   },
 };

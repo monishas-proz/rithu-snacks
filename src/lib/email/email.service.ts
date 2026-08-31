@@ -1,5 +1,8 @@
 import nodemailer from "nodemailer";
-import { getOtpEmailTemplate } from "./templates/otp-email.template";
+import {
+  getRegistrationOtpEmailTemplate,
+  getForgotPasswordOtpEmailTemplate,
+} from "./templates/otp-email.template";
 
 export const emailService = {
   getTransporter() {
@@ -8,7 +11,14 @@ export const emailService = {
     const user = process.env.EMAIL_USER;
     const pass = process.env.EMAIL_PASS;
 
-    if (!host || !user || !pass || host.includes("your-") || user.includes("your-") || pass.includes("your-")) {
+    if (
+      !host ||
+      !user ||
+      !pass ||
+      host.includes("your-") ||
+      user.includes("your-") ||
+      pass.includes("your-")
+    ) {
       return null;
     }
 
@@ -20,22 +30,35 @@ export const emailService = {
       port,
       secure,
       auth: { user, pass },
+      connectionTimeout: 4000,
+      socketTimeout: 4000,
     });
   },
 
-  async sendOtpEmail(to: string, otp: string): Promise<boolean> {
-    const { subject, html, text } = getOtpEmailTemplate(otp);
-    const from = process.env.EMAIL_FROM || `Rithu Snacks <${process.env.EMAIL_USER || "noreply@rithusnacks.com"}>`;
+  async sendOtpEmail(
+    to: string,
+    otp: string,
+    purpose: "register" | "reset_password" = "register"
+  ): Promise<boolean> {
+    const { subject, html, text } =
+      purpose === "register"
+        ? getRegistrationOtpEmailTemplate(otp)
+        : getForgotPasswordOtpEmailTemplate(otp);
+
+    const from =
+      process.env.EMAIL_FROM ||
+      `Rithu Snacks <${process.env.EMAIL_USER || "noreply@rithusnacks.com"}>`;
 
     const transporter = this.getTransporter();
 
     if (!transporter) {
-      console.warn("[EMAIL SERVICE] SMTP is not configured; OTP email was not sent.");
+      console.warn(
+        `[EMAIL SERVICE] SMTP is not configured; ${purpose} OTP email was not sent.`
+      );
       return false;
     }
 
     try {
-      await transporter.verify();
       await transporter.sendMail({
         from,
         to,

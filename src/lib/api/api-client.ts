@@ -1,6 +1,16 @@
 import { ApiResponse } from "./api-response";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
+function getBaseUrl(): string {
+  if (typeof window !== "undefined") {
+    return process.env.NEXT_PUBLIC_API_URL || "";
+  }
+  return (
+    process.env.NEXT_PUBLIC_API_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXTAUTH_URL ||
+    ""
+  );
+}
 
 export class ApiClientError extends Error {
   public readonly status: number;
@@ -22,19 +32,21 @@ interface FetchOptions extends RequestInit {
 // Shared promise for deduplicating concurrent token refresh operations
 let refreshPromise: Promise<boolean> | null = null;
 
-async function performSilentRefresh(): Promise<boolean> {
+export async function performSilentRefresh(): Promise<boolean> {
   if (refreshPromise) {
     return refreshPromise;
   }
 
   refreshPromise = (async () => {
     try {
-      const response = await fetch(`${BASE_URL}/api/auth/refresh`, {
+      const baseUrl = getBaseUrl();
+      const response = await fetch(`${baseUrl}/api/auth/refresh`, {
         method: "POST",
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
+        body: JSON.stringify({}),
       });
 
       if (!response.ok) {
@@ -59,10 +71,11 @@ const AUTH_BYPASS_ENDPOINTS = [
   "/api/auth/refresh",
   "/api/auth/register",
   "/api/auth/forgot-password",
+  "/api/auth/resend-forgot-password-otp",
   "/api/auth/verify-otp",
-  "/api/auth/resend-otp",
   "/api/auth/reset-password",
   "/api/auth/send-email-otp",
+  "/api/auth/resend-register-otp",
   "/api/auth/verify-email-otp",
 ];
 
@@ -71,8 +84,9 @@ async function fetchApi<T>(
   options: FetchOptions = {}
 ): Promise<ApiResponse<T>> {
   const { params, _isRetry, ...fetchOptions } = options;
+  const baseUrl = getBaseUrl();
 
-  let url = `${BASE_URL}${endpoint}`;
+  let url = `${baseUrl}${endpoint}`;
   if (params) {
     const searchParams = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {
@@ -86,14 +100,19 @@ async function fetchApi<T>(
     }
   }
 
+  const isFormData = fetchOptions.body instanceof FormData;
+  const defaultHeaders: Record<string, string> = isFormData
+    ? {}
+    : { "Content-Type": "application/json" };
+
   let response: Response;
   try {
     response = await fetch(url, {
       ...fetchOptions,
       credentials: "include", // Transmits Server-Side HttpOnly Cookies automatically
       headers: {
-        "Content-Type": "application/json",
-        ...fetchOptions.headers,
+        ...defaultHeaders,
+        ...(fetchOptions.headers as Record<string, string>),
       },
     });
   } catch {
@@ -147,21 +166,21 @@ export const apiClient = {
   post: <T>(endpoint: string, body?: unknown, options?: FetchOptions) =>
     fetchApi<T>(endpoint, {
       method: "POST",
-      body: body ? JSON.stringify(body) : undefined,
+      body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
       ...options,
     }),
 
   put: <T>(endpoint: string, body?: unknown, options?: FetchOptions) =>
     fetchApi<T>(endpoint, {
       method: "PUT",
-      body: body ? JSON.stringify(body) : undefined,
+      body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
       ...options,
     }),
 
   patch: <T>(endpoint: string, body?: unknown, options?: FetchOptions) =>
     fetchApi<T>(endpoint, {
       method: "PATCH",
-      body: body ? JSON.stringify(body) : undefined,
+      body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
       ...options,
     }),
 

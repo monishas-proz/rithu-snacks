@@ -35,18 +35,61 @@ function parseJwtPayload(
   }
 }
 
-export default auth((req) => {
+export default auth(async (req) => {
   const { pathname } = req.nextUrl;
   const nextAuthUser = req.auth?.user;
 
   // Check HttpOnly access_token cookie
   const accessTokenCookie = req.cookies.get("access_token")?.value;
-  const validAccessToken = parseJwtPayload(accessTokenCookie, true);
-  const rawAccessToken = parseJwtPayload(accessTokenCookie, false);
+  let validAccessToken = parseJwtPayload(accessTokenCookie, true);
+  let rawAccessToken = parseJwtPayload(accessTokenCookie, false);
 
   // Check HttpOnly refresh_token cookie
   const refreshTokenCookie = req.cookies.get("refresh_token")?.value;
   const validRefreshToken = parseJwtPayload(refreshTokenCookie, true);
+
+  let newSetCookieHeaders: string[] = [];
+
+  // If access token is expired or missing, but refresh token is valid, perform silent refresh at Edge
+  if (!validAccessToken && validRefreshToken) {
+    try {
+      const refreshUrl = new URL("/api/auth/refresh", req.url);
+      const refreshRes = await fetch(refreshUrl, {
+        method: "POST",
+        headers: {
+          cookie: req.headers.get("cookie") || "",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({}),
+      });
+
+      if (refreshRes.ok) {
+        // Collect Set-Cookie headers from refresh response
+        const getSetCookie = (
+          refreshRes.headers as unknown as { getSetCookie?: () => string[] }
+        ).getSetCookie;
+        if (typeof getSetCookie === "function") {
+          newSetCookieHeaders = getSetCookie.call(refreshRes.headers);
+        } else {
+          const sc = refreshRes.headers.get("set-cookie");
+          if (sc) newSetCookieHeaders = [sc];
+        }
+
+        // Extract and decode new access_token from Set-Cookie
+        for (const cookieStr of newSetCookieHeaders) {
+          const match = cookieStr.match(/access_token=([^;]+)/);
+          if (match) {
+            const tokenVal = decodeURIComponent(match[1]);
+            validAccessToken = parseJwtPayload(tokenVal, true);
+            rawAccessToken = parseJwtPayload(tokenVal, false);
+            break;
+          }
+        }
+      }
+    } catch {
+      // Ignore refresh network error; will fall through to auth check
+    }
+  }
 
   // User is authenticated if valid access_token, valid refresh_token, OR NextAuth session exists
   const isAuthenticated =
@@ -57,12 +100,23 @@ export default auth((req) => {
     rawAccessToken?.role ||
     (nextAuthUser as { role?: string })?.role;
 
+  const applyCookies = (res: NextResponse) => {
+    if (newSetCookieHeaders.length > 0) {
+      newSetCookieHeaders.forEach((c) => {
+        res.headers.append("set-cookie", c);
+      });
+    }
+    return res;
+  };
+
   if (pathname.startsWith("/admin")) {
     if (pathname === "/admin/login") {
       if (isAuthenticated && (userRole === "ADMIN" || userRole === "STAFF")) {
-        return NextResponse.redirect(new URL("/admin/dashboard", req.url));
+        return applyCookies(
+          NextResponse.redirect(new URL("/admin/dashboard", req.url))
+        );
       }
-      return NextResponse.next();
+      return applyCookies(NextResponse.next());
     }
 
     if (!isAuthenticated) {
@@ -72,6 +126,8 @@ export default auth((req) => {
     if (userRole !== "ADMIN" && userRole !== "STAFF") {
       return NextResponse.redirect(new URL("/unauthorized", req.url));
     }
+
+    return applyCookies(NextResponse.next());
   }
 
   const protectedCustomerRoutes = [
@@ -94,12 +150,14 @@ export default auth((req) => {
 
   if ((pathname === "/login" || pathname === "/register") && isAuthenticated) {
     if (userRole === "ADMIN" || userRole === "STAFF") {
-      return NextResponse.redirect(new URL("/admin/dashboard", req.url));
+      return applyCookies(
+        NextResponse.redirect(new URL("/admin/dashboard", req.url))
+      );
     }
-    return NextResponse.redirect(new URL("/", req.url));
+    return applyCookies(NextResponse.redirect(new URL("/", req.url)));
   }
 
-  return NextResponse.next();
+  return applyCookies(NextResponse.next());
 });
 
 export const config = {

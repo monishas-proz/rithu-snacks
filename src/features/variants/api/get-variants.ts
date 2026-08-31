@@ -5,6 +5,8 @@ import type {
   GetAdminVariantsResult,
   CustomerVariantListItemDto,
   CustomerGlobalVariantListParams,
+  GetAdminVariantsParams,
+  AdminVariantListParams,
 } from "../types";
 
 export async function getCustomerVariants(
@@ -17,7 +19,9 @@ export async function getCustomerVariants(
     sortOrder: params?.sortOrder ?? "desc",
   };
 
-  if (params?.search) body.search = params.search;
+  if (params?.search && params.search.trim()) {
+    body.search = params.search.trim();
+  }
   if (params?.categoryIds && params.categoryIds.length > 0) {
     body.categoryIds = params.categoryIds;
   }
@@ -43,11 +47,58 @@ export async function getCustomerVariants(
 }
 
 export async function getAdminVariants(
-  params?: Record<string, string | number | boolean | undefined | null>
+  params?: GetAdminVariantsParams | AdminVariantListParams
 ): Promise<GetAdminVariantsResult> {
-  const response = await apiClient.get<AdminVariantResponse[]>(
+  const body: Record<string, unknown> = {
+    page: params?.page ?? 1,
+    pageSize: params?.pageSize ?? 20,
+    sortBy: params?.sortBy ?? "createdAt",
+    sortOrder: params?.sortOrder ?? "desc",
+  };
+
+  if (params?.search && params.search.trim()) {
+    body.search = params.search.trim();
+  }
+
+  if (params?.productIds && params.productIds.length > 0) {
+    body.productIds = params.productIds.filter(Boolean);
+  } else if (params?.productId) {
+    body.productIds = [params.productId];
+  } else if (params?.productUuid) {
+    body.productIds = [params.productUuid];
+  }
+
+  if (params?.brandIds && params.brandIds.length > 0) {
+    body.brandIds = params.brandIds.filter(Boolean);
+  }
+
+  if (params?.categoryIds && params.categoryIds.length > 0) {
+    body.categoryIds = params.categoryIds.filter(Boolean);
+  }
+
+  if (params?.measurementTypes && params.measurementTypes.length > 0) {
+    body.measurementTypes = params.measurementTypes;
+  }
+
+  if (params?.unitIds && params.unitIds.length > 0) {
+    body.unitIds = params.unitIds.filter(Boolean);
+  }
+
+  if (params?.isActive !== undefined) {
+    body.isActive = params.isActive;
+  }
+
+  if (typeof params?.minPrice === "number" && params.minPrice >= 0) {
+    body.minPrice = params.minPrice;
+  }
+
+  if (typeof params?.maxPrice === "number" && params.maxPrice >= 0) {
+    body.maxPrice = params.maxPrice;
+  }
+
+  const response = await apiClient.post<AdminVariantResponse[]>(
     "/api/admin/variants",
-    { params }
+    body
   );
 
   return {
