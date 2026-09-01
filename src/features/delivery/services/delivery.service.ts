@@ -16,6 +16,7 @@ import type {
   AssignDeliveryResult,
   DeliveryTransitionResult,
   DeliveryAddressInfo,
+  StaffDeliveriesCountResponse,
 } from "../types/delivery.types";
 
 function formatShippingAddress(addresses: any[]): DeliveryAddressInfo | null {
@@ -268,18 +269,16 @@ export const deliveryService = {
   async countStaffDeliveries(
     sessionUserId: string,
     query: StaffDeliveryListInput
-  ): Promise<{ count: number }> {
+  ): Promise<StaffDeliveriesCountResponse> {
     const staffUser = await userRepository.findById(sessionUserId);
     if (!staffUser || !staffUser.internalId) {
       throw ApiError.unauthorized("Staff member not found");
     }
 
-    const count = await deliveryRepository.countStaffDeliveries(
+    return deliveryRepository.countStaffDeliveries(
       staffUser.internalId,
       query
     );
-
-    return { count };
   },
 
   async getStaffDeliveryByUuid(

@@ -229,3 +229,17 @@ export const PAYMENT_STATUSES = [
   "partial_refund",
 ] as const;
 
+export interface AdminOrdersCountResponse {
+  pending: number;
+  confirmed: number;
+  processing: number;
+  packed: number;
+  shipped: number;
+  out_for_delivery: number;
+  delivered: number;
+  cancelled: number;
+  returned: number;
+  total: number;
+}
+
+

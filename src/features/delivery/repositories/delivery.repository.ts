@@ -6,6 +6,10 @@ import type {
   AdminDeliveryStaffListInput,
   StaffDeliveryListInput,
 } from "../validations/delivery.schema";
+import type {
+  StaffDeliveriesCountResponse,
+  DeliveryStatusCounts,
+} from "../types/delivery.types";
 
 export const deliveryRepository = {
   async findAdminDeliveryOrders(params: AdminDeliveryOrdersListInput) {
@@ -263,7 +267,7 @@ export const deliveryRepository = {
     });
   },
 
-  buildStaffDeliveriesWhere(
+  buildStaffDeliveriesBaseWhere(
     staffInternalId: bigint,
     params: StaffDeliveryListInput
   ): Prisma.shipmentsWhereInput {
@@ -271,14 +275,6 @@ export const deliveryRepository = {
       delivery_staff_id: staffInternalId,
       is_active: true,
     };
-
-    if (params.status) {
-      where.status = params.status;
-    }
-
-    if (params.assignmentStatus) {
-      where.assignment_status = params.assignmentStatus;
-    }
 
     if (params.search) {
       const s = params.search.trim();
@@ -295,12 +291,88 @@ export const deliveryRepository = {
     return where;
   },
 
+  buildStaffDeliveriesWhere(
+    staffInternalId: bigint,
+    params: StaffDeliveryListInput
+  ): Prisma.shipmentsWhereInput {
+    const where = this.buildStaffDeliveriesBaseWhere(staffInternalId, params);
+
+    if (params.status) {
+      where.status = params.status;
+    }
+
+    if (params.assignmentStatus) {
+      where.assignment_status = params.assignmentStatus;
+    }
+
+    return where;
+  },
+
   async countStaffDeliveries(
     staffInternalId: bigint,
     params: StaffDeliveryListInput
-  ): Promise<number> {
-    const where = this.buildStaffDeliveriesWhere(staffInternalId, params);
-    return db.shipments.count({ where });
+  ): Promise<StaffDeliveriesCountResponse> {
+    const baseWhere = this.buildStaffDeliveriesBaseWhere(staffInternalId, params);
+
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const endOfToday = new Date();
+    endOfToday.setHours(23, 59, 59, 999);
+
+    const todayWhere: Prisma.shipmentsWhereInput = {
+      ...baseWhere,
+      created_at: {
+        gte: startOfToday,
+        lte: endOfToday,
+      },
+    };
+
+    const [todayGrouped, allTimeGrouped] = await Promise.all([
+      db.shipments.groupBy({
+        by: ["status"],
+        where: todayWhere,
+        _count: { id: true },
+      }),
+      db.shipments.groupBy({
+        by: ["status"],
+        where: baseWhere,
+        _count: { id: true },
+      }),
+    ]);
+
+    const initialCounts = (): DeliveryStatusCounts => ({
+      pending: 0,
+      picked_up: 0,
+      in_transit: 0,
+      out_for_delivery: 0,
+      delivered: 0,
+      failed: 0,
+      total: 0,
+    });
+
+    const todayCounts = initialCounts();
+    for (const item of todayGrouped) {
+      const statusKey = item.status as keyof DeliveryStatusCounts;
+      if (statusKey in todayCounts && statusKey !== "total") {
+        todayCounts[statusKey] = item._count.id;
+        todayCounts.total += item._count.id;
+      }
+    }
+
+    const allTimeCounts = initialCounts();
+    for (const item of allTimeGrouped) {
+      const statusKey = item.status as keyof DeliveryStatusCounts;
+      if (statusKey in allTimeCounts && statusKey !== "total") {
+        allTimeCounts[statusKey] = item._count.id;
+        allTimeCounts.total += item._count.id;
+      }
+    }
+
+    return {
+      today: todayCounts,
+      allTime: allTimeCounts,
+    };
   },
 
   async findStaffDeliveries(

@@ -14,6 +14,7 @@ import type {
   AdminCustomerOrdersResponse,
   AdminCustomerCartDto,
   AdminCustomerCartItemDto,
+  AdminCustomersCountResponse,
 } from "../types/admin-customer.types";
 
 const adminCustomerInclude = Prisma.validator<Prisma.customer_profilesInclude>()({
@@ -153,9 +154,150 @@ export const adminCustomerRepository = {
     return where;
   },
 
-  async countAdminCustomers(params: AdminCustomerListInput): Promise<number> {
-    const where = this.buildAdminCustomerWhere(params);
-    return db.customer_profiles.count({ where });
+  async countAdminCustomers(
+    params: AdminCustomerListInput
+  ): Promise<AdminCustomersCountResponse> {
+    const baseUserWhere: Prisma.UserWhereInput = {
+      deleted_at: null,
+      role: {
+        slug: "customer",
+      },
+    };
+
+    const baseWhere: Prisma.customer_profilesWhereInput = {
+      users_customer_profiles_user_idTousers: baseUserWhere,
+    };
+
+    if (params.search) {
+      const s = params.search;
+      baseWhere.AND = [
+        {
+          OR: [
+            { name: { contains: s } },
+            { email: { contains: s } },
+            { phone: { contains: s } },
+            { whatsapp_no: { contains: s } },
+            { referral_code: { contains: s } },
+            { users_customer_profiles_user_idTousers: { name: { contains: s } } },
+            { users_customer_profiles_user_idTousers: { email: { contains: s } } },
+            { users_customer_profiles_user_idTousers: { phone: { contains: s } } },
+            { users_customer_profiles_user_idTousers: { cust_id: { contains: s } } },
+          ],
+        },
+      ];
+    }
+
+    const [
+      active,
+      inactive,
+      blocked,
+      unblocked,
+      verified,
+      unverified,
+      male,
+      female,
+      other,
+      all,
+    ] = await Promise.all([
+      db.customer_profiles.count({
+        where: {
+          ...baseWhere,
+          is_active: true,
+          users_customer_profiles_user_idTousers: {
+            ...baseUserWhere,
+            is_active: true,
+          },
+        },
+      }),
+      db.customer_profiles.count({
+        where: {
+          ...baseWhere,
+          OR: [
+            { is_active: false },
+            {
+              users_customer_profiles_user_idTousers: {
+                ...baseUserWhere,
+                is_active: false,
+              },
+            },
+          ],
+        },
+      }),
+      db.customer_profiles.count({
+        where: {
+          ...baseWhere,
+          users_customer_profiles_user_idTousers: {
+            ...baseUserWhere,
+            is_blocked: { not: null, gt: 0 },
+          },
+        },
+      }),
+      db.customer_profiles.count({
+        where: {
+          ...baseWhere,
+          users_customer_profiles_user_idTousers: {
+            ...baseUserWhere,
+            OR: [{ is_blocked: null }, { is_blocked: 0 }],
+          },
+        },
+      }),
+      db.customer_profiles.count({
+        where: {
+          ...baseWhere,
+          users_customer_profiles_user_idTousers: {
+            ...baseUserWhere,
+            OR: [
+              { email_verified_at: { not: null } },
+              { phone_verified_at: { not: null } },
+            ],
+          },
+        },
+      }),
+      db.customer_profiles.count({
+        where: {
+          ...baseWhere,
+          users_customer_profiles_user_idTousers: {
+            ...baseUserWhere,
+            email_verified_at: null,
+            phone_verified_at: null,
+          },
+        },
+      }),
+      db.customer_profiles.count({
+        where: {
+          ...baseWhere,
+          gender: "male",
+        },
+      }),
+      db.customer_profiles.count({
+        where: {
+          ...baseWhere,
+          gender: "female",
+        },
+      }),
+      db.customer_profiles.count({
+        where: {
+          ...baseWhere,
+          OR: [{ gender: "other" }, { gender: null }],
+        },
+      }),
+      db.customer_profiles.count({
+        where: baseWhere,
+      }),
+    ]);
+
+    return {
+      active,
+      inactive,
+      blocked,
+      unblocked,
+      verified,
+      unverified,
+      male,
+      female,
+      other,
+      all,
+    };
   },
 
   async findAdminCustomers(

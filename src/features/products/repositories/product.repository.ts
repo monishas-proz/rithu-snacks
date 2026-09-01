@@ -1,6 +1,10 @@
 import { db } from "@/lib/db/prisma";
 import { Prisma } from "@/generated/prisma";
-import type { GetAdminProductsParams, AdminProductListParams } from "../types";
+import type {
+  GetAdminProductsParams,
+  AdminProductListParams,
+  AdminProductsCountResponse,
+} from "../types";
 
 const productAdminInclude = Prisma.validator<Prisma.ProductInclude>()({
   brand: {
@@ -153,19 +157,90 @@ export const productRepository = {
     return where;
   },
 
+  buildAdminProductBaseWhere(
+    params: AdminProductListParams,
+    resolvedCategoryInternalId?: bigint,
+    resolvedBrandInternalId?: bigint,
+    resolvedHsnCodeInternalId?: bigint
+  ): Prisma.ProductWhereInput {
+    const where: Prisma.ProductWhereInput = {
+      deleted_at: null,
+    };
+
+    if (resolvedCategoryInternalId !== undefined) {
+      where.categoryId = resolvedCategoryInternalId;
+    }
+
+    if (resolvedBrandInternalId !== undefined) {
+      where.brandId = resolvedBrandInternalId;
+    }
+
+    if (resolvedHsnCodeInternalId !== undefined) {
+      where.hsn_code_id = resolvedHsnCodeInternalId;
+    }
+
+    if (params.isFeatured !== undefined) {
+      where.isFeatured = params.isFeatured;
+    }
+
+    if (params.status !== undefined) {
+      where.status = params.status;
+    }
+
+    if (params.search) {
+      const search = params.search.trim();
+      where.OR = [
+        { name: { contains: search } },
+        { slug: { contains: search } },
+        { shortDescription: { contains: search } },
+        { description: { contains: search } },
+        { sku: { contains: search } },
+      ];
+    }
+
+    return where;
+  },
+
   async countAdminList(
     params: AdminProductListParams,
     resolvedCategoryInternalId?: bigint,
     resolvedBrandInternalId?: bigint,
     resolvedHsnCodeInternalId?: bigint
-  ): Promise<number> {
-    const where = this.buildAdminProductWhere(
+  ): Promise<AdminProductsCountResponse> {
+    const baseWhere = this.buildAdminProductBaseWhere(
       params,
       resolvedCategoryInternalId,
       resolvedBrandInternalId,
       resolvedHsnCodeInternalId
     );
-    return db.product.count({ where });
+
+    const [
+      active,
+      inactive,
+      veg,
+      nonveg,
+      vegan,
+      na,
+      all,
+    ] = await Promise.all([
+      db.product.count({ where: { ...baseWhere, isActive: true } }),
+      db.product.count({ where: { ...baseWhere, isActive: false } }),
+      db.product.count({ where: { ...baseWhere, veg_type: "veg" } }),
+      db.product.count({ where: { ...baseWhere, veg_type: "nonveg" } }),
+      db.product.count({ where: { ...baseWhere, veg_type: "vegan" } }),
+      db.product.count({ where: { ...baseWhere, veg_type: "na" } }),
+      db.product.count({ where: baseWhere }),
+    ]);
+
+    return {
+      active,
+      inactive,
+      veg,
+      nonveg,
+      vegan,
+      na,
+      all,
+    };
   },
 
   async findAdminList(

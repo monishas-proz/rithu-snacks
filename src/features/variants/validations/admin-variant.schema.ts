@@ -197,6 +197,7 @@ export const adminVariantListSchema = z
       .default([]),
     isActive: z.boolean().optional(),
     outOfStock: z.boolean().optional(),
+    vegType: z.enum(["veg", "nonveg", "vegan", "na"]).optional(),
     minPrice: z
       .number()
       .min(0, "minPrice must be greater than or equal to 0")

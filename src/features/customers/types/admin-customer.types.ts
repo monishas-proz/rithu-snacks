@@ -117,3 +117,17 @@ export interface AdminCustomerOrdersResponse {
   data: AdminCustomerOrderItemDto[];
   meta: AdminCustomerListPaginationMeta;
 }
+
+export interface AdminCustomersCountResponse {
+  active: number;
+  inactive: number;
+  blocked: number;
+  unblocked: number;
+  verified: number;
+  unverified: number;
+  male: number;
+  female: number;
+  other: number;
+  all: number;
+}
+

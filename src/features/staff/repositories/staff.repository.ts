@@ -1,6 +1,6 @@
 import { db } from "@/lib/db/prisma";
 import { Prisma } from "@/generated/prisma";
-import type { GetStaffParams } from "../types";
+import type { GetStaffParams, AdminStaffCountResponse } from "../types";
 
 const staffInclude = Prisma.validator<Prisma.UserInclude>()({
   role: {
@@ -83,9 +83,34 @@ export const staffRepository = {
     return where;
   },
 
-  async countStaff(params: GetStaffParams = {}): Promise<number> {
-    const where = this.buildStaffWhere(params);
-    return db.user.count({ where });
+  async countStaff(
+    params: GetStaffParams = {}
+  ): Promise<AdminStaffCountResponse> {
+    const baseWhere: Prisma.UserWhereInput = {
+      role: { slug: "staff" },
+      deleted_at: null,
+    };
+
+    if (params.search) {
+      const search = params.search.trim();
+      baseWhere.OR = [
+        { name: { contains: search } },
+        { email: { contains: search } },
+        { phone: { contains: search } },
+      ];
+    }
+
+    const [active, inactive, all] = await Promise.all([
+      db.user.count({ where: { ...baseWhere, is_active: true } }),
+      db.user.count({ where: { ...baseWhere, is_active: false } }),
+      db.user.count({ where: baseWhere }),
+    ]);
+
+    return {
+      active,
+      inactive,
+      all,
+    };
   },
 
   async findStaffList(params: GetStaffParams = {}) {
