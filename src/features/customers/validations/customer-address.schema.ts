@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export const ADDRESS_TYPE_ENUM = ["shipping", "billing"] as const;
+
 const indiaPhoneSchema = z
   .string()
   .trim()
@@ -33,8 +35,15 @@ export const createCustomerAddressSchema = z
     label: z
       .string()
       .trim()
-      .min(1, "Label is required")
-      .max(50, "Label cannot exceed 50 characters"),
+      .max(50, "Label cannot exceed 50 characters")
+      .optional()
+      .nullable(),
+    addressType: z
+      .enum(ADDRESS_TYPE_ENUM, {
+        message: "addressType must be either 'shipping' or 'billing'",
+      })
+      .default("shipping")
+      .optional(),
     fullName: z
       .string()
       .trim()
@@ -91,8 +100,13 @@ export const updateCustomerAddressSchema = z
     label: z
       .string()
       .trim()
-      .min(1, "Label cannot be empty")
       .max(50, "Label cannot exceed 50 characters")
+      .optional()
+      .nullable(),
+    addressType: z
+      .enum(ADDRESS_TYPE_ENUM, {
+        message: "addressType must be either 'shipping' or 'billing'",
+      })
       .optional(),
     fullName: z
       .string()
@@ -151,11 +165,30 @@ export const updateCustomerAddressSchema = z
       .max(180, "Longitude must be between -180 and 180")
       .optional()
       .nullable(),
+    isDefault: z.boolean().optional(),
   })
   .strict()
   .refine((data) => Object.keys(data).length > 0, {
     message: "At least one editable field must be provided for update",
   });
 
+export const customerAddressQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1).optional(),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+  addressType: z.enum(ADDRESS_TYPE_ENUM).optional(),
+});
+
+export const customerAddressListSchema = z
+  .object({
+    page: z.number().int().min(1).default(1).optional(),
+    pageSize: z.number().int().min(1).max(100).default(20).optional(),
+    limit: z.number().int().min(1).max(100).optional(),
+    addressType: z.enum(ADDRESS_TYPE_ENUM).optional(),
+  })
+  .strict();
+
 export type CreateCustomerAddressInput = z.infer<typeof createCustomerAddressSchema>;
 export type UpdateCustomerAddressInput = z.infer<typeof updateCustomerAddressSchema>;
+export type CustomerAddressQueryInput = z.infer<typeof customerAddressQuerySchema>;
+export type CustomerAddressListInput = z.infer<typeof customerAddressListSchema>;

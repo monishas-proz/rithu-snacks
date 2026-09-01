@@ -9,6 +9,7 @@ import type {
   OrderAddressResponse,
   OrderStatusHistoryResponse,
   OrderListResponse,
+  AdminOrdersCountResponse,
 } from "../types";
 import type {
   CustomerOrdersQueryInput,
@@ -100,9 +101,11 @@ export function formatOrderAddress(
   address?: Prisma.OrderAddressGetPayload<typeof orderAddressInclude> | null
 ): OrderAddressResponse | null {
   if (!address) return null;
+  const addressType = address.type === "billing" ? "billing" : "shipping";
   return {
     id: address.uuid || String(address.id),
     type: address.type,
+    addressType,
     fullName: address.full_name,
     phone: address.phone,
     addressLine1: address.address_line1,
@@ -589,12 +592,7 @@ export const orderRepository = {
     return order ? formatOrderDetail(order) : null;
   },
 
-  async findAdminOrders(
-    params: AdminOrdersListInput
-  ): Promise<OrderListResponse<OrderListItemResponse>> {
-    const page = params.page ?? 1;
-    const pageSize = params.pageSize ?? 20;
-
+  buildAdminOrdersWhere(params: AdminOrdersListInput): Prisma.OrderWhereInput {
     const where: Prisma.OrderWhereInput = {
       is_active: true,
     };
@@ -621,6 +619,79 @@ export const orderRepository = {
         { user: { cust_id: { contains: s } } },
       ];
     }
+
+    return where;
+  },
+
+  async countAdminOrders(
+    params: AdminOrdersListInput
+  ): Promise<AdminOrdersCountResponse> {
+    const baseWhere: Prisma.OrderWhereInput = {
+      is_active: true,
+    };
+
+    if (params.customerId) {
+      baseWhere.user = { uuid: params.customerId };
+    }
+
+    if (params.paymentStatus) {
+      baseWhere.payment_status = params.paymentStatus;
+    }
+
+    if (params.search) {
+      const s = params.search;
+      baseWhere.OR = [
+        { orderNumber: { contains: s } },
+        { user: { name: { contains: s } } },
+        { user: { email: { contains: s } } },
+        { user: { phone: { contains: s } } },
+        { user: { cust_id: { contains: s } } },
+      ];
+    }
+
+    const whereToUse = params.status
+      ? { ...baseWhere, order_status: params.status }
+      : baseWhere;
+
+    const grouped = await db.order.groupBy({
+      by: ["order_status"],
+      where: whereToUse,
+      _count: {
+        id: true,
+      },
+    });
+
+    const statusCounts: AdminOrdersCountResponse = {
+      pending: 0,
+      confirmed: 0,
+      processing: 0,
+      packed: 0,
+      shipped: 0,
+      out_for_delivery: 0,
+      delivered: 0,
+      cancelled: 0,
+      returned: 0,
+      total: 0,
+    };
+
+    for (const g of grouped) {
+      const status = g.order_status as keyof AdminOrdersCountResponse;
+      if (status && status in statusCounts && status !== "total") {
+        statusCounts[status] = g._count.id;
+        statusCounts.total += g._count.id;
+      }
+    }
+
+    return statusCounts;
+  },
+
+  async findAdminOrders(
+    params: AdminOrdersListInput
+  ): Promise<OrderListResponse<OrderListItemResponse>> {
+    const page = params.page ?? 1;
+    const pageSize = params.pageSize ?? 20;
+
+    const where = this.buildAdminOrdersWhere(params);
 
     const sortOrder = params.sortOrder ?? "desc";
     let orderBy: Prisma.OrderOrderByWithRelationInput = { createdAt: sortOrder };

@@ -96,6 +96,7 @@ export const staffDeliveryListSchema = z
       .min(1, "limit must be at least 1")
       .max(100, "limit cannot exceed 100")
       .default(10),
+    pageSize: z.number().int().min(1).max(100).optional(),
     search: z.string().trim().optional(),
     status: z
       .enum([
@@ -106,6 +107,9 @@ export const staffDeliveryListSchema = z
         "delivered",
         "failed",
       ])
+      .optional(),
+    assignmentStatus: z
+      .enum(["pending", "accepted", "rejected", "reassigned"])
       .optional(),
     sortBy: z
       .enum(["createdAt", "updatedAt", "shippedAt", "deliveredAt"])

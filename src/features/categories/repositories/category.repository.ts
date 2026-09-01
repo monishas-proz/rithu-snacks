@@ -1,6 +1,10 @@
 import { db } from "@/lib/db/prisma";
 import { Prisma } from "@/generated/prisma";
-import type { GetCategoriesParams, GetAdminCategoriesParams } from "../types";
+import type {
+  GetCategoriesParams,
+  GetAdminCategoriesParams,
+  AdminCategoriesCountResponse,
+} from "../types";
 
 const categoryListInclude = Prisma.validator<Prisma.ProductCategoryInclude>()({
   _count: { select: { children: true } },
@@ -38,7 +42,29 @@ function buildCategoryWhere(params: GetCategoriesParams): Prisma.ProductCategory
   return where;
 }
 
+function buildAdminCategoryWhere(params: GetAdminCategoriesParams = {}): Prisma.ProductCategoryWhereInput {
+  const where: Prisma.ProductCategoryWhereInput = {
+    deleted_at: null,
+  };
+
+  if (typeof params.isActive === "boolean") {
+    where.isActive = params.isActive;
+  }
+
+  if (params.search) {
+    where.OR = [
+      { name: { contains: params.search } },
+      { description: { contains: params.search } },
+      { slug: { contains: params.search } },
+    ];
+  }
+
+  return where;
+}
+
 export const categoryRepository = {
+  buildAdminCategoryWhere,
+
   async findAll(params: GetCategoriesParams = {}) {
     const where = buildCategoryWhere(params);
     return db.productCategory.findMany({
@@ -99,22 +125,39 @@ export const categoryRepository = {
     });
   },
 
-  async findAdminAll(params: GetAdminCategoriesParams = {}) {
-    const page = params.page ?? 1;
-    const pageSize = params.pageSize ?? 10;
-
-    const where: Prisma.ProductCategoryWhereInput = {
-      isActive: true,
+  async countAdminCategories(
+    params: GetAdminCategoriesParams = {}
+  ): Promise<AdminCategoriesCountResponse> {
+    const baseWhere: Prisma.ProductCategoryWhereInput = {
       deleted_at: null,
     };
 
     if (params.search) {
-      where.OR = [
+      baseWhere.OR = [
         { name: { contains: params.search } },
         { description: { contains: params.search } },
         { slug: { contains: params.search } },
       ];
     }
+
+    const [active, inactive, all] = await Promise.all([
+      db.productCategory.count({ where: { ...baseWhere, isActive: true } }),
+      db.productCategory.count({ where: { ...baseWhere, isActive: false } }),
+      db.productCategory.count({ where: baseWhere }),
+    ]);
+
+    return {
+      active,
+      inactive,
+      all,
+    };
+  },
+
+  async findAdminAll(params: GetAdminCategoriesParams = {}) {
+    const page = params.page ?? 1;
+    const pageSize = params.pageSize ?? params.limit ?? 10;
+
+    const where = buildAdminCategoryWhere(params);
 
     const [data, total] = await Promise.all([
       db.productCategory.findMany({
@@ -133,7 +176,7 @@ export const categoryRepository = {
         limit: pageSize,
         pageSize,
         total,
-        totalPages: Math.ceil(total / pageSize),
+        totalPages: Math.ceil(total / pageSize) || 1,
       },
     };
   },

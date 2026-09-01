@@ -334,7 +334,9 @@ export const cartRepository = {
     });
   },
 
-  async getCartItemCount(userId: bigint): Promise<number> {
+  async getCartItemCount(
+    userId: bigint
+  ): Promise<{ count: number; totalQuantity: number }> {
     const cart = await db.cart.findFirst({
       where: {
         userId,
@@ -344,7 +346,7 @@ export const cartRepository = {
       select: { id: true },
     });
 
-    if (!cart) return 0;
+    if (!cart) return { count: 0, totalQuantity: 0 };
 
     const result = await db.cartItem.aggregate({
       where: {
@@ -359,11 +361,17 @@ export const cartRepository = {
           deleted_at: null,
         },
       },
+      _count: {
+        id: true,
+      },
       _sum: {
         quantity: true,
       },
     });
 
-    return result._sum.quantity ?? 0;
+    return {
+      count: result._count.id ?? 0,
+      totalQuantity: result._sum.quantity ?? 0,
+    };
   },
 };

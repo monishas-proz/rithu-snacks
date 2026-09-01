@@ -31,3 +31,11 @@ export interface GetStaffResult {
     totalPages: number;
   };
 }
+
+export interface AdminStaffCountResponse {
+  active: number;
+  inactive: number;
+  all: number;
+}
+
+

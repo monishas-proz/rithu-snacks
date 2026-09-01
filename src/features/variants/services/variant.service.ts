@@ -13,6 +13,7 @@ import type {
   VariantPriceHistoryResponse,
   GetVariantPriceHistoryParams,
   PriceHistoryChartItem,
+  AdminVariantsCountResponse,
 } from "../types";
 import type {
   CreateAdminVariantInput,
@@ -235,6 +236,12 @@ export const variantService = {
       data,
       meta: result.meta,
     };
+  },
+
+  async countAdminVariants(
+    params: AdminVariantListParams = {}
+  ): Promise<AdminVariantsCountResponse> {
+    return variantRepository.countAdminVariants(params);
   },
 
   async getAdminVariants(

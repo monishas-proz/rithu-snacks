@@ -7,31 +7,59 @@ import {
   customerAddressRepository,
   formatCustomerAddress,
 } from "../repositories/customer-address.repository";
-import type { CustomerAddressResponse } from "../types/customer-address.types";
+import type {
+  CustomerAddressResponse,
+  CustomerAddressListParams,
+  CustomerAddressListResult,
+  AddressType,
+} from "../types/customer-address.types";
 import type {
   CreateCustomerAddressInput,
   UpdateCustomerAddressInput,
 } from "../validations/customer-address.schema";
 
-export const customerAddressService = {
-  async getAddresses(sessionUserId: string): Promise<CustomerAddressResponse[]> {
-    const user = await userRepository.findById(sessionUserId);
-    if (!user) {
-      throw ApiError.notFound("User account not found");
-    }
+async function resolveActiveUser(sessionUserId: string) {
+  const user = await userRepository.findById(sessionUserId);
+  if (!user || !user.internalId) {
+    throw ApiError.unauthorized("User account not found");
+  }
+  if (!user.isActive || user.is_active === false) {
+    throw ApiError.forbidden("Your account is inactive or blocked. Please contact support.");
+  }
+  return user;
+}
 
-    const addresses = await customerAddressRepository.findActiveByUserId(user.internalId);
+export const customerAddressService = {
+  async getAddresses(
+    sessionUserId: string,
+    params: CustomerAddressListParams = {}
+  ): Promise<CustomerAddressResponse[]> {
+    const user = await resolveActiveUser(sessionUserId);
+
+    const addresses = await customerAddressRepository.findActiveByUserId(
+      user.internalId,
+      params
+    );
     return addresses.map((addr) => formatCustomerAddress(addr));
+  },
+
+  async getAddressesList(
+    sessionUserId: string,
+    params: CustomerAddressListParams = {}
+  ): Promise<CustomerAddressListResult> {
+    const user = await resolveActiveUser(sessionUserId);
+
+    return customerAddressRepository.findListWithPagination(
+      user.internalId,
+      params
+    );
   },
 
   async getAddressByUuid(
     sessionUserId: string,
     uuid: string
   ): Promise<CustomerAddressResponse> {
-    const user = await userRepository.findById(sessionUserId);
-    if (!user) {
-      throw ApiError.notFound("User account not found");
-    }
+    const user = await resolveActiveUser(sessionUserId);
 
     const address = await customerAddressRepository.findByUuidAndUserId(
       uuid,
@@ -49,10 +77,7 @@ export const customerAddressService = {
     sessionUserId: string,
     data: CreateCustomerAddressInput
   ): Promise<CustomerAddressResponse> {
-    const user = await userRepository.findById(sessionUserId);
-    if (!user) {
-      throw ApiError.notFound("User account not found");
-    }
+    const user = await resolveActiveUser(sessionUserId);
 
     let profile = await customerProfileRepository.findByUserId(user.internalId);
     if (!profile) {
@@ -73,17 +98,29 @@ export const customerAddressService = {
       });
     }
 
+    const addressType: AddressType =
+      data.addressType === "billing" ? "billing" : "shipping";
+
+    const label =
+      data.label ||
+      (addressType === "billing" ? "Billing Address" : "Shipping Address");
+
     const created = await db.$transaction(async (tx) => {
       const activeCount = await customerAddressRepository.countActiveByUserId(
         user.internalId,
+        addressType,
         tx
       );
 
-      // First address ALWAYS becomes default automatically
+      // First address of this type automatically becomes default
       const shouldBeDefault = activeCount === 0 || Boolean(data.isDefault);
 
       if (shouldBeDefault) {
-        await customerAddressRepository.clearDefaultAddresses(user.internalId, tx);
+        await customerAddressRepository.clearDefaultAddresses(
+          user.internalId,
+          addressType,
+          tx
+        );
       }
 
       const addressUuid = crypto.randomUUID();
@@ -93,7 +130,8 @@ export const customerAddressService = {
           uuid: addressUuid,
           userId: BigInt(user.internalId),
           cust_id: BigInt(profile.id),
-          label: data.label,
+          label,
+          addressType,
           full_name: data.fullName,
           phone: data.phone,
           address_line1: data.addressLine1,
@@ -126,10 +164,7 @@ export const customerAddressService = {
     uuid: string,
     data: UpdateCustomerAddressInput
   ): Promise<CustomerAddressResponse> {
-    const user = await userRepository.findById(sessionUserId);
-    if (!user) {
-      throw ApiError.notFound("User account not found");
-    }
+    const user = await resolveActiveUser(sessionUserId);
 
     const existing = await customerAddressRepository.findByUuidAndUserId(
       uuid,
@@ -145,6 +180,7 @@ export const customerAddressService = {
     };
 
     if (data.label !== undefined) updateData.label = data.label;
+    if (data.addressType !== undefined) updateData.addressType = data.addressType;
     if (data.fullName !== undefined) updateData.full_name = data.fullName;
     if (data.phone !== undefined) updateData.phone = data.phone;
     if (data.addressLine1 !== undefined) updateData.address_line1 = data.addressLine1;
@@ -156,6 +192,7 @@ export const customerAddressService = {
     if (data.country !== undefined) updateData.country = data.country;
     if (data.latitude !== undefined) updateData.latitude = data.latitude;
     if (data.longitude !== undefined) updateData.longitude = data.longitude;
+    if (data.isDefault !== undefined) updateData.isDefault = data.isDefault;
 
     const updated = await customerAddressRepository.updateByUuidAndUserId(
       uuid,
@@ -174,10 +211,7 @@ export const customerAddressService = {
     sessionUserId: string,
     uuid: string
   ): Promise<{ id: string; isDefault: true }> {
-    const user = await userRepository.findById(sessionUserId);
-    if (!user) {
-      throw ApiError.notFound("User account not found");
-    }
+    const user = await resolveActiveUser(sessionUserId);
 
     const existing = await customerAddressRepository.findByUuidAndUserId(
       uuid,
@@ -192,8 +226,15 @@ export const customerAddressService = {
       return { id: uuid, isDefault: true };
     }
 
+    const addressType: AddressType =
+      existing.addressType === "billing" ? "billing" : "shipping";
+
     await db.$transaction(async (tx) => {
-      await customerAddressRepository.clearDefaultAddresses(user.internalId, tx);
+      await customerAddressRepository.clearDefaultAddresses(
+        user.internalId,
+        addressType,
+        tx
+      );
       await customerAddressRepository.setDefaultAddress(uuid, user.internalId, tx);
     });
 
@@ -204,10 +245,7 @@ export const customerAddressService = {
     sessionUserId: string,
     uuid: string
   ): Promise<{ success: true; message: string }> {
-    const user = await userRepository.findById(sessionUserId);
-    if (!user) {
-      throw ApiError.notFound("User account not found");
-    }
+    const user = await resolveActiveUser(sessionUserId);
 
     const existing = await customerAddressRepository.findByUuidAndUserId(
       uuid,
@@ -218,6 +256,9 @@ export const customerAddressService = {
       throw ApiError.notFound("Address not found");
     }
 
+    const addressType: AddressType =
+      existing.addressType === "billing" ? "billing" : "shipping";
+
     await db.$transaction(async (tx) => {
       await customerAddressRepository.softDeleteByUuidAndUserId(
         uuid,
@@ -225,7 +266,7 @@ export const customerAddressService = {
         tx
       );
 
-      // If deleted address was default, promote another active address if available
+      // If deleted address was default, promote another active address of same type if available
       if (existing.isDefault) {
         const replacement = await customerAddressRepository.findLatestActiveAddress(
           user.internalId,

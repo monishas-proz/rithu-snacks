@@ -172,7 +172,9 @@ export const adminVariantListSchema = z
       .min(1, "pageSize must be at least 1")
       .max(100, "pageSize cannot exceed 100")
       .default(20),
+    limit: z.number().int().min(1).max(100).optional(),
     search: z.string().trim().optional(),
+    productId: z.string().uuid("Invalid Product UUID format").optional(),
     productIds: z
       .array(z.string().uuid("Invalid Product UUID format"))
       .optional()
@@ -194,6 +196,8 @@ export const adminVariantListSchema = z
       .optional()
       .default([]),
     isActive: z.boolean().optional(),
+    outOfStock: z.boolean().optional(),
+    vegType: z.enum(["veg", "nonveg", "vegan", "na"]).optional(),
     minPrice: z
       .number()
       .min(0, "minPrice must be greater than or equal to 0")

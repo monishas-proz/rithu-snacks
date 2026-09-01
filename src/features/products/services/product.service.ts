@@ -10,6 +10,7 @@ import type { Prisma, $Enums } from "@/generated/prisma";
 import type {
   AdminProductResponse,
   GetAdminProductsParams,
+  AdminProductsCountResponse,
 } from "../types";
 import type {
   CreateAdminProductInput,
@@ -255,6 +256,69 @@ export const productService = {
       data,
       meta: result.meta,
     };
+  },
+
+  async countAdminProducts(
+    params: AdminProductListInput
+  ): Promise<AdminProductsCountResponse> {
+    let resolvedCategoryInternalId: bigint | undefined = undefined;
+    let resolvedBrandInternalId: bigint | undefined = undefined;
+    let resolvedHsnCodeInternalId: bigint | undefined = undefined;
+
+    if (params.categoryId) {
+      const category = await categoryRepository.findByUuid(params.categoryId);
+      if (!category) {
+        return {
+          active: 0,
+          inactive: 0,
+          veg: 0,
+          nonveg: 0,
+          vegan: 0,
+          na: 0,
+          all: 0,
+        };
+      }
+      resolvedCategoryInternalId = category.id;
+    }
+
+    if (params.brandId) {
+      const brand = await brandRepository.findByUuid(params.brandId);
+      if (!brand) {
+        return {
+          active: 0,
+          inactive: 0,
+          veg: 0,
+          nonveg: 0,
+          vegan: 0,
+          na: 0,
+          all: 0,
+        };
+      }
+      resolvedBrandInternalId = brand.id;
+    }
+
+    if (params.hsnCodeId) {
+      const hsnCode = await hsnCodeRepository.findByUuid(params.hsnCodeId);
+      if (!hsnCode) {
+        return {
+          active: 0,
+          inactive: 0,
+          veg: 0,
+          nonveg: 0,
+          vegan: 0,
+          na: 0,
+          all: 0,
+        };
+      }
+      resolvedHsnCodeInternalId = hsnCode.id;
+    }
+
+    return productRepository.countAdminList(
+      params,
+      resolvedCategoryInternalId,
+      resolvedBrandInternalId,
+      resolvedHsnCodeInternalId
+    );
   },
 
   async getAdminProductByUuid(uuid: string): Promise<AdminProductResponse> {

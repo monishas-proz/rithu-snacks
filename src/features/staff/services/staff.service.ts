@@ -7,6 +7,7 @@ import type { Prisma } from "@/generated/prisma";
 import type {
   StaffResponse,
   GetStaffParams,
+  AdminStaffCountResponse,
 } from "../types";
 import type {
   CreateStaffInput,
@@ -104,6 +105,12 @@ export const staffService = {
       data,
       meta: result.meta,
     };
+  },
+
+  async countStaff(
+    params: GetStaffParams = {}
+  ): Promise<AdminStaffCountResponse> {
+    return staffRepository.countStaff(params);
   },
 
   async getStaffByUuid(uuid: string): Promise<StaffResponse> {

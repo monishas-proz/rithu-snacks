@@ -3,8 +3,22 @@ import {
   getRegistrationOtpEmailTemplate,
   getForgotPasswordOtpEmailTemplate,
 } from "./templates/otp-email.template";
+import {
+  getContactAcknowledgementEmailTemplate,
+  getContactReplyEmailTemplate,
+} from "./templates/contact-email.template";
 
 export const emailService = {
+  getFromAddress() {
+    const fromEmail =
+      process.env.EMAIL_FROM ||
+      process.env.EMAIL_USER ||
+      "noreply@rithusnacks.com";
+    return fromEmail.includes("<")
+      ? fromEmail
+      : `"Rithu Snacks" <${fromEmail}>`;
+  },
+
   getTransporter() {
     const host = process.env.EMAIL_HOST;
     const portStr = process.env.EMAIL_PORT;
@@ -30,8 +44,8 @@ export const emailService = {
       port,
       secure,
       auth: { user, pass },
-      connectionTimeout: 4000,
-      socketTimeout: 4000,
+      connectionTimeout: 15000,
+      socketTimeout: 15000,
     });
   },
 
@@ -45,9 +59,7 @@ export const emailService = {
         ? getRegistrationOtpEmailTemplate(otp)
         : getForgotPasswordOtpEmailTemplate(otp);
 
-    const from =
-      process.env.EMAIL_FROM ||
-      `Rithu Snacks <${process.env.EMAIL_USER || "noreply@rithusnacks.com"}>`;
+    const from = this.getFromAddress();
 
     const transporter = this.getTransporter();
 
@@ -72,4 +84,81 @@ export const emailService = {
       return false;
     }
   },
+
+  async sendContactAcknowledgementEmail(
+    to: string,
+    name: string,
+    contactSubject?: string | null
+  ): Promise<boolean> {
+    const { subject, html, text } = getContactAcknowledgementEmailTemplate({
+      name,
+      subject: contactSubject,
+    });
+
+    const from = this.getFromAddress();
+
+    const transporter = this.getTransporter();
+
+    if (!transporter) {
+      console.warn(
+        "[EMAIL SERVICE] SMTP is not configured; contact acknowledgement email was not sent."
+      );
+      return false;
+    }
+
+    try {
+      const info = await transporter.sendMail({
+        from,
+        to,
+        subject,
+        text,
+        html,
+      });
+      console.log(`[EMAIL SERVICE] Contact acknowledgement email sent to ${to} (MessageId: ${info.messageId})`);
+      return true;
+    } catch (error) {
+      console.error("[EMAIL SERVICE] Error sending contact acknowledgement email:", error);
+      return false;
+    }
+  },
+
+  async sendContactReplyEmail(
+    to: string,
+    name: string,
+    originalSubject: string | null | undefined,
+    replyMessage: string
+  ): Promise<boolean> {
+    const { subject, html, text } = getContactReplyEmailTemplate({
+      name,
+      originalSubject,
+      replyMessage,
+    });
+
+    const from = this.getFromAddress();
+
+    const transporter = this.getTransporter();
+
+    if (!transporter) {
+      console.warn(
+        "[EMAIL SERVICE] SMTP is not configured; contact reply email was not sent."
+      );
+      return false;
+    }
+
+    try {
+      const info = await transporter.sendMail({
+        from,
+        to,
+        subject,
+        text,
+        html,
+      });
+      console.log(`[EMAIL SERVICE] Contact reply email sent to ${to} (MessageId: ${info.messageId})`);
+      return true;
+    } catch (error) {
+      console.error("[EMAIL SERVICE] Error sending contact reply email:", error);
+      return false;
+    }
+  },
 };
+

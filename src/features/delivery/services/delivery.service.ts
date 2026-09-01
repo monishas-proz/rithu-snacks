@@ -16,6 +16,7 @@ import type {
   AssignDeliveryResult,
   DeliveryTransitionResult,
   DeliveryAddressInfo,
+  StaffDeliveriesCountResponse,
 } from "../types/delivery.types";
 
 function formatShippingAddress(addresses: any[]): DeliveryAddressInfo | null {
@@ -263,6 +264,21 @@ export const deliveryService = {
         totalPages: Math.ceil(result.total / result.limit) || 1,
       },
     };
+  },
+
+  async countStaffDeliveries(
+    sessionUserId: string,
+    query: StaffDeliveryListInput
+  ): Promise<StaffDeliveriesCountResponse> {
+    const staffUser = await userRepository.findById(sessionUserId);
+    if (!staffUser || !staffUser.internalId) {
+      throw ApiError.unauthorized("Staff member not found");
+    }
+
+    return deliveryRepository.countStaffDeliveries(
+      staffUser.internalId,
+      query
+    );
   },
 
   async getStaffDeliveryByUuid(

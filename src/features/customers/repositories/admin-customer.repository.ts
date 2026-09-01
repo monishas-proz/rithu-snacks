@@ -14,6 +14,7 @@ import type {
   AdminCustomerOrdersResponse,
   AdminCustomerCartDto,
   AdminCustomerCartItemDto,
+  AdminCustomersCountResponse,
 } from "../types/admin-customer.types";
 
 const adminCustomerInclude = Prisma.validator<Prisma.customer_profilesInclude>()({
@@ -80,12 +81,9 @@ export function formatAdminCustomer(
 }
 
 export const adminCustomerRepository = {
-  async findAdminCustomers(
+  buildAdminCustomerWhere(
     params: AdminCustomerListInput
-  ): Promise<AdminCustomerListResponse> {
-    const page = params.page ?? 1;
-    const pageSize = params.pageSize ?? 20;
-
+  ): Prisma.customer_profilesWhereInput {
     const userWhere: Prisma.UserWhereInput = {
       deleted_at: null,
       role: {
@@ -97,7 +95,7 @@ export const adminCustomerRepository = {
       userWhere.status = params.status;
     }
 
-    if (params.isActive !== undefined) {
+    if (typeof params.isActive === "boolean") {
       userWhere.is_active = params.isActive;
     }
 
@@ -118,9 +116,12 @@ export const adminCustomerRepository = {
     }
 
     const where: Prisma.customer_profilesWhereInput = {
-      is_active: true,
       users_customer_profiles_user_idTousers: userWhere,
     };
+
+    if (typeof params.isActive === "boolean") {
+      where.is_active = params.isActive;
+    }
 
     if (params.gender) {
       where.gender = params.gender;
@@ -149,6 +150,163 @@ export const adminCustomerRepository = {
         },
       ];
     }
+
+    return where;
+  },
+
+  async countAdminCustomers(
+    params: AdminCustomerListInput
+  ): Promise<AdminCustomersCountResponse> {
+    const baseUserWhere: Prisma.UserWhereInput = {
+      deleted_at: null,
+      role: {
+        slug: "customer",
+      },
+    };
+
+    const baseWhere: Prisma.customer_profilesWhereInput = {
+      users_customer_profiles_user_idTousers: baseUserWhere,
+    };
+
+    if (params.search) {
+      const s = params.search;
+      baseWhere.AND = [
+        {
+          OR: [
+            { name: { contains: s } },
+            { email: { contains: s } },
+            { phone: { contains: s } },
+            { whatsapp_no: { contains: s } },
+            { referral_code: { contains: s } },
+            { users_customer_profiles_user_idTousers: { name: { contains: s } } },
+            { users_customer_profiles_user_idTousers: { email: { contains: s } } },
+            { users_customer_profiles_user_idTousers: { phone: { contains: s } } },
+            { users_customer_profiles_user_idTousers: { cust_id: { contains: s } } },
+          ],
+        },
+      ];
+    }
+
+    const [
+      active,
+      inactive,
+      blocked,
+      unblocked,
+      verified,
+      unverified,
+      male,
+      female,
+      other,
+      all,
+    ] = await Promise.all([
+      db.customer_profiles.count({
+        where: {
+          ...baseWhere,
+          is_active: true,
+          users_customer_profiles_user_idTousers: {
+            ...baseUserWhere,
+            is_active: true,
+          },
+        },
+      }),
+      db.customer_profiles.count({
+        where: {
+          ...baseWhere,
+          OR: [
+            { is_active: false },
+            {
+              users_customer_profiles_user_idTousers: {
+                ...baseUserWhere,
+                is_active: false,
+              },
+            },
+          ],
+        },
+      }),
+      db.customer_profiles.count({
+        where: {
+          ...baseWhere,
+          users_customer_profiles_user_idTousers: {
+            ...baseUserWhere,
+            is_blocked: { not: null, gt: 0 },
+          },
+        },
+      }),
+      db.customer_profiles.count({
+        where: {
+          ...baseWhere,
+          users_customer_profiles_user_idTousers: {
+            ...baseUserWhere,
+            OR: [{ is_blocked: null }, { is_blocked: 0 }],
+          },
+        },
+      }),
+      db.customer_profiles.count({
+        where: {
+          ...baseWhere,
+          users_customer_profiles_user_idTousers: {
+            ...baseUserWhere,
+            OR: [
+              { email_verified_at: { not: null } },
+              { phone_verified_at: { not: null } },
+            ],
+          },
+        },
+      }),
+      db.customer_profiles.count({
+        where: {
+          ...baseWhere,
+          users_customer_profiles_user_idTousers: {
+            ...baseUserWhere,
+            email_verified_at: null,
+            phone_verified_at: null,
+          },
+        },
+      }),
+      db.customer_profiles.count({
+        where: {
+          ...baseWhere,
+          gender: "male",
+        },
+      }),
+      db.customer_profiles.count({
+        where: {
+          ...baseWhere,
+          gender: "female",
+        },
+      }),
+      db.customer_profiles.count({
+        where: {
+          ...baseWhere,
+          OR: [{ gender: "other" }, { gender: null }],
+        },
+      }),
+      db.customer_profiles.count({
+        where: baseWhere,
+      }),
+    ]);
+
+    return {
+      active,
+      inactive,
+      blocked,
+      unblocked,
+      verified,
+      unverified,
+      male,
+      female,
+      other,
+      all,
+    };
+  },
+
+  async findAdminCustomers(
+    params: AdminCustomerListInput
+  ): Promise<AdminCustomerListResponse> {
+    const page = params.page ?? 1;
+    const pageSize = params.pageSize ?? 20;
+
+    const where = this.buildAdminCustomerWhere(params);
 
     const sortOrder = params.sortOrder ?? "desc";
     let orderBy: Prisma.customer_profilesOrderByWithRelationInput = {
@@ -202,7 +360,6 @@ export const adminCustomerRepository = {
           { customer_profiles_customer_profiles_user_idTousers: { uuid } },
         ],
         deleted_at: null,
-        is_active: true,
         role: {
           slug: "customer",
         },
@@ -212,6 +369,47 @@ export const adminCustomerRepository = {
         customer_profiles_customer_profiles_user_idTousers: true,
       },
     });
+  },
+
+  async updateCustomerStatus(
+    uuid: string,
+    isActive: boolean,
+    adminUserId?: bigint | number
+  ): Promise<AdminCustomerDetailDto | null> {
+    const user = await this.findCustomerUserByUuid(uuid);
+    if (!user) return null;
+
+    const newStatus = isActive ? "active" : "inactive";
+    const isBlocked = isActive ? 0 : 1;
+    const blockedAt = isActive ? null : new Date();
+
+    await db.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: user.id },
+        data: {
+          is_active: isActive,
+          status: newStatus,
+          is_blocked: isBlocked,
+          blocked_at: blockedAt,
+          updatedAt: new Date(),
+          ...(adminUserId ? { updated_by: BigInt(adminUserId) } : {}),
+        },
+      });
+
+      if (user.customer_profiles_customer_profiles_user_idTousers) {
+        await tx.customer_profiles.update({
+          where: { id: user.customer_profiles_customer_profiles_user_idTousers.id },
+          data: {
+            is_active: isActive,
+            status: isActive,
+            updated_at: new Date(),
+            ...(adminUserId ? { updated_by: BigInt(adminUserId) } : {}),
+          },
+        });
+      }
+    });
+
+    return this.findCustomerByUuid(uuid);
   },
 
   async findCustomerByUuid(uuid: string): Promise<AdminCustomerDetailDto | null> {
@@ -271,6 +469,7 @@ export const adminCustomerRepository = {
     return addresses.map((addr) => ({
       id: addr.uuid || String(addr.id),
       type: addr.label || "home",
+      addressType: addr.addressType === "billing" ? "billing" : "shipping",
       fullName: addr.full_name,
       phone: addr.phone,
       addressLine1: addr.address_line1,

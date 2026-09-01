@@ -48,6 +48,7 @@ export interface AdminCustomerDetailDto {
 export interface AdminCustomerAddressDto {
   id: string; // customer_addresses.uuid
   type: string; // home / work / other
+  addressType: "shipping" | "billing";
   fullName: string;
   phone: string;
   addressLine1: string;
@@ -116,3 +117,17 @@ export interface AdminCustomerOrdersResponse {
   data: AdminCustomerOrderItemDto[];
   meta: AdminCustomerListPaginationMeta;
 }
+
+export interface AdminCustomersCountResponse {
+  active: number;
+  inactive: number;
+  blocked: number;
+  unblocked: number;
+  verified: number;
+  unverified: number;
+  male: number;
+  female: number;
+  other: number;
+  all: number;
+}
+

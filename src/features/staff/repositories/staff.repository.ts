@@ -1,6 +1,6 @@
 import { db } from "@/lib/db/prisma";
 import { Prisma } from "@/generated/prisma";
-import type { GetStaffParams } from "../types";
+import type { GetStaffParams, AdminStaffCountResponse } from "../types";
 
 const staffInclude = Prisma.validator<Prisma.UserInclude>()({
   role: {
@@ -61,17 +61,13 @@ export const staffRepository = {
     });
   },
 
-  async findStaffList(params: GetStaffParams = {}) {
-    const page = params.page ?? 1;
-    const limit = params.limit ?? params.pageSize ?? 10;
-    const skip = (page - 1) * limit;
-
+  buildStaffWhere(params: GetStaffParams = {}): Prisma.UserWhereInput {
     const where: Prisma.UserWhereInput = {
       role: { slug: "staff" },
       deleted_at: null,
     };
 
-    if (params.isActive !== undefined) {
+    if (typeof params.isActive === "boolean") {
       where.is_active = params.isActive;
     }
 
@@ -83,6 +79,46 @@ export const staffRepository = {
         { phone: { contains: search } },
       ];
     }
+
+    return where;
+  },
+
+  async countStaff(
+    params: GetStaffParams = {}
+  ): Promise<AdminStaffCountResponse> {
+    const baseWhere: Prisma.UserWhereInput = {
+      role: { slug: "staff" },
+      deleted_at: null,
+    };
+
+    if (params.search) {
+      const search = params.search.trim();
+      baseWhere.OR = [
+        { name: { contains: search } },
+        { email: { contains: search } },
+        { phone: { contains: search } },
+      ];
+    }
+
+    const [active, inactive, all] = await Promise.all([
+      db.user.count({ where: { ...baseWhere, is_active: true } }),
+      db.user.count({ where: { ...baseWhere, is_active: false } }),
+      db.user.count({ where: baseWhere }),
+    ]);
+
+    return {
+      active,
+      inactive,
+      all,
+    };
+  },
+
+  async findStaffList(params: GetStaffParams = {}) {
+    const page = params.page ?? 1;
+    const limit = params.limit ?? params.pageSize ?? 10;
+    const skip = (page - 1) * limit;
+
+    const where = this.buildStaffWhere(params);
 
     const sortField = params.sortBy ?? "createdAt";
     const sortOrder = params.sortOrder ?? "desc";

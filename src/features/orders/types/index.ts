@@ -31,6 +31,7 @@ export interface OrderItemResponse {
 export interface OrderAddressResponse {
   id: string; // address.uuid
   type: OrderAddressType;
+  addressType: "shipping" | "billing";
   fullName: string;
   phone: string;
   addressLine1: string;
@@ -149,7 +150,7 @@ export interface GetOrdersResult {
 }
 
 export interface PlaceOrderInput {
-  addressId: string;
+  shippingAddressId: string;
   billingAddressId?: string;
   notes?: string;
 }
@@ -227,4 +228,18 @@ export const PAYMENT_STATUSES = [
   "refunded",
   "partial_refund",
 ] as const;
+
+export interface AdminOrdersCountResponse {
+  pending: number;
+  confirmed: number;
+  processing: number;
+  packed: number;
+  shipped: number;
+  out_for_delivery: number;
+  delivered: number;
+  cancelled: number;
+  returned: number;
+  total: number;
+}
+
 

@@ -82,7 +82,9 @@ export interface AdminCategoryResponse {
 export interface GetAdminCategoriesParams {
   page?: number;
   pageSize?: number;
+  limit?: number;
   search?: string;
+  isActive?: boolean;
 }
 
 export interface CustomerCategoryDto {
@@ -98,3 +100,10 @@ export interface CustomerCategoryListParams {
   sortBy?: "name" | "createdAt";
   sortOrder?: "asc" | "desc";
 }
+
+export interface AdminCategoriesCountResponse {
+  active: number;
+  inactive: number;
+  all: number;
+}
+

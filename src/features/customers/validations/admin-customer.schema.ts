@@ -50,3 +50,12 @@ export const adminCustomerOrdersSchema = z
   .strict();
 
 export type AdminCustomerOrdersInput = z.infer<typeof adminCustomerOrdersSchema>;
+
+export const updateCustomerStatusSchema = z
+  .object({
+    isActive: z.boolean(),
+  })
+  .strict();
+
+export type UpdateCustomerStatusInput = z.infer<typeof updateCustomerStatusSchema>;
+

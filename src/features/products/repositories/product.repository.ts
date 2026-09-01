@@ -1,6 +1,10 @@
 import { db } from "@/lib/db/prisma";
 import { Prisma } from "@/generated/prisma";
-import type { GetAdminProductsParams, AdminProductListParams } from "../types";
+import type {
+  GetAdminProductsParams,
+  AdminProductListParams,
+  AdminProductsCountResponse,
+} from "../types";
 
 const productAdminInclude = Prisma.validator<Prisma.ProductInclude>()({
   brand: {
@@ -101,16 +105,12 @@ export const productRepository = {
     };
   },
 
-  async findAdminList(
+  buildAdminProductWhere(
     params: AdminProductListParams,
     resolvedCategoryInternalId?: bigint,
     resolvedBrandInternalId?: bigint,
     resolvedHsnCodeInternalId?: bigint
-  ) {
-    const page = params.page ?? 1;
-    const limit = params.limit ?? params.pageSize ?? 10;
-    const skip = (page - 1) * limit;
-
+  ): Prisma.ProductWhereInput {
     const where: Prisma.ProductWhereInput = {
       deleted_at: null,
     };
@@ -153,6 +153,112 @@ export const productRepository = {
         { sku: { contains: search } },
       ];
     }
+
+    return where;
+  },
+
+  buildAdminProductBaseWhere(
+    params: AdminProductListParams,
+    resolvedCategoryInternalId?: bigint,
+    resolvedBrandInternalId?: bigint,
+    resolvedHsnCodeInternalId?: bigint
+  ): Prisma.ProductWhereInput {
+    const where: Prisma.ProductWhereInput = {
+      deleted_at: null,
+    };
+
+    if (resolvedCategoryInternalId !== undefined) {
+      where.categoryId = resolvedCategoryInternalId;
+    }
+
+    if (resolvedBrandInternalId !== undefined) {
+      where.brandId = resolvedBrandInternalId;
+    }
+
+    if (resolvedHsnCodeInternalId !== undefined) {
+      where.hsn_code_id = resolvedHsnCodeInternalId;
+    }
+
+    if (params.isFeatured !== undefined) {
+      where.isFeatured = params.isFeatured;
+    }
+
+    if (params.status !== undefined) {
+      where.status = params.status;
+    }
+
+    if (params.search) {
+      const search = params.search.trim();
+      where.OR = [
+        { name: { contains: search } },
+        { slug: { contains: search } },
+        { shortDescription: { contains: search } },
+        { description: { contains: search } },
+        { sku: { contains: search } },
+      ];
+    }
+
+    return where;
+  },
+
+  async countAdminList(
+    params: AdminProductListParams,
+    resolvedCategoryInternalId?: bigint,
+    resolvedBrandInternalId?: bigint,
+    resolvedHsnCodeInternalId?: bigint
+  ): Promise<AdminProductsCountResponse> {
+    const baseWhere = this.buildAdminProductBaseWhere(
+      params,
+      resolvedCategoryInternalId,
+      resolvedBrandInternalId,
+      resolvedHsnCodeInternalId
+    );
+
+    const [
+      active,
+      inactive,
+      veg,
+      nonveg,
+      vegan,
+      na,
+      all,
+    ] = await Promise.all([
+      db.product.count({ where: { ...baseWhere, isActive: true } }),
+      db.product.count({ where: { ...baseWhere, isActive: false } }),
+      db.product.count({ where: { ...baseWhere, veg_type: "veg" } }),
+      db.product.count({ where: { ...baseWhere, veg_type: "nonveg" } }),
+      db.product.count({ where: { ...baseWhere, veg_type: "vegan" } }),
+      db.product.count({ where: { ...baseWhere, veg_type: "na" } }),
+      db.product.count({ where: baseWhere }),
+    ]);
+
+    return {
+      active,
+      inactive,
+      veg,
+      nonveg,
+      vegan,
+      na,
+      all,
+    };
+  },
+
+  async findAdminList(
+    params: AdminProductListParams,
+    resolvedCategoryInternalId?: bigint,
+    resolvedBrandInternalId?: bigint,
+    resolvedHsnCodeInternalId?: bigint
+  ) {
+    const page = params.page ?? 1;
+    const limit = params.limit ?? params.pageSize ?? 10;
+    const skip = (page - 1) * limit;
+
+    const where = this.buildAdminProductWhere(
+      params,
+      resolvedCategoryInternalId,
+      resolvedBrandInternalId,
+      resolvedHsnCodeInternalId
+    );
 
     const sortField = params.sortBy ?? "createdAt";
     const sortOrder = params.sortOrder ?? "desc";

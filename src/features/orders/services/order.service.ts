@@ -7,6 +7,7 @@ import type {
   OrderListItemResponse,
   OrderListResponse,
   OrderStatusTransitionResponse,
+  AdminOrdersCountResponse,
 } from "../types";
 import type {
   CustomerCreateOrderInput,
@@ -27,6 +28,9 @@ export const orderService = {
     const user = await userRepository.findById(sessionUserId);
     if (!user || !user.internalId) {
       throw ApiError.unauthorized("User not found");
+    }
+    if (!user.isActive || user.is_active === false) {
+      throw ApiError.forbidden("Your account is inactive or blocked. Please contact support.");
     }
 
     const userId = user.internalId;
@@ -112,9 +116,10 @@ export const orderService = {
     // 3. Validate shipping address
     const shippingAddress = await db.customerAddress.findFirst({
       where: {
-        uuid: input.addressId,
+        uuid: input.shippingAddressId,
         userId,
         is_active: true,
+        deleted_at: null,
       },
     });
 
@@ -124,14 +129,21 @@ export const orderService = {
       );
     }
 
+    if (shippingAddress.addressType !== "shipping") {
+      throw ApiError.badRequest(
+        "Selected shipping address must have addressType 'shipping'"
+      );
+    }
+
     // 4. Validate billing address if provided
     let billingAddress = shippingAddress;
-    if (input.billingAddressId && input.billingAddressId !== input.addressId) {
+    if (input.billingAddressId) {
       const foundBilling = await db.customerAddress.findFirst({
         where: {
           uuid: input.billingAddressId,
           userId,
           is_active: true,
+          deleted_at: null,
         },
       });
 
@@ -140,6 +152,13 @@ export const orderService = {
           "Billing address not found or does not belong to customer"
         );
       }
+
+      if (foundBilling.addressType !== "billing") {
+        throw ApiError.badRequest(
+          "Selected billing address must have addressType 'billing'"
+        );
+      }
+
       billingAddress = foundBilling;
     }
 
@@ -190,6 +209,9 @@ export const orderService = {
     if (!user || !user.internalId) {
       throw ApiError.unauthorized("User not found");
     }
+    if (!user.isActive || user.is_active === false) {
+      throw ApiError.forbidden("Your account is inactive or blocked. Please contact support.");
+    }
 
     return orderRepository.findCustomerOrders(user.internalId, query);
   },
@@ -201,6 +223,9 @@ export const orderService = {
     const user = await userRepository.findById(sessionUserId);
     if (!user || !user.internalId) {
       throw ApiError.unauthorized("User not found");
+    }
+    if (!user.isActive || user.is_active === false) {
+      throw ApiError.forbidden("Your account is inactive or blocked. Please contact support.");
     }
 
     const order = await orderRepository.findCustomerOrderByUuid(
@@ -219,6 +244,12 @@ export const orderService = {
     query: AdminOrdersListInput
   ): Promise<OrderListResponse<OrderListItemResponse>> {
     return orderRepository.findAdminOrders(query);
+  },
+
+  async countAdminOrders(
+    query: AdminOrdersListInput
+  ): Promise<AdminOrdersCountResponse> {
+    return orderRepository.countAdminOrders(query);
   },
 
   async getAdminOrderByUuid(uuid: string): Promise<OrderDetailResponse> {

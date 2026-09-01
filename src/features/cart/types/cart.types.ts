@@ -26,4 +26,6 @@ export interface CartResponse {
 
 export interface CartCountResponse {
   count: number;
+  totalQuantity: number;
 }
+

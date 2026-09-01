@@ -10,6 +10,7 @@ import type {
   AdminCustomerAddressDto,
   AdminCustomerOrdersResponse,
   AdminCustomerCartDto,
+  AdminCustomersCountResponse,
 } from "../types/admin-customer.types";
 
 export const adminCustomerService = {
@@ -17,6 +18,12 @@ export const adminCustomerService = {
     params: AdminCustomerListInput
   ): Promise<AdminCustomerListResponse> {
     return adminCustomerRepository.findAdminCustomers(params);
+  },
+
+  async countAdminCustomers(
+    params: AdminCustomerListInput
+  ): Promise<AdminCustomersCountResponse> {
+    return adminCustomerRepository.countAdminCustomers(params);
   },
 
   async getCustomerDetail(uuid: string): Promise<AdminCustomerDetailDto> {
@@ -69,5 +76,36 @@ export const adminCustomerService = {
       data: cart,
       message: "Customer current cart fetched successfully",
     };
+  },
+
+  async updateCustomerStatus(
+    uuid: string,
+    isActive: boolean,
+    adminSessionUserId?: string
+  ): Promise<AdminCustomerDetailDto> {
+    const customer = await adminCustomerRepository.findCustomerByUuid(uuid);
+    if (!customer) {
+      throw ApiError.notFound("Customer not found");
+    }
+
+    let adminInternalId: number | undefined;
+    if (adminSessionUserId) {
+      const adminUser = await adminCustomerRepository.findCustomerUserByUuid(adminSessionUserId);
+      if (adminUser) {
+        adminInternalId = typeof adminUser.id === "bigint" ? Number(adminUser.id) : adminUser.id;
+      }
+    }
+
+    const updated = await adminCustomerRepository.updateCustomerStatus(
+      uuid,
+      isActive,
+      adminInternalId
+    );
+
+    if (!updated) {
+      throw ApiError.notFound("Customer not found");
+    }
+
+    return updated;
   },
 };

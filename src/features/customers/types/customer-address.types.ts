@@ -1,6 +1,11 @@
+import type { PaginationMeta } from "@/lib/api/api-response";
+
+export type AddressType = "shipping" | "billing";
+
 export interface CustomerAddressResponse {
   id: string; // Public UUID
   label: string | null;
+  addressType: AddressType;
   fullName: string;
   phone: string;
   addressLine1: string;
@@ -15,4 +20,16 @@ export interface CustomerAddressResponse {
   isDefault: boolean;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface CustomerAddressListParams {
+  page?: number;
+  pageSize?: number;
+  limit?: number;
+  addressType?: AddressType;
+}
+
+export interface CustomerAddressListResult {
+  data: CustomerAddressResponse[];
+  meta?: PaginationMeta;
 }

@@ -219,4 +219,21 @@ export const wishlistRepository = {
 
     return true;
   },
+
+  async getWishlistItemCount(userId: bigint): Promise<number> {
+    return db.wishlistItem.count({
+      where: {
+        userId,
+        is_active: true,
+        product_variants: {
+          isActive: true,
+          deleted_at: null,
+        },
+        product: {
+          isActive: true,
+          deleted_at: null,
+        },
+      },
+    });
+  },
 };

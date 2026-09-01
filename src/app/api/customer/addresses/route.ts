@@ -4,7 +4,9 @@ import { ApiError } from "@/lib/api/api-error";
 import { customerAddressService } from "@/features/customers/services/customer-address.service";
 import {
   createCustomerAddressSchema,
+  customerAddressQuerySchema,
   type CreateCustomerAddressInput,
+  type CustomerAddressQueryInput,
 } from "@/features/customers/validations/customer-address.schema";
 
 export const GET = createApiHandler(
@@ -15,13 +17,18 @@ export const GET = createApiHandler(
         throw ApiError.unauthorized("Authentication required");
       }
 
-      const addresses = await customerAddressService.getAddresses(sessionUserId);
+      const query = (context.query || {}) as CustomerAddressQueryInput;
+      const addresses = await customerAddressService.getAddresses(
+        sessionUserId,
+        query
+      );
 
       return apiSuccess(addresses, "Addresses fetched successfully", 200);
     },
   },
   {
     requireAuth: true,
+    querySchema: customerAddressQuerySchema,
   }
 );
 
