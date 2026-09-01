@@ -28,6 +28,7 @@ import {
   Ruler,
   Layers,
   UserCheck,
+  Mail,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
@@ -90,13 +91,17 @@ const sidebarItems: SidebarItem[] = [
     label: "CMS",
     href: "/admin/dashboard/cms",
     icon: BookOpen,
-    children: [{ label: "Blogs", href: "/admin/dashboard/blogs", icon: BookOpen }],
+    children: [
+      { label: "Blogs", href: "/admin/dashboard/blogs", icon: BookOpen },
+      { label: "Contact List", href: "/admin/dashboard/contacts", icon: Mail },
+    ],
   },
   {
     label: "Team & Access",
     href: "/admin/dashboard/team-access",
     icon: Shield,
     children: [
+      { label: "Staff", href: "/admin/dashboard/staff", icon: UserCheck },
       { label: "Users", href: "/admin/dashboard/users", icon: Users },
       { label: "Roles", href: "/admin/dashboard/roles", icon: Shield },
       { label: "Permissions", href: "/admin/dashboard/permissions", icon: Shield },

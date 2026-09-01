@@ -1,42 +1,57 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
-import { Plus, Pencil, ChevronRight } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Users,
+  UserCheck,
+  UserX,
+  RotateCcw,
+} from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
+import { AdminBreadcrumb } from "@/components/admin/AdminBreadcrumb";
 import { AdminPageHeader, AdminContent } from "@/components/admin/AdminPageHeader";
 import { DataTable } from "@/components/admin/data-table/DataTable";
+import { StatsCard } from "@/components/admin/StatsCard";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
+import { Select } from "@/components/ui/select";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
-import { useStaffList, StaffFormModal } from "@/features/staff";
+import { useStaffList, useStaffCount, StaffFormModal } from "@/features/staff";
 import type { StaffResponse } from "@/features/staff/types";
 
 export default function AdminStaffPage() {
   const [search, setSearch] = React.useState("");
+  const [statusFilter, setStatusFilter] = React.useState<string>("all");
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(10);
 
   const [isFormModalOpen, setIsFormModalOpen] = React.useState(false);
   const [selectedStaff, setSelectedStaff] = React.useState<StaffResponse | null>(null);
 
-  // Reset page when search changes
-  React.useEffect(() => {
-    setPage(1);
-  }, [search]);
+  // Map statusFilter to boolean or undefined
+  const isActiveParam =
+    statusFilter === "active" ? true : statusFilter === "inactive" ? false : undefined;
 
   const queryParams = React.useMemo(() => {
     return {
       page,
       limit: pageSize,
       search: search.trim() || undefined,
+      isActive: isActiveParam,
       sortBy: "name" as const,
       sortOrder: "asc" as const,
     };
-  }, [page, pageSize, search]);
+  }, [page, pageSize, search, isActiveParam]);
 
   const { data, isLoading, error, refetch } = useStaffList(queryParams);
+
+  // Real backend staff count API query
+  const { data: countData, isLoading: isCountLoading } = useStaffCount({
+    search: search.trim() || undefined,
+  });
 
   const staffList = data?.data ?? [];
   const meta = data?.meta;
@@ -46,6 +61,18 @@ export default function AdminStaffPage() {
     meta?.totalPages !== undefined && meta.totalPages > 0
       ? meta.totalPages
       : Math.max(1, Math.ceil(totalItems / pageSize));
+
+  const totalCount = countData?.all ?? totalItems;
+  const activeCount = countData?.active ?? staffList.filter((s) => s.isActive).length;
+  const inactiveCount = countData?.inactive ?? staffList.filter((s) => !s.isActive).length;
+
+  const handleResetFilters = () => {
+    setSearch("");
+    setStatusFilter("all");
+    setPage(1);
+  };
+
+  const hasActiveFilters = search.trim() !== "" || statusFilter !== "all";
 
   const handleOpenCreateModal = () => {
     setSelectedStaff(null);
@@ -171,93 +198,126 @@ export default function AdminStaffPage() {
 
   return (
     <div className="flex flex-1 min-h-0 flex-col">
-      {/* Header with Breadcrumb without Home Icon */}
+
       <AdminPageHeader
         title="Staff Management"
         description="View, search, create, and manage staff members with system access."
-        breadcrumbs={
-          <nav aria-label="Breadcrumb" className="flex items-center text-sm">
-            <ol className="flex items-center gap-1">
-              <li>
-                <Link
-                  href="/admin/dashboard/users"
-                  className="text-gray-500 hover:text-gray-700 transition-colors"
-                >
-                  Users
-                </Link>
-              </li>
-              <li className="flex items-center gap-1">
-                <ChevronRight className="h-4 w-4 text-gray-300" />
-                <span className="font-medium text-gray-900">Staff</span>
-              </li>
-            </ol>
-          </nav>
-        }
       />
 
-      <AdminContent className="flex-1 min-h-0 overflow-hidden">
-        <div className="flex h-full flex-col overflow-hidden bg-[var(--color-background)] py-1 rounded-2xl">
-          {/* Search + Create Staff in the same line */}
-          <div className="flex-shrink-0 mt-2 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <SearchInput
-              placeholder="Search staff by name, email, or phone..."
-              defaultValue={search}
-              onSearch={(val) => {
-                setSearch(val);
+      {/* KPI Summary Cards powered by Staff Count API */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 flex-shrink-0 mt-4">
+        <StatsCard
+          title="Total Staff"
+          value={isCountLoading ? "—" : totalCount}
+          icon={Users}
+          description="Total registered staff accounts"
+        />
+        <StatsCard
+          title="Active Staff"
+          value={isCountLoading ? "—" : activeCount}
+          icon={UserCheck}
+          description="Currently active staff members"
+        />
+        <StatsCard
+          title="Inactive Staff"
+          value={isCountLoading ? "—" : inactiveCount}
+          icon={UserX}
+          description="Deactivated or suspended accounts"
+        />
+      </div>
+
+      {/* Filter Toolbar: Search Input + Status Dropdown + Reset on Left, Create Staff Button on Right */}
+      <div className="flex-shrink-0 mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex flex-1 flex-col sm:flex-row sm:items-center gap-3">
+          <SearchInput
+            placeholder="Search staff by name, email, or phone..."
+            defaultValue={search}
+            onSearch={(val) => {
+              setSearch(val);
+              setPage(1);
+            }}
+            className="w-full sm:max-w-xs md:max-w-md"
+          />
+
+          {/* Status Filter Dropdown */}
+          <div className="w-full sm:w-44">
+            <Select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
                 setPage(1);
               }}
-              className="w-full max-w-md"
+              options={[
+                { value: "all", label: "All Statuses" },
+                { value: "active", label: "Active Staff" },
+                { value: "inactive", label: "Inactive Staff" },
+              ]}
+              placeholder="Filter by Status"
+              className="h-10 rounded-xl text-xs font-medium"
             />
+          </div>
 
+          {hasActiveFilters && (
             <Button
               type="button"
-              onClick={handleOpenCreateModal}
-              className="h-11 rounded-xl bg-[var(--color-secondary-600)] px-5 text-sm font-semibold text-white hover:bg-[var(--color-secondary-700)] shadow-sm cursor-pointer"
+              variant="ghost"
+              size="sm"
+              onClick={handleResetFilters}
+              className="h-10 px-3 text-xs font-semibold text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 rounded-xl flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
             >
-              <Plus className="mr-2 h-4 w-4" />
-              Create Staff
+              <RotateCcw className="h-3.5 w-3.5" />
+              <span>Reset</span>
             </Button>
-          </div>
+          )}
+        </div>
 
-          {/* Table Container occupying up to bottom with only table records scrolling */}
-          <div className="mt-4 flex-1 min-h-0 overflow-hidden flex flex-col">
-            {isLoading ? (
-              <div className="flex-1 flex items-center justify-center rounded-2xl border border-neutral-200 bg-white p-12">
-                <LoadingState text="Loading staff members..." />
-              </div>
-            ) : error ? (
-              <div className="flex-1 flex items-center justify-center rounded-2xl border border-neutral-200 bg-white p-12">
-                <ErrorState
-                  title="Failed to load staff list"
-                  message={error.message || "An error occurred while fetching staff members."}
-                  onRetry={() => refetch()}
-                />
-              </div>
-            ) : (
-              <div className="flex-1 min-h-0 flex flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
-                <DataTable
-                  columns={columns}
-                  data={staffList}
-                  page={page}
-                  pageSize={pageSize}
-                  pageSizeOptions={[10, 20, 30, 50]}
-                  totalItems={totalItems}
-                  totalPages={totalPages}
-                  onPageChange={(newPage) => setPage(newPage)}
-                  onPageSizeChange={(newSize) => {
-                    setPageSize(newSize);
-                    setPage(1);
-                  }}
-                  className="bg-white"
-                  emptyMessage={
-                    search.trim()
-                      ? "No staff members matched your search criteria."
-                      : "No staff members found. Click '+ Create Staff' to add your first staff member."
-                  }
-                />
-              </div>
-            )}
-          </div>
+        <Button
+          type="button"
+          onClick={handleOpenCreateModal}
+          className="h-10 rounded-xl bg-secondary-600 px-4 text-sm font-semibold text-white hover:bg-secondary-700 shadow-xs cursor-pointer shrink-0"
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Create Staff
+        </Button>
+      </div>
+
+      {/* Main Content: Fixed viewport height with scrolling table records */}
+      <AdminContent className="flex-1 min-h-0 overflow-hidden mt-4">
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col rounded-2xl border border-neutral-200 bg-white shadow-xs">
+          {isLoading && !data ? (
+            <div className="flex-1 flex items-center justify-center p-12">
+              <LoadingState text="Loading staff members..." />
+            </div>
+          ) : error ? (
+            <div className="flex-1 flex items-center justify-center p-12">
+              <ErrorState
+                title="Failed to load staff list"
+                message={error.message || "An error occurred while fetching staff members."}
+                onRetry={() => refetch()}
+              />
+            </div>
+          ) : (
+            <DataTable
+              columns={columns}
+              data={staffList}
+              page={page}
+              pageSize={pageSize}
+              pageSizeOptions={[10, 20, 30, 50]}
+              totalItems={totalItems}
+              totalPages={totalPages}
+              onPageChange={(newPage) => setPage(newPage)}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                setPage(1);
+              }}
+              className="bg-white border-0"
+              emptyMessage={
+                search.trim() || statusFilter !== "all"
+                  ? "No staff members matched your filter criteria."
+                  : "No staff members found. Click '+ Create Staff' to add your first staff member."
+              }
+            />
+          )}
         </div>
       </AdminContent>
 

@@ -16,7 +16,7 @@ interface CustomerInfoCardProps {
 
 export function CustomerInfoCard({ customer }: CustomerInfoCardProps) {
   return (
-    <div className="rounded-2xl border border-cream-border bg-white p-6 sm:p-7 shadow-xs h-full flex flex-col justify-center">
+    <div className="rounded-2xl border border-cream-border bg-white p-4 sm:p-6 md:p-7 shadow-xs h-full flex flex-col justify-center">
       <div className="space-y-4 my-auto w-full">
         {/* Header matching screenshot monospace tracked style */}
         <div className="border-b border-cream-border pb-3">
