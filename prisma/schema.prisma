@@ -115,6 +115,8 @@ model User {
   combo_product_items_combo_product_items_updated_byTousers           combo_product_items[]      @relation("combo_product_items_updated_byTousers")
   combo_products_combo_products_created_byTousers                     combo_products[]           @relation("combo_products_created_byTousers")
   combo_products_combo_products_updated_byTousers                     combo_products[]           @relation("combo_products_updated_byTousers")
+  companies_companies_created_byTousers                               Company[]                  @relation("companies_created_byTousers")
+  companies_companies_updated_byTousers                               Company[]                  @relation("companies_updated_byTousers")
   contact_messages_contact_messages_created_byTousers                 contact_messages[]         @relation("contact_messages_created_byTousers")
   contact_messages_contact_messages_updated_byTousers                 contact_messages[]         @relation("contact_messages_updated_byTousers")
   coupon_usage_coupon_usage_created_byTousers                         coupon_usage[]             @relation("coupon_usage_created_byTousers")
@@ -1178,6 +1180,34 @@ model combo_products {
 
   @@index([created_by], map: "fk_combo_products_created_by")
   @@index([updated_by], map: "fk_combo_products_updated_by")
+}
+
+model Company {
+  id                                BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  uuid                              String    @unique(map: "idx_companies_uuid") @default("UUID()") @db.VarChar(255)
+  companyName                       String    @map("company_name") @db.VarChar(200)
+  logo                              String?   @db.VarChar(500)
+  email                             String?   @db.VarChar(150)
+  phone                             String?   @db.VarChar(20)
+  address                           String?   @db.Text
+  city                              String?   @db.VarChar(100)
+  state                             String?   @db.VarChar(100)
+  country                           String?   @default("India") @db.VarChar(100)
+  pincode                           String?   @db.VarChar(20)
+  gstNumber                         String?   @map("gst_number") @db.VarChar(50)
+  panNumber                         String?   @map("pan_number") @db.VarChar(50)
+  website                           String?   @db.VarChar(255)
+  isActive                          Boolean   @default(true) @map("is_active")
+  createdAt                         DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt                         DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+  createdBy                         BigInt?   @map("created_by") @db.UnsignedBigInt
+  updatedBy                         BigInt?   @map("updated_by") @db.UnsignedBigInt
+  users_companies_created_byTousers User?     @relation("companies_created_byTousers", fields: [createdBy], references: [id], onUpdate: NoAction, map: "fk_companies_created_by")
+  users_companies_updated_byTousers User?     @relation("companies_updated_byTousers", fields: [updatedBy], references: [id], onUpdate: NoAction, map: "fk_companies_updated_by")
+
+  @@index([createdBy], map: "fk_companies_created_by")
+  @@index([updatedBy], map: "fk_companies_updated_by")
+  @@map("companies")
 }
 
 model contact_messages {
