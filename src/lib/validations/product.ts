@@ -37,7 +37,12 @@ export const categorySchema = z.object({
   image: z.string().optional(),
   parentId: z.number().int().positive().optional().nullable(),
   isActive: z.boolean().default(true),
-  sortOrder: z.number().int().min(0).default(0),
+  sortOrder: z
+    .number()
+    .int("Sort order must be an integer")
+    .min(0, "Sort order cannot be negative")
+    .max(100, "Sort order cannot exceed 100")
+    .default(0),
   metaTitle: z.string().optional(),
   metaDescription: z.string().optional(),
 });

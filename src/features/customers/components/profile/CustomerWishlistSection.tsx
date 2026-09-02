@@ -59,8 +59,8 @@ export function CustomerWishlistSection({
   }
 
   return (
-    <div className="p-6 space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="p-4 sm:p-6 space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
         {wishlist.map((item) => {
           const productName =
             item.product?.name || item.productName || "Product";
@@ -90,11 +90,11 @@ export function CustomerWishlistSection({
           return (
             <div
               key={item.id}
-              className="rounded-xl border border-cream-border bg-white p-4 shadow-xs transition-all flex flex-col justify-between"
+              className="rounded-xl border border-cream-border bg-white p-3.5 sm:p-4 shadow-xs transition-all flex flex-col justify-between"
             >
               <div className="space-y-3">
                 {/* Image & Stock Badge */}
-                <div className="relative h-40 w-full rounded-lg overflow-hidden border border-cream-border bg-cream-50 flex items-center justify-center">
+                <div className="relative h-36 sm:h-40 w-full rounded-lg overflow-hidden border border-cream-border bg-cream-50 flex items-center justify-center">
                   {primaryImage ? (
                     <Image
                       src={primaryImage}

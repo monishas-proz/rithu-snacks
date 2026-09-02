@@ -101,7 +101,7 @@ console.log("Categories received from API:", categories.length);
 
     {
       accessorKey: "slug",
-      header: "SLUG",
+      header: "Category Code",
       cell: ({ row }) => (
         <div>
           <p className="mt-1 text-sm text-[var(--color-neutral-500)]">{row.original.slug}</p>

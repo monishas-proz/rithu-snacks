@@ -12,11 +12,11 @@ export const createAdminCategorySchema = z
     slug: z
       .string()
       .trim()
-      .min(1, "Category slug is required")
-      .max(170, "Category slug cannot exceed 170 characters")
+      .min(1, "Category code is required")
+      .max(170, "Category code cannot exceed 170 characters")
       .regex(
         slugRegex,
-        "Category slug must be uppercase letters, numbers, hyphens, or underscores (e.g. RITHANYA_SNACKS)"
+        "Category code must be uppercase letters, numbers, hyphens, or underscores (e.g. RITHANYA_SNACKS)"
       ),
     description: z
       .string()
@@ -32,8 +32,9 @@ export const createAdminCategorySchema = z
       .nullable(),
     sortOrder: z
       .number()
-      .int("sortOrder must be an integer")
-      .min(0, "sortOrder cannot be negative")
+      .int("Sort order must be an integer")
+      .min(0, "Sort order cannot be negative")
+      .max(100, "Sort order cannot exceed 100")
       .default(0)
       .optional(),
   })

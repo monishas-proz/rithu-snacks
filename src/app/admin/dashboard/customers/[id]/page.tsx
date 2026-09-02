@@ -127,12 +127,12 @@ export default function AdminCustomerProfilePage() {
   }
 
   return (
-    <div className="w-full space-y-5">
+    <div className="w-full space-y-4 sm:space-y-6">
       {/* Top Header & Breadcrumb Actions */}
       <CustomerTopBar customer={customer} />
 
-      {/* Top Row: Customer Profile Summary & Contact Information (2 Columns) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      {/* Top Row: Customer Profile Summary & Contact Information (2 Columns on lg, 1 column on md/sm) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
         {/* Left Column: Customer Profile Card with Totals */}
         <div className="lg:col-span-7">
           <CustomerProfileHeader
@@ -149,11 +149,11 @@ export default function AdminCustomerProfilePage() {
         </div>
       </div>
 
-      {/* Middle Section: Tabbed Container matching screenshot */}
+      {/* Middle Section: Tabbed Container */}
       <div className="rounded-2xl border border-cream-border bg-white shadow-xs overflow-hidden">
-        {/* Tab Navigation Header Bar */}
-        <div className="bg-cream-100 border-b border-cream-border px-4 sm:px-6">
-          <div className="flex items-center gap-6 sm:gap-8 overflow-x-auto scrollbar-hide">
+        {/* Tab Navigation Header Bar with Horizontal Scroll */}
+        <div className="bg-cream-100 border-b border-cream-border px-3 sm:px-6">
+          <div className="flex items-center gap-4 sm:gap-8 overflow-x-auto scrollbar-none">
             {tabs.map((tab) => {
               const isActive = activeTab === tab.id;
 
@@ -162,7 +162,7 @@ export default function AdminCustomerProfilePage() {
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={`py-3.5 px-1 font-mono text-xs sm:text-sm font-semibold tracking-wide transition-all border-b-2 whitespace-nowrap cursor-pointer ${
+                  className={`py-3 sm:py-3.5 px-1 font-mono text-xs sm:text-sm font-semibold tracking-wide transition-all border-b-2 whitespace-nowrap cursor-pointer ${
                     isActive
                       ? "border-secondary-600 text-secondary-600"
                       : "border-transparent text-neutral-500 hover:text-neutral-800"

@@ -11,6 +11,7 @@ import type {
   AdminCustomerListResponse,
   AdminCustomerOrdersResponse,
   AdminCustomerCartDto,
+  AdminCustomersCountResponse,
 } from "../types/admin-customer.types";
 import type { CustomerWishlistResponse } from "@/features/wishlist/types/wishlist.types";
 
@@ -137,3 +138,39 @@ export async function getAdminCustomerCart(
   );
   return response.data ?? null;
 }
+
+export async function updateCustomerStatus(
+  uuid: string,
+  isActive: boolean
+): Promise<AdminCustomerDetailDto> {
+  const cleanUuid = uuid.trim();
+  const response = await apiClient.put<AdminCustomerDetailDto>(
+    `/api/admin/customers/${encodeURIComponent(cleanUuid)}/status`,
+    { isActive }
+  );
+  return response.data;
+}
+
+export async function countAdminCustomers(
+  params?: Partial<AdminCustomerListInput>
+): Promise<AdminCustomersCountResponse> {
+  const response = await apiClient.post<AdminCustomersCountResponse>(
+    "/api/admin/customers/count",
+    params ?? {}
+  );
+  return (
+    response.data ?? {
+      active: 0,
+      inactive: 0,
+      blocked: 0,
+      unblocked: 0,
+      verified: 0,
+      unverified: 0,
+      male: 0,
+      female: 0,
+      other: 0,
+      all: 0,
+    }
+  );
+}
+

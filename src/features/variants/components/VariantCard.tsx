@@ -233,12 +233,29 @@ export function VariantCard({
           </div>
 
           {/* Variant Name */}
-          <h3
-            className="text-xs sm:text-sm font-bold text-[var(--brown-900)] leading-snug line-clamp-2 uppercase group-hover:text-[var(--color-secondary-700)] transition-colors"
-            title={variant.variantName}
-          >
-            {variant.variantName}
-          </h3>
+          {effectiveProductUuid ? (
+            <Link
+              href={`/admin/dashboard/variants/${encodeURIComponent(
+                variant.id
+              )}?productId=${encodeURIComponent(effectiveProductUuid)}`}
+              className="block group/link cursor-pointer"
+              title="View Variant Details"
+            >
+              <h3
+                className="text-xs sm:text-sm font-bold text-[var(--brown-900)] leading-snug line-clamp-2 uppercase group-hover/link:text-[var(--color-secondary-700)] transition-colors"
+                title={variant.variantName}
+              >
+                {variant.variantName}
+              </h3>
+            </Link>
+          ) : (
+            <h3
+              className="text-xs sm:text-sm font-bold text-[var(--brown-900)] leading-snug line-clamp-2 uppercase group-hover:text-[var(--color-secondary-700)] transition-colors"
+              title={variant.variantName}
+            >
+              {variant.variantName}
+            </h3>
+          )}
 
           {/* Measurement Pill & Type */}
           <div className="mt-2 flex items-center justify-between gap-1.5 flex-wrap">

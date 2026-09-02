@@ -132,7 +132,7 @@ function DataTable<TData, TValue>({
 
     
   return (
-    <div className={cn("h-full flex flex-col justify-between rounded-2xl overflow-hidden", className)}>
+    <div className={cn("w-full flex-1 flex flex-col justify-between rounded-2xl overflow-hidden min-h-[380px] border border-neutral-200", className)}>
       {searchKey && (
         <div className="flex items-center gap-2 p-3 pb-0 flex-shrink-0">
           <SearchInput
@@ -144,8 +144,8 @@ function DataTable<TData, TValue>({
         </div>
       )}
 
-      <div className="min-h-0 flex-1 overflow-hidden">
-        <div className="h-full overflow-x-auto overflow-y-auto overscroll-x-contain">
+      <div className="min-h-[240px] flex-1 overflow-hidden flex flex-col">
+        <div className="flex-1 overflow-x-auto overflow-y-auto overscroll-x-contain">
           <table className="w-full min-w-[720px] table-auto caption-bottom text-sm border-separate border-spacing-0">
             <thead>
               {table.getHeaderGroups().map((headerGroup) => (

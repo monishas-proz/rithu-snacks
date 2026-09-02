@@ -228,12 +228,14 @@ export default function InventoryStockPage() {
       >
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium">Inventory Item</label>
+            <label className="text-sm font-medium">Inventory Item <span className="text-red-500">*</span></label>
             <select
               className="w-full border rounded-md p-2"
               {...adjustForm.register("inventoryId", { valueAsNumber: true })}
             >
-              <option value={0}>Select item</option>
+              <option value={0} disabled>
+                Select item
+              </option>
               {inventoryData?.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.productName}
@@ -243,7 +245,7 @@ export default function InventoryStockPage() {
             </select>
           </div>
           <div>
-            <label className="text-sm font-medium">Type</label>
+            <label className="text-sm font-medium">Type <span className="text-red-500">*</span></label>
             <select
               className="w-full border rounded-md p-2"
               {...adjustForm.register("type")}
@@ -257,7 +259,7 @@ export default function InventoryStockPage() {
           </div>
           <div>
             <label className="text-sm font-medium">
-              Quantity (negative for out)
+              Quantity (negative for out) <span className="text-red-500">*</span>
             </label>
             <input
               type="number"
@@ -291,7 +293,7 @@ export default function InventoryStockPage() {
       >
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium">Product ID</label>
+            <label className="text-sm font-medium">Product ID <span className="text-red-500">*</span></label>
             <input
               type="number"
               className="w-full border rounded-md p-2"
@@ -309,7 +311,7 @@ export default function InventoryStockPage() {
             />
           </div>
           <div>
-            <label className="text-sm font-medium">Quantity</label>
+            <label className="text-sm font-medium">Quantity <span className="text-red-500">*</span></label>
             <input
               type="number"
               className="w-full border rounded-md p-2"

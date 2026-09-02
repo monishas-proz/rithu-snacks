@@ -5,11 +5,19 @@ import { staffKeys } from "@/lib/api/query-keys";
 import {
   getStaffList,
   getStaffByUuid,
+  getStaffCount,
   createStaff,
   updateStaff,
 } from "../api/staff.api";
-import type { GetStaffParams, StaffResponse } from "../types";
-import type { CreateStaffInput, UpdateStaffInput } from "../validations/staff.schema";
+import type {
+  GetStaffParams,
+  StaffResponse,
+  AdminStaffCountResponse,
+} from "../types";
+import type {
+  CreateStaffInput,
+  UpdateStaffInput,
+} from "../validations/staff.schema";
 
 export function useStaffList(params?: GetStaffParams) {
   const page = Number(params?.page) || 1;
@@ -33,6 +41,20 @@ export function useStaffList(params?: GetStaffParams) {
   });
 }
 
+export function useStaffCount(params?: Partial<GetStaffParams>) {
+  const queryParams: Record<string, string | boolean | undefined> = {
+    search: params?.search,
+    isActive: params?.isActive,
+  };
+
+  return useQuery<AdminStaffCountResponse>({
+    queryKey: [...staffKeys.all, "count", queryParams] as const,
+    queryFn: () => getStaffCount(params),
+    placeholderData: keepPreviousData,
+    staleTime: 30 * 1000,
+  });
+}
+
 export function useStaffDetail(uuid: string | null) {
   return useQuery({
     queryKey: staffKeys.detail(uuid ?? ""),
@@ -50,7 +72,7 @@ export function useCreateStaff() {
       successMessage: "Staff created successfully.",
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: staffKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: staffKeys.all });
     },
   });
 }
@@ -68,7 +90,7 @@ export function useUpdateStaff() {
       successMessage: "Staff updated successfully.",
     },
     onSuccess: (_result, variables) => {
-      queryClient.invalidateQueries({ queryKey: staffKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: staffKeys.all });
       queryClient.invalidateQueries({
         queryKey: staffKeys.detail(variables.uuid),
       });

@@ -10,6 +10,7 @@ interface FormSelectProps {
   options: SelectOption[];
   placeholder?: string;
   description?: string;
+  required?: boolean;
 }
 
 function FormSelect({
@@ -18,6 +19,7 @@ function FormSelect({
   options,
   placeholder,
   description,
+  required,
 }: FormSelectProps) {
   const { control } = useFormContext();
 
@@ -27,7 +29,12 @@ function FormSelect({
       control={control}
       render={({ field, fieldState }) => (
         <div className="space-y-2">
-          {label && <Label>{label}</Label>}
+          {label && (
+            <Label htmlFor={name}>
+              {label}
+              {required && <span className="text-error-600 font-bold ml-1">*</span>}
+            </Label>
+          )}
           <Select
             {...field}
             options={options}

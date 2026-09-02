@@ -16,6 +16,8 @@ interface FormImageUploadProps {
   enableCrop?: boolean;
   className?: string;
   aspectRatioClassName?: string;
+  required?: boolean;
+  maxSizeMB?: number;
 }
 
 function FormImageUpload({
@@ -27,10 +29,13 @@ function FormImageUpload({
   enableCrop = true,
   className,
   aspectRatioClassName = "h-48",
+  required,
+  maxSizeMB = 5,
 }: FormImageUploadProps) {
   const { control } = useFormContext();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [fileError, setFileError] = useState<string | null>(null);
 
   // Crop state
   const [cropSrc, setCropSrc] = useState<string | null>(null);
@@ -49,6 +54,17 @@ function FormImageUpload({
   const uploadFile = async (file: File) => {
     try {
       setIsUploading(true);
+      setFileError(null);
+
+      const maxSizeBytes = maxSizeMB * 1024 * 1024;
+      if (file.size > maxSizeBytes) {
+        throw new Error(
+          `Image size cannot exceed ${maxSizeMB}MB (Selected: ${(
+            file.size /
+            (1024 * 1024)
+          ).toFixed(2)}MB).`
+        );
+      }
 
       const formData = new FormData();
       formData.append("file", file);
@@ -68,8 +84,9 @@ function FormImageUpload({
 
       // Save uploaded image path in the form
       field.onChange(result.data.path);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Image upload error:", err);
+      setFileError(err?.message || "Image upload failed");
     } finally {
       setIsUploading(false);
     }
@@ -78,6 +95,21 @@ function FormImageUpload({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    const maxSizeBytes = maxSizeMB * 1024 * 1024;
+    if (file.size > maxSizeBytes) {
+      setFileError(
+        `File size exceeds the maximum allowed limit of ${maxSizeMB}MB (Selected: ${(
+          file.size /
+          (1024 * 1024)
+        ).toFixed(2)}MB).`
+      );
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      return;
+    }
+    setFileError(null);
 
     if (!enableCrop) {
       uploadFile(file);
@@ -114,18 +146,26 @@ function FormImageUpload({
     }
   };
 
+  const displayError = fileError || error?.message;
+
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium text-[var(--color-neutral-700)]">
-        {label}
-      </label>
+      <div className="flex items-center justify-between">
+        <label className="text-sm font-medium text-[var(--color-neutral-700)]">
+          {label}
+          {required && <span className="text-error-600 font-bold ml-1">*</span>}
+        </label>
+        <span className="text-xs font-medium text-neutral-400">
+          Max size: {maxSizeMB} MB
+        </span>
+      </div>
 
       <div
         onClick={() => fileInputRef.current?.click()}
         className={cn(
           "relative flex cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-[var(--color-neutral-300)] bg-[var(--color-neutral-50)] transition-all hover:border-[var(--color-primary-500)] hover:bg-white overflow-hidden",
           aspectRatioClassName,
-          error && "border-[var(--color-error-500)]",
+          displayError && "border-[var(--color-error-500)]",
           className
         )}
       >
@@ -143,8 +183,10 @@ function FormImageUpload({
               onClick={(e) => {
                 e.stopPropagation();
                 field.onChange("");
+                setFileError(null);
               }}
-              className="absolute right-3 top-3 rounded-full bg-white p-2 shadow-md"
+              className="absolute right-3 top-3 rounded-full bg-white p-2 shadow-md hover:bg-neutral-100 transition-colors"
+              title="Remove image"
             >
               <X className="h-4 w-4 text-[var(--color-neutral-700)]" />
             </button>
@@ -157,17 +199,17 @@ function FormImageUpload({
             </p>
           </div>
         ) : (
-          <div className="flex flex-col items-center gap-3 text-center">
+          <div className="flex flex-col items-center gap-2.5 text-center px-4">
             <div className="rounded-full bg-white p-3 shadow-sm">
               <Upload className="h-6 w-6 text-[var(--color-neutral-500)]" />
             </div>
 
             <div>
-              <p className="font-medium text-[var(--color-neutral-700)]">
+              <p className="font-medium text-[var(--color-neutral-700)] text-sm">
                 Upload Image
               </p>
-              <p className="text-sm text-[var(--color-neutral-500)]">
-                Click to browse (JPG, PNG, WEBP) • {cropWidth} × {cropHeight} px
+              <p className="text-xs text-[var(--color-neutral-500)] mt-0.5">
+                JPG, PNG, WebP • Max {maxSizeMB}MB • {cropWidth} × {cropHeight} px
               </p>
             </div>
           </div>
@@ -176,15 +218,15 @@ function FormImageUpload({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept="image/jpeg,image/png,image/webp,image/gif"
           className="hidden"
           onChange={handleFileChange}
         />
       </div>
 
-      {error && (
-        <p className="text-sm text-[var(--color-error-600)]">
-          {error.message}
+      {displayError && (
+        <p className="text-xs font-medium text-[var(--color-error-600)]">
+          {displayError}
         </p>
       )}
 
@@ -195,7 +237,7 @@ function FormImageUpload({
         originalFileName={selectedFile?.name}
         mimeType={selectedFile?.type || "image/jpeg"}
         title={`Crop ${label || "Image"}`}
-        description={`Reposition and zoom to fit the ${cropWidth} × ${cropHeight} px area.`}
+        description={`Reposition and zoom to fit the ${cropWidth} × ${cropHeight} px area (Max ${maxSizeMB}MB).`}
         cropWidth={cropWidth}
         cropHeight={cropHeight}
         onCropConfirm={handleCropConfirm}

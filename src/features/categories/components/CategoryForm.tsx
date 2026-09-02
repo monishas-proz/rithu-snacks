@@ -34,6 +34,8 @@ function CategoryForm({
 }: CategoryFormProps) {
   const methods = useForm({
     resolver: zodResolver(isEditing ? updateCategorySchema : createCategorySchema),
+    mode: "onChange",
+    reValidateMode: "onChange",
     defaultValues: {
       name: (initialData?.name as string) || "",
       slug: (initialData?.slug as string) || "",
@@ -61,12 +63,15 @@ function CategoryForm({
             name="name"
             label="Category Name"
             placeholder="Enter category name"
+            required
           />
 
           <FormInput
             name="slug"
-            label="Slug"
+            label="Category Code"
             placeholder="e.g. SWEETS_SNACKS"
+            infoMessage="Enter uppercase letters, numbers, and underscores only (e.g. SWEETS_SNACKS). Hyphens and spaces are not allowed."
+            required
           />
         </div>
 
@@ -123,6 +128,9 @@ function CategoryForm({
             name="sortOrder"
             label="Sort Order"
             type="number"
+            min="0"
+            max="100"
+            step="1"
             placeholder="0"
         />
 

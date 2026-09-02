@@ -103,6 +103,7 @@ function AdminLoginForm() {
             placeholder="admin@rithusnacks.com"
             autoComplete="email"
             leftIcon={<Mail size={18} />}
+            required
           />
 
           <FormPasswordInput
@@ -111,6 +112,7 @@ function AdminLoginForm() {
             placeholder="Enter your password"
             autoComplete="current-password"
             leftIcon={<LockKeyhole size={18} />}
+            required
           />
 
           <div className="flex items-center justify-end">

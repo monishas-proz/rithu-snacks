@@ -95,6 +95,7 @@ function LoginForm() {
             placeholder="Enter your email"
             autoComplete="email"
             leftIcon={<Mail size={18} />}
+            required
           />
 
           <FormPasswordInput
@@ -102,6 +103,7 @@ function LoginForm() {
             label="Password"
             placeholder="Enter your password"
             leftIcon={<LockKeyhole size={18} />}
+            required
           />
 
           <div className="flex items-center justify-end">

@@ -57,6 +57,7 @@ export function HsnCodeForm({
             name="code"
             label="HSN Code"
             placeholder="Enter HSN code"
+            required
           />
 
           <FormSelect
@@ -64,6 +65,7 @@ export function HsnCodeForm({
             label="GST Rate"
             placeholder="Select GST rate"
             options={gstOptions}
+            required
           />
         </div>
 

@@ -3,6 +3,7 @@ import type {
   StaffResponse,
   GetStaffParams,
   GetStaffResult,
+  AdminStaffCountResponse,
 } from "../types";
 import type {
   CreateStaffInput,
@@ -100,3 +101,35 @@ export async function updateStaff(
 
   return response.data;
 }
+
+/**
+ * Fetch staff counts breakdown (active, inactive, all).
+ * Postman: POST /api/admin/staff/count
+ */
+export async function getStaffCount(
+  params?: Partial<GetStaffParams>
+): Promise<AdminStaffCountResponse> {
+  const queryParams: Record<string, unknown> = {};
+
+  if (params?.search && params.search.trim() !== "") {
+    queryParams.search = params.search.trim();
+  }
+
+  if (params?.isActive !== undefined) {
+    queryParams.isActive = params.isActive;
+  }
+
+  const response = await apiClient.post<AdminStaffCountResponse>(
+    "/api/admin/staff/count",
+    queryParams
+  );
+
+  return (
+    response.data ?? {
+      active: 0,
+      inactive: 0,
+      all: 0,
+    }
+  );
+}
+

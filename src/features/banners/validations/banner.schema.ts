@@ -33,7 +33,8 @@ export const createBannerSchema = z
     sortOrder: z
       .number()
       .int("Sort order must be an integer")
-      .min(0, "Sort order must be a non-negative integer")
+      .min(0, "Sort order cannot be negative")
+      .max(100, "Sort order cannot exceed 100")
       .default(0),
     isActive: z.boolean().default(true),
     startsAt: parseDateString.nullable().optional(),
@@ -82,7 +83,8 @@ export const updateBannerSchema = z
     sortOrder: z
       .number()
       .int("Sort order must be an integer")
-      .min(0, "Sort order must be a non-negative integer")
+      .min(0, "Sort order cannot be negative")
+      .max(100, "Sort order cannot exceed 100")
       .optional(),
     isActive: z.boolean().optional(),
     startsAt: parseDateString.nullable().optional(),

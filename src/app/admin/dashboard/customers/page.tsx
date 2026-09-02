@@ -5,28 +5,36 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   useAdminCustomers,
+  useAdminCustomersCount,
+  useUpdateCustomerStatus,
   type AdminCustomerListItemDto,
 } from "@/features/customers";
 import { DataTable } from "@/components/admin/data-table/DataTable";
-import { AdminPageHeader, AdminContent } from "@/components/admin/AdminPageHeader";
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminBreadcrumb } from "@/components/admin/AdminBreadcrumb";
 import { StatsCard } from "@/components/admin/StatsCard";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select } from "@/components/ui/select";
 import { SearchInput } from "@/components/ui/search-input";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   Users,
   UserCheck,
   ShieldCheck,
+  ShieldAlert,
   MessageSquare,
   Search,
   Eye,
   RotateCcw,
   X,
   CheckCircle2,
+  Ban,
+  Filter,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { ColumnDef } from "@tanstack/react-table";
 
 export default function AdminCustomersPage() {
@@ -37,18 +45,31 @@ export default function AdminCustomersPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
+  // Selected customer for block/unblock dialog
+  const [statusTargetCustomer, setStatusTargetCustomer] =
+    useState<AdminCustomerListItemDto | null>(null);
+
+  const { mutate: updateCustomerStatus, isPending: isUpdatingStatus } =
+    useUpdateCustomerStatus();
+
+  // 1. Fetch real customer KPI counts from backend count API
+  const { data: customerCounts, isLoading: isLoadingCounts } =
+    useAdminCustomersCount();
+
   // Reset pagination on filter changes
   useEffect(() => {
     setPage(1);
   }, [statusFilter, genderFilter, verificationFilter]);
 
-  // Build query parameters
+  // Build query parameters with active / inactive / blocked / unblocked filters
   const queryParams = useMemo(() => {
     const params: {
       page: number;
       pageSize: number;
       search?: string;
       status?: "active" | "inactive" | "banned";
+      isActive?: boolean;
+      isBlocked?: boolean;
       gender?: "male" | "female" | "other";
       emailVerified?: boolean;
       phoneVerified?: boolean;
@@ -65,8 +86,15 @@ export default function AdminCustomersPage() {
       params.search = search.trim();
     }
 
-    if (statusFilter !== "all") {
-      params.status = statusFilter as "active" | "inactive" | "banned";
+    if (statusFilter === "active") {
+      params.isActive = true;
+      params.isBlocked = false;
+    } else if (statusFilter === "inactive") {
+      params.isActive = false;
+    } else if (statusFilter === "blocked") {
+      params.isBlocked = true;
+    } else if (statusFilter === "unblocked") {
+      params.isBlocked = false;
     }
 
     if (genderFilter !== "all") {
@@ -82,6 +110,7 @@ export default function AdminCustomersPage() {
     return params;
   }, [page, pageSize, search, statusFilter, genderFilter, verificationFilter]);
 
+  // 2. Fetch customers list
   const { data, isLoading, error, refetch } = useAdminCustomers(queryParams);
 
   const customers = data?.data ?? [];
@@ -89,7 +118,6 @@ export default function AdminCustomersPage() {
 
   const handleResetFilters = () => {
     setSearch("");
-    setDebouncedSearch("");
     setStatusFilter("all");
     setGenderFilter("all");
     setVerificationFilter("all");
@@ -102,32 +130,28 @@ export default function AdminCustomersPage() {
     genderFilter !== "all" ||
     verificationFilter !== "all";
 
-  // Calculate summary stats
-  const totalCustomers = meta?.total ?? customers.length;
-  const activeCount = useMemo(
-    () => customers.filter((c) => c.status === "active" || c.isActive).length,
-    [customers]
-  );
-  const verifiedCount = useMemo(
-    () => customers.filter((c) => c.emailVerified || c.phoneVerified).length,
-    [customers]
-  );
-  const whatsappCount = useMemo(
-    () => customers.filter((c) => c.isWhatsapp).length,
-    [customers]
-  );
+  const handleConfirmStatusChange = () => {
+    if (!statusTargetCustomer) return;
+    const isCurrentlyBlocked =
+      statusTargetCustomer.isBlocked === true ||
+      statusTargetCustomer.isActive === false ||
+      statusTargetCustomer.status === "banned" ||
+      statusTargetCustomer.status === "inactive";
 
-  const statusBadgeVariant = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case "active":
-        return "success";
-      case "inactive":
-        return "secondary";
-      case "banned":
-        return "destructive";
-      default:
-        return "secondary";
-    }
+    const targetId =
+      statusTargetCustomer.id || statusTargetCustomer.userId || "";
+
+    updateCustomerStatus(
+      {
+        uuid: targetId,
+        isActive: isCurrentlyBlocked, // unblock if blocked, block if active
+      },
+      {
+        onSettled: () => {
+          setStatusTargetCustomer(null);
+        },
+      }
+    );
   };
 
   const columns: ColumnDef<AdminCustomerListItemDto, unknown>[] = [
@@ -138,8 +162,11 @@ export default function AdminCustomersPage() {
         const item = row.original;
         const initial = item.name?.charAt(0)?.toUpperCase() || "C";
         return (
-          <div className="flex items-center gap-3">
-            <div className="relative h-10 w-10 overflow-hidden rounded-full border border-neutral-200 bg-primary-100 flex items-center justify-center flex-shrink-0">
+          <Link
+            href={`/admin/dashboard/customers/${item.id}`}
+            className="group flex items-center gap-3 cursor-pointer"
+          >
+            <div className="relative h-10 w-10 overflow-hidden rounded-full border border-neutral-200 bg-primary-100 flex items-center justify-center flex-shrink-0 group-hover:ring-2 group-hover:ring-secondary-500/40 transition-all">
               {item.profileImage ? (
                 <Image
                   src={item.profileImage}
@@ -154,14 +181,18 @@ export default function AdminCustomersPage() {
               )}
             </div>
             <div>
-              <p className="font-semibold text-neutral-900 leading-snug">
+              <p className="font-semibold text-neutral-900 leading-snug group-hover:text-secondary-600 transition-colors">
                 {item.name || "Unnamed Customer"}
               </p>
               <p className="text-xs text-neutral-500 font-mono">
-                {item.customerId ? `ID: ${item.customerId}` : item.id ? `ID: ${item.id.slice(0, 8)}...` : "-"}
+                {item.customerId
+                  ? `ID: ${item.customerId}`
+                  : item.id
+                  ? `ID: ${item.id.slice(0, 8)}...`
+                  : "-"}
               </p>
             </div>
-          </div>
+          </Link>
         );
       },
     },
@@ -235,16 +266,31 @@ export default function AdminCustomersPage() {
       header: "Status",
       cell: ({ row }) => {
         const item = row.original;
+        const isBlocked =
+          item.isBlocked === true ||
+          item.isActive === false ||
+          item.status === "banned" ||
+          item.status === "inactive";
+
+        if (isBlocked) {
+          return (
+            <Badge
+              variant="destructive"
+              className="gap-1 bg-red-100 text-red-800 border-red-200"
+            >
+              <ShieldAlert className="h-3 w-3" />
+              Blocked
+            </Badge>
+          );
+        }
+
         return (
           <Badge
-            variant={
-              statusBadgeVariant(item.status) as
-                | "success"
-                | "secondary"
-                | "destructive"
-            }
+            variant="success"
+            className="gap-1 bg-emerald-100 text-emerald-800 border-emerald-200"
           >
-            {item.status}
+            <ShieldCheck className="h-3 w-3" />
+            Active
           </Badge>
         );
       },
@@ -283,17 +329,48 @@ export default function AdminCustomersPage() {
     {
       id: "actions",
       header: "Actions",
-      cell: ({ row }) => (
-        <div className="flex items-center justify-end gap-1">
-          <Link
-            href={`/admin/dashboard/customers/${row.original.id}`}
-            className="inline-flex items-center h-8 gap-1 px-2.5 rounded-lg text-xs font-semibold text-secondary-600 hover:text-secondary-700 hover:bg-secondary-50 cursor-pointer transition-colors"
-          >
-            <Eye className="h-3.5 w-3.5" />
-            View
-          </Link>
-        </div>
-      ),
+      cell: ({ row }) => {
+        const item = row.original;
+        const isBlocked =
+          item.isBlocked === true ||
+          item.isActive === false ||
+          item.status === "banned" ||
+          item.status === "inactive";
+
+        return (
+          <div className="flex items-center justify-end gap-1.5">
+            <Link
+              href={`/admin/dashboard/customers/${item.id}`}
+              className="inline-flex items-center h-8 gap-1 px-2.5 rounded-lg text-xs font-semibold text-secondary-600 hover:text-secondary-700 hover:bg-secondary-50 cursor-pointer transition-colors"
+            >
+              <Eye className="h-3.5 w-3.5" />
+              View
+            </Link>
+
+            {isBlocked ? (
+              <button
+                type="button"
+                onClick={() => setStatusTargetCustomer(item)}
+                className="inline-flex items-center h-8 gap-1 px-2 rounded-lg text-xs font-semibold text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 cursor-pointer transition-colors"
+                title="Unblock Customer"
+              >
+                <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+                Unblock
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setStatusTargetCustomer(item)}
+                className="inline-flex items-center h-8 gap-1 px-2 rounded-lg text-xs font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer transition-colors"
+                title="Block Customer"
+              >
+                <Ban className="h-3.5 w-3.5 text-red-500" />
+                Block
+              </button>
+            )}
+          </div>
+        );
+      },
     },
   ];
 
@@ -310,53 +387,52 @@ export default function AdminCustomersPage() {
     );
   }
 
-  return (
-    <div className="flex flex-1 min-h-0 flex-col">
-      {/* <AdminBreadcrumb
-        items={[
-          { label: "Users", href: "/admin/dashboard/users" },
-          { label: "Customers" },
-        ]}
-      /> */}
+  const isTargetBlocked =
+    statusTargetCustomer?.isBlocked === true ||
+    statusTargetCustomer?.isActive === false ||
+    statusTargetCustomer?.status === "banned" ||
+    statusTargetCustomer?.status === "inactive";
 
+  return (
+    <div className="flex flex-1 flex-col space-y-4 sm:space-y-6">
       <AdminPageHeader
         title="Customers"
         description="View and manage registered customers who have logged in or registered through the store"
       />
 
-      <AdminContent className="flex-1 min-h-0 overflow-hidden">
-        {/* KPI Summary Cards */}
-        {/* <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatsCard
-            title="Total Customers"
-            value={totalCustomers}
-            icon={Users}
-            description="Registered store customers"
-          />
-          <StatsCard
-            title="Active Customers"
-            value={activeCount}
-            icon={UserCheck}
-            description="Active accounts in current list"
-          />
-          <StatsCard
-            title="Verified Customers"
-            value={verifiedCount}
-            icon={ShieldCheck}
-            description="Email or phone verified"
-          />
-          <StatsCard
-            title="WhatsApp Enabled"
-            value={whatsappCount}
-            icon={MessageSquare}
-            description="Opted in for WhatsApp"
-          />
-        </div> */}
+      {/* KPI Summary Cards from Count API */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 flex-shrink-0">
+        <StatsCard
+          title="Total Customers"
+          value={isLoadingCounts ? "—" : (customerCounts?.all ?? 0)}
+          icon={Users}
+          description="Registered store customers"
+        />
+        <StatsCard
+          title="Active Customers"
+          value={isLoadingCounts ? "—" : (customerCounts?.active ?? 0)}
+          icon={UserCheck}
+          description="Active customer accounts"
+        />
+        <StatsCard
+          title="Blocked Customers"
+          value={isLoadingCounts ? "—" : (customerCounts?.blocked ?? 0)}
+          icon={ShieldAlert}
+          description="Blocked or deactivated accounts"
+        />
+        <StatsCard
+          title="Verified Accounts"
+          value={isLoadingCounts ? "—" : (customerCounts?.verified ?? 0)}
+          icon={ShieldCheck}
+          description="Email or phone verified"
+        />
+      </div>
 
-        {/* Search & Filter Toolbar */}
-        {/* <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-neutral-200 bg-white p-4"> */}
-          <div className="flex-shrink-0 mt-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            {/* Search Input */}
+      {/* Search and Filters Toolbar */}
+      <div className="flex-shrink-0 flex flex-col gap-3.5">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 flex-wrap">
+          {/* Search + Filter Selects */}
+          <div className="flex flex-1 flex-col sm:flex-row sm:items-center gap-3 flex-wrap">
             <SearchInput
               placeholder="Search by name, email, phone, or customer ID..."
               defaultValue={search}
@@ -364,82 +440,138 @@ export default function AdminCustomersPage() {
                 setSearch(val);
                 setPage(1);
               }}
-              className="w-full max-w-md"
+              className="w-full sm:max-w-xs md:max-w-sm"
             />
 
-            {/* Filter Dropdowns */}
-            {/* <div className="flex flex-wrap items-center gap-2">
-              
-              <select
+            {/* Status Filter (Active, Inactive, Blocked, Unblocked) */}
+            <div className="w-full sm:w-44">
+              <Select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="h-11 rounded-xl border border-neutral-300 bg-white px-3 text-sm text-neutral-700 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
-              >
-                <option value="all">All Status</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="banned">Banned</option>
-              </select>
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setPage(1);
+                }}
+                options={[
+                  { value: "all", label: "All Statuses" },
+                  { value: "active", label: "Active" },
+                  { value: "inactive", label: "Inactive" },
+                  { value: "blocked", label: "Blocked" },
+                  { value: "unblocked", label: "Unblocked" },
+                ]}
+                placeholder="Filter by Status"
+                className="h-10 rounded-xl text-xs font-medium"
+              />
+            </div>
 
-              
-              <select
-                value={genderFilter}
-                onChange={(e) => setGenderFilter(e.target.value)}
-                className="h-11 rounded-xl border border-neutral-300 bg-white px-3 text-sm text-neutral-700 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
-              >
-                <option value="all">All Genders</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-              </select>
-
-              
-              <select
+            {/* Verification Filter */}
+            <div className="w-full sm:w-44">
+              <Select
                 value={verificationFilter}
-                onChange={(e) => setVerificationFilter(e.target.value)}
-                className="h-11 rounded-xl border border-neutral-300 bg-white px-3 text-sm text-neutral-700 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                onChange={(e) => {
+                  setVerificationFilter(e.target.value);
+                  setPage(1);
+                }}
+                options={[
+                  { value: "all", label: "All Verification" },
+                  { value: "email_verified", label: "Email Verified" },
+                  { value: "phone_verified", label: "Phone Verified" },
+                ]}
+                placeholder="Verification"
+                className="h-10 rounded-xl text-xs font-medium"
+              />
+            </div>
+
+            {/* Gender Filter */}
+            <div className="w-full sm:w-36">
+              <Select
+                value={genderFilter}
+                onChange={(e) => {
+                  setGenderFilter(e.target.value);
+                  setPage(1);
+                }}
+                options={[
+                  { value: "all", label: "All Genders" },
+                  { value: "male", label: "Male" },
+                  { value: "female", label: "Female" },
+                  { value: "other", label: "Other" },
+                ]}
+                placeholder="Gender"
+                className="h-10 rounded-xl text-xs font-medium"
+              />
+            </div>
+
+            {/* Reset Filters Button */}
+            {hasActiveFilters && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleResetFilters}
+                className="h-10 px-3 text-xs font-semibold text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 rounded-xl flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
               >
-                <option value="all">All Verification</option>
-                <option value="email_verified">Email Verified</option>
-                <option value="phone_verified">Phone Verified</option>
-              </select>
-
-              
-              {hasActiveFilters && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleResetFilters}
-                  className="h-11 gap-1.5 rounded-xl border-neutral-300 px-3 text-xs text-neutral-600 hover:bg-neutral-50 cursor-pointer"
-                >
-                  <RotateCcw className="h-3.5 w-3.5" />
-                  Reset
-                </Button>
-              )}
-            </div> */}
+                <RotateCcw className="h-3.5 w-3.5" />
+                <span>Reset</span>
+              </Button>
+            )}
           </div>
-        {/* </div> */}
-
-        {/* Data Table */}
-        <div className="mt-6 flex-1 min-h-0 overflow-hidden flex flex-col">
-          <DataTable
-            columns={columns}
-            data={customers}
-            pageSize={pageSize}
-            pageSizeOptions={[10, 20, 30, 50]}
-            page={meta?.page ?? page}
-            totalPages={meta?.totalPages ?? Math.max(1, Math.ceil((meta?.total ?? customers.length) / pageSize))}
-            totalItems={meta?.total ?? customers.length}
-            onPageChange={setPage}
-            onPageSizeChange={(newSize) => {
-              setPageSize(newSize);
-              setPage(1);
-            }}
-            className="bg-white"
-            emptyMessage="No customers found matching your criteria."
-          />
         </div>
-      </AdminContent>
+      </div>
+
+      {/* Data Table Container */}
+      <div className="flex-1 flex flex-col min-h-[420px] w-full rounded-2xl overflow-hidden bg-white shadow-xs">
+        <DataTable
+          columns={columns}
+          data={customers}
+          pageSize={pageSize}
+          pageSizeOptions={[10, 20, 30, 50]}
+          page={meta?.page ?? page}
+          totalPages={
+            meta?.totalPages ??
+            Math.max(1, Math.ceil((meta?.total ?? customers.length) / pageSize))
+          }
+          totalItems={meta?.total ?? customers.length}
+          onPageChange={setPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setPage(1);
+          }}
+          className="bg-white border-0"
+          emptyMessage="No customers found matching your criteria."
+        />
+      </div>
+
+      {/* Confirm Block / Unblock Modal */}
+      <ConfirmDialog
+        open={Boolean(statusTargetCustomer)}
+        onClose={() => setStatusTargetCustomer(null)}
+        onConfirm={handleConfirmStatusChange}
+        title={
+          isTargetBlocked
+            ? "Unblock Customer Account"
+            : "Block Customer Account"
+        }
+        description={
+          isTargetBlocked
+            ? `Are you sure you want to unblock ${
+                statusTargetCustomer?.name || "this customer"
+              }? Their account will be reactivated, allowing them to sign in and place new orders.`
+            : `Are you sure you want to block ${
+                statusTargetCustomer?.name || "this customer"
+              }? This will deactivate their account and prevent them from signing in or placing new orders.`
+        }
+        confirmText={
+          isUpdatingStatus
+            ? isTargetBlocked
+              ? "Unblocking..."
+              : "Blocking..."
+            : isTargetBlocked
+            ? "Unblock Customer"
+            : "Block Customer"
+        }
+        cancelText="Cancel"
+        variant={isTargetBlocked ? "default" : "destructive"}
+        isLoading={isUpdatingStatus}
+      />
     </div>
   );
 }

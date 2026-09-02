@@ -126,7 +126,7 @@ export function AssignStaffModal({
         {/* Staff Selection List */}
         <div>
           <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 block mb-2">
-            Available Staff ({filteredStaff.length})
+            Available Staff ({filteredStaff.length}) <span className="text-red-500">*</span>
           </label>
 
           {staffLoading ? (
