@@ -18,20 +18,20 @@ const variantFormSchema = z.object({
     .uuid("Invalid Product UUID format")
     .optional(),
   variantName: z
-    .string({ message: "Variant name is required" })
+    .string({ message: "Item name is required" })
     .trim()
-    .min(1, "Variant name cannot be empty")
-    .max(100, "Variant name cannot exceed 100 characters"),
+    .min(1, "Item name cannot be empty")
+    .max(100, "Item name cannot exceed 100 characters"),
   sku: z
     .string({ message: "SKU is required" })
     .trim()
     .min(1, "SKU cannot be empty")
     .max(100, "SKU cannot exceed 100 characters"),
   slug: z
-    .string({ message: "Variant code is required" })
+    .string({ message: "Item code is required" })
     .trim()
-    .min(1, "Variant code cannot be empty")
-    .max(255, "Variant code cannot exceed 255 characters"),
+    .min(1, "Item code cannot be empty")
+    .max(255, "Item code cannot exceed 255 characters"),
   unitId: z
     .string({ message: "Please select a unit" })
     .uuid("Invalid Unit UUID format")
@@ -86,7 +86,7 @@ function VariantForm({
   units = [],
   onSubmit,
   isLoading = false,
-  submitLabel = "Save Variant",
+  submitLabel = "Save Item",
 }: VariantFormProps) {
   const initialInStock =
     initialData?.inStock !== undefined
@@ -116,7 +116,7 @@ function VariantForm({
     if (prefix && fullSlug.startsWith(prefix)) {
       return fullSlug.slice(prefix.length);
     }
-    return fullSlug.replace(/[-\s]+/g, "_").replace(/[^A-Za-z0-9_]/g, "").toUpperCase();
+    return fullSlug.replace(/\s+/g, "_").toUpperCase();
   };
 
   const [extraSlug, setExtraSlug] = useState<string>(() =>
@@ -237,11 +237,10 @@ function VariantForm({
   }, [units]);
 
   const handleExtraSlugChange = (raw: string) => {
-    // Format variant code: uppercase, convert spaces/hyphens to underscore, keep only A-Z, 0-9, and _
+    // Format variant code: uppercase, convert spaces to underscore, allow special characters
     const formatted = raw
       .toUpperCase()
-      .replace(/[-\s]+/g, "_")
-      .replace(/[^A-Z0-9_]/g, "");
+      .replace(/\s+/g, "_");
     setExtraSlug(formatted);
     if (extraSlugError) setExtraSlugError(null);
     methods.clearErrors("slug");
@@ -254,7 +253,7 @@ function VariantForm({
     }
 
     if (!extraSlug.trim()) {
-      const msg = "Please enter the variant code (cannot be empty)";
+      const msg = "Please enter the Item code (cannot be empty)";
       setExtraSlugError(msg);
       methods.setError("slug", {
         type: "manual",
@@ -300,7 +299,7 @@ function VariantForm({
 
             <FormInput
               name="variantName"
-              label="Variant Name"
+              label="Item Name"
               placeholder="e.g. 500 Grams Pack, 1 Litre Bottle"
               required
             />
@@ -309,7 +308,7 @@ function VariantForm({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormInput
               name="variantName"
-              label="Variant Name"
+              label="Item Name"
               placeholder="e.g. 500 Grams Pack, 1 Litre Bottle"
               required
             />
@@ -327,7 +326,7 @@ function VariantForm({
         <div className="pt-0 mb-3">
           <div className="flex items-center gap-1.5 mb-1.5">
             <label className="block text-xs font-semibold text-[var(--color-neutral-800)]">
-              Variant Code <span className="text-red-500">*</span>
+              Item Code <span className="text-red-500">*</span>
             </label>
             <div className="relative inline-flex items-center" ref={infoRef}>
               <button
@@ -346,7 +345,7 @@ function VariantForm({
                     <div className="flex items-start gap-2">
                       <Info className="h-4 w-4 text-[var(--color-secondary-600)] shrink-0 mt-0.5" />
                       <p className="leading-relaxed text-[var(--color-neutral-800)]">
-                        Enter uppercase letters, numbers, and underscores only (e.g. 500G or PACK_OF_2). Category & Product code prefix is automatically applied. Hyphens and spaces are not allowed.
+                        Enter Item code (special characters allowed, e.g. 500G or PACK_OF_2). Category & Product code prefix is automatically applied.
                       </p>
                     </div>
                     <button
@@ -412,7 +411,7 @@ function VariantForm({
                   <span className="text-secondary-700 font-semibold bg-neutral-100 px-1.5 py-0.5 rounded border border-neutral-200">
                     {slugPrefix}
                     <span className={extraSlug ? "text-secondary-800 font-bold" : "text-neutral-400 italic font-normal"}>
-                      {extraSlug || "ENTER_VARIANT_CODE"}
+                      {extraSlug || "ENTER_ITEM_CODE"}
                     </span>
                   </span>
                 ) : (
@@ -571,8 +570,8 @@ function VariantForm({
             </div>
             <p className="text-[11px] text-neutral-500">
               {currentInStock
-                ? "This variant is in stock and available for customers to order on the store."
-                : "This variant is marked as out of stock. Customers will see 'Out of Stock'."}
+                ? "This Item is in stock and available for customers to order on the store."
+                : "This Item is marked as out of stock. Customers will see 'Out of Stock'."}
             </p>
           </div>
 

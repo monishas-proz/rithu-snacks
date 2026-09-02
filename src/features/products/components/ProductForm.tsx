@@ -163,11 +163,10 @@ function ProductForm({
   }, [defaultBrandId, methods]);
 
   const handleExtraSlugChange = (raw: string) => {
-    // Format product code: uppercase, convert spaces/hyphens to underscore, keep only A-Z, 0-9, and _
+    // Format product code: uppercase, convert spaces to underscore, keep special characters
     const formatted = raw
       .toUpperCase()
-      .replace(/[-\s]+/g, "_")
-      .replace(/[^A-Z0-9_]/g, "");
+      .replace(/\s+/g, "_");
     setExtraSlug(formatted);
     if (extraSlugError) setExtraSlugError(null);
     methods.clearErrors("slug");
@@ -252,7 +251,7 @@ function ProductForm({
                     <div className="flex items-start gap-2">
                       <Info className="h-4 w-4 text-[var(--color-secondary-600)] shrink-0 mt-0.5" />
                       <p className="leading-relaxed text-[var(--color-neutral-800)]">
-                        Enter uppercase letters, numbers, and underscores only (e.g. BANANA_CHIPS). Category code prefix is automatically applied. Hyphens and spaces are not allowed.
+                        Enter product code (special characters allowed, e.g. BANANA_CHIPS). Category code prefix is automatically applied.
                       </p>
                     </div>
                     <button

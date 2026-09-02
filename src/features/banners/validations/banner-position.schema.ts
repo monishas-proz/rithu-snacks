@@ -11,11 +11,7 @@ export const createBannerPositionSchema = z
       .string({ message: "Slug is required" })
       .trim()
       .min(1, "Slug is required")
-      .max(120, "Slug cannot exceed 120 characters")
-      .regex(
-        /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-        "Slug must contain only lowercase alphanumeric characters and single hyphens"
-      ),
+      .max(120, "Slug cannot exceed 120 characters"),
     page: z
       .string()
       .trim()
@@ -43,10 +39,6 @@ export const updateBannerPositionSchema = z
       .trim()
       .min(1, "Slug cannot be empty")
       .max(120, "Slug cannot exceed 120 characters")
-      .regex(
-        /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-        "Slug must contain only lowercase alphanumeric characters and single hyphens"
-      )
       .optional(),
     page: z
       .string()

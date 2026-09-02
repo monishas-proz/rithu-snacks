@@ -10,6 +10,7 @@ import {
   cancelOrder,
   cancelOrderAdmin,
   getAdminOrders,
+  getAdminOrdersCount,
   getAdminOrder,
   confirmAdminOrder,
   processAdminOrder,
@@ -93,6 +94,7 @@ export function useCancelOrderAdmin() {
     }) => cancelOrderAdmin(id, { reason, note }),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: adminOrderKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["admin-orders", "count"] });
       queryClient.invalidateQueries({
         queryKey: adminOrderKeys.detail(variables.id),
       });
@@ -112,6 +114,13 @@ export function useAdminOrders(params?: AdminOrdersListParams) {
   });
 }
 
+export function useAdminOrdersCount(params?: Partial<AdminOrdersListParams>) {
+  return useQuery({
+    queryKey: ["admin-orders", "count", params ?? {}] as const,
+    queryFn: () => getAdminOrdersCount(params),
+  });
+}
+
 export function useAdminOrder(id: string | number | null) {
   return useQuery({
     queryKey: adminOrderKeys.detail(id ?? ""),
@@ -128,6 +137,7 @@ export function useConfirmAdminOrder() {
       confirmAdminOrder(id, note),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: adminOrderKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["admin-orders", "count"] });
       queryClient.invalidateQueries({
         queryKey: adminOrderKeys.detail(variables.id),
       });
@@ -143,6 +153,7 @@ export function useProcessAdminOrder() {
       processAdminOrder(id, note),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: adminOrderKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["admin-orders", "count"] });
       queryClient.invalidateQueries({
         queryKey: adminOrderKeys.detail(variables.id),
       });
@@ -158,6 +169,7 @@ export function usePackAdminOrder() {
       packAdminOrder(id, note),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: adminOrderKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["admin-orders", "count"] });
       queryClient.invalidateQueries({
         queryKey: adminOrderKeys.detail(variables.id),
       });
@@ -172,6 +184,7 @@ export function useAssignOrderDelivery() {
     mutationFn: (input: AssignDeliveryInput) => assignOrderDelivery(input),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: adminOrderKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["admin-orders", "count"] });
       queryClient.invalidateQueries({
         queryKey: adminOrderKeys.detail(variables.orderId),
       });

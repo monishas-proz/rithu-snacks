@@ -171,12 +171,14 @@ function FormImageUpload({
       >
         {imageUrl ? (
           <>
-            <Image
-              src={imageUrl}
-              alt="Preview"
-              fill
-              className="rounded-xl object-cover"
-            />
+            <div className="relative h-full w-full flex items-center justify-center bg-neutral-100">
+              <Image
+                src={imageUrl}
+                alt="Preview"
+                fill
+                className="rounded-xl object-contain p-2"
+              />
+            </div>
 
             <button
               type="button"
@@ -185,7 +187,7 @@ function FormImageUpload({
                 field.onChange("");
                 setFileError(null);
               }}
-              className="absolute right-3 top-3 rounded-full bg-white p-2 shadow-md hover:bg-neutral-100 transition-colors"
+              className="absolute right-3 top-3 rounded-full bg-white p-2 shadow-md hover:bg-neutral-100 transition-colors z-10"
               title="Remove image"
             >
               <X className="h-4 w-4 text-[var(--color-neutral-700)]" />

@@ -348,7 +348,7 @@ export default function AdminProductDetailsPage() {
       });
       setVariantToDeactivate(null);
     } catch (err: any) {
-      console.error("Failed to make variant inactive", err);
+      console.error("Failed to make item inactive", err);
     } finally {
       setIsStatusUpdating(false);
     }
@@ -365,7 +365,7 @@ export default function AdminProductDetailsPage() {
       });
       setVariantToActivate(null);
     } catch (err: any) {
-      console.error("Failed to activate variant", err);
+      console.error("Failed to activate item", err);
     } finally {
       setIsStatusUpdating(false);
     }
@@ -770,7 +770,7 @@ export default function AdminProductDetailsPage() {
             <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
               <div className="flex items-center gap-2.5">
                 <h2 className="text-base font-bold text-neutral-900 tracking-tight">
-                  Product variants
+                  Product Items
                 </h2>
                 <span className="px-2.5 py-0.5 rounded-full bg-cream-200 border border-cream-border text-xs font-bold text-neutral-500">
                   {currentTabCount}
@@ -862,7 +862,7 @@ export default function AdminProductDetailsPage() {
                 className="px-3.5 py-1.5 rounded-lg bg-secondary-600 hover:bg-secondary-700 text-cream-white text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Add variant</span>
+                <span>Add Item</span>
               </button>
             </div>
           </div>
@@ -902,18 +902,18 @@ export default function AdminProductDetailsPage() {
           {/* Variants Rendering: Table vs Cards */}
           {isLoadingVariants ? (
             <div className="py-16 flex justify-center">
-              <LoadingState text="Loading variants..." />
+              <LoadingState text="Loading Items..." />
             </div>
           ) : variants.length === 0 ? (
             <div className="text-center py-16 px-4">
               <Package className="mx-auto h-10 w-10 text-neutral-300" />
               <h3 className="mt-3 text-sm font-semibold text-neutral-900">
-                No {variantFilter} variants found
+                No {variantFilter} Item found
               </h3>
               <p className="mt-1 text-xs text-neutral-500 max-w-sm mx-auto">
                 {variantFilter === "active"
-                  ? "This product currently has no active variants associated with it."
-                  : "No variants are currently marked as inactive."}
+                  ? "This product currently has no active Items associated with it."
+                  : "No Items are currently marked as inactive."}
               </p>
               <button
                 type="button"
@@ -921,7 +921,7 @@ export default function AdminProductDetailsPage() {
                 className="mt-4 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-secondary-600 text-cream-white text-xs font-semibold cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Add first variant</span>
+                <span>Add first Item</span>
               </button>
             </div>
           ) : variantViewMode === "cards" ? (
@@ -960,7 +960,7 @@ export default function AdminProductDetailsPage() {
                       />
                     </th>
 
-                    <th className="px-4 py-3 min-w-[200px] border-b border-cream-border">Variant</th>
+                    <th className="px-4 py-3 min-w-[200px] border-b border-cream-border">Item</th>
                     <th className="px-4 py-3 min-w-[120px] border-b border-cream-border">SKU</th>
                     <th className="px-4 py-3 min-w-[90px] border-b border-cream-border">Size</th>
                     <th className="px-4 py-3 min-w-[90px] text-right border-b border-cream-border">Base</th>
@@ -1133,7 +1133,7 @@ export default function AdminProductDetailsPage() {
             <span>
               Showing <strong className="text-neutral-900">{variants.length}</strong> of{" "}
               <strong className="text-neutral-900">{currentTabCount}</strong>{" "}
-              {variantFilter} variants
+              {variantFilter} Items
             </span>
           </div>
         </section>
@@ -1181,7 +1181,7 @@ export default function AdminProductDetailsPage() {
                       className="w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-semibold text-neutral-700 hover:text-secondary-600 hover:bg-secondary-50 rounded-lg transition-colors cursor-pointer text-left"
                     >
                       <Eye className="w-3.5 h-3.5 opacity-70" />
-                      <span>View Product Variant</span>
+                      <span>View Product Item</span>
                     </Link>
 
                     {/* 2. Price Change */}
@@ -1293,8 +1293,8 @@ export default function AdminProductDetailsPage() {
       <FormModal
         open={!!editingPriceVariant}
         onClose={() => setEditingPriceVariant(null)}
-        title="Edit Variant Price"
-        description={`Update base and sale price for ${editingPriceVariant?.variantName || "this variant"}`}
+        title="Edit Item Price"
+        description={`Update base and sale price for ${editingPriceVariant?.variantName || "this Item"}`}
         size="sm"
       >
         {editingPriceVariant && (
@@ -1424,8 +1424,8 @@ export default function AdminProductDetailsPage() {
       <FormModal
         open={isAddVariantOpen}
         onClose={() => setIsAddVariantOpen(false)}
-        title="Add Variant"
-        description={`Create a new variant for ${product.name}`}
+        title="Add Item"
+        description={`Create a new Item for ${product.name}`}
         size="lg"
       >
         <VariantForm
@@ -1449,7 +1449,7 @@ export default function AdminProductDetailsPage() {
               });
               setIsAddVariantOpen(false);
             } catch (err: any) {
-              console.error("Failed to create variant", err);
+              console.error("Failed to create Item", err);
             }
           }}
         />
@@ -1459,7 +1459,7 @@ export default function AdminProductDetailsPage() {
       <FormModal
         open={!!editingVariant}
         onClose={() => setEditingVariant(null)}
-        title="Edit Variant Details"
+        title="Edit Item Details"
         description={`Modify configuration for ${editingVariant?.variantName}`}
         size="lg"
       >
@@ -1492,7 +1492,7 @@ export default function AdminProductDetailsPage() {
             fixedProductId={canonicalProductId}
             units={unitOptions}
             isLoading={updateVariantMutation.isPending}
-            submitLabel="Update Variant"
+            submitLabel="Update Item"
             onSubmit={async (formData: VariantFormValues) => {
               try {
                 await updateVariantMutation.mutateAsync({
@@ -1511,7 +1511,7 @@ export default function AdminProductDetailsPage() {
                 });
                 setEditingVariant(null);
               } catch (err: any) {
-                console.error("Failed to update variant", err);
+                console.error("Failed to update Item", err);
               }
             }}
           />
@@ -1528,8 +1528,8 @@ export default function AdminProductDetailsPage() {
           setVariantToDeactivate(null);
           await handleMakeInactive(target);
         }}
-        title="Make Variant Inactive?"
-        description="Are you sure you want to make this product variant inactive?"
+        title="Make Item Inactive?"
+        description="Are you sure you want to make this product Item inactive?"
         confirmText="Make Inactive"
         cancelText="Cancel"
         variant="destructive"
@@ -1546,8 +1546,8 @@ export default function AdminProductDetailsPage() {
           setVariantToActivate(null);
           await handleMakeActive(target);
         }}
-        title="Make Variant Active?"
-        description="Are you sure you want to make this product variant active?"
+        title="Make Item Active?"
+        description="Are you sure you want to make this product item active?"
         confirmText="Make Active"
         cancelText="Cancel"
         variant="default"
@@ -1568,11 +1568,11 @@ export default function AdminProductDetailsPage() {
               variantUuid: target.id,
             });
           } catch (err: any) {
-            console.error("Failed to delete variant", err);
+            console.error("Failed to delete item", err);
           }
         }}
-        title="Delete Variant"
-        description={`Are you sure you want to delete the variant "${deletingVariant?.variantName}" (${deletingVariant?.sku})? This action cannot be undone.`}
+        title="Delete Item"
+        description={`Are you sure you want to delete the Item "${deletingVariant?.variantName}" (${deletingVariant?.sku})? This action cannot be undone.`}
         confirmText="Delete"
         cancelText="Cancel"
         variant="destructive"
@@ -1584,7 +1584,7 @@ export default function AdminProductDetailsPage() {
         open={Boolean(managingImagesVariant)}
         onClose={() => setManagingImagesVariant(null)}
         title={`Manage Images: ${managingImagesVariant?.variantName || ""}`}
-        description="Upload and crop product variant images (500 × 500 px)"
+        description="Upload and crop product item images (500 × 500 px)"
         size="lg"
       >
         {managingImagesVariant && (

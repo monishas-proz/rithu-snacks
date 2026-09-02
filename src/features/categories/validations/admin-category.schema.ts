@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-export const slugRegex = /^[A-Z0-9_-]+$/;
-
 export const createAdminCategorySchema = z
   .object({
     name: z
@@ -13,11 +11,7 @@ export const createAdminCategorySchema = z
       .string()
       .trim()
       .min(1, "Category code is required")
-      .max(170, "Category code cannot exceed 170 characters")
-      .regex(
-        slugRegex,
-        "Category code must be uppercase letters, numbers, hyphens, or underscores (e.g. RITHANYA_SNACKS)"
-      ),
+      .max(170, "Category code cannot exceed 170 characters"),
     description: z
       .string()
       .trim()

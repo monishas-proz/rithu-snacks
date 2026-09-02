@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "./label";
 
 export function formatSlug(val: string): string {
-  return val.toUpperCase().replace(/[^A-Z0-9_]/g, "");
+  return val.toUpperCase().replace(/\s+/g, "_");
 }
 
 interface FormInputProps extends React.InputHTMLAttributes<HTMLInputElement> {

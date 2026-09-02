@@ -39,7 +39,7 @@ function BrandForm({
   return (
     <FormProvider {...methods}>
       <form
-        onSubmit={methods.handleSubmit((data) => onSubmit(data))}
+        onSubmit={methods.handleSubmit((data) => onSubmit(data))} 
         className="space-y-6"
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -54,9 +54,8 @@ function BrandForm({
             name="slug"
             label="Brand Code"
             placeholder="e.g. RITHU_SNACKS"
-            infoMessage="Enter uppercase letters, numbers, and underscores only (e.g. RITHU_SNACKS). Hyphens and spaces are not allowed."
+            infoMessage="Enter brand code (e.g. RITHU_SNACKS). Special characters are allowed."
             required
-            
           />
         </div>
 

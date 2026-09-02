@@ -466,7 +466,7 @@ export default function AdminVariantDetailsPage() {
             <div className="px-6 py-4.5 border-b border-cream-border flex items-center justify-between">
               <h2 className="text-[15px] font-bold text-neutral-900 tracking-tight flex items-center gap-2">
                 <Layers className="w-4 h-4 text-secondary-600" />
-                <span>Variant attributes</span>
+                <span>Item attributes</span>
               </h2>
             </div>
 
