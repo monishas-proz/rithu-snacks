@@ -33,7 +33,8 @@ const bannerFormSchema = z.object({
   sortOrder: z.coerce
     .number()
     .int("Sort order must be an integer")
-    .min(0, "Sort order must be a positive integer")
+    .min(0, "Sort order cannot be negative")
+    .max(100, "Sort order cannot exceed 100")
     .default(0),
   isActive: z.boolean().default(true),
   startsAt: z.string().optional().nullable(),
@@ -88,6 +89,8 @@ export function BannerForm({
 
   const methods = useForm<BannerFormData>({
     resolver: zodResolver(bannerFormSchema),
+    mode: "onChange",
+    reValidateMode: "onChange",
     defaultValues: getFormDefaults(),
   });
 
@@ -129,9 +132,10 @@ export function BannerForm({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <FormSelect
             name="bannerPositionId"
-            label="Banner Position *"
+            label="Banner Position"
             placeholder="Select display position"
             options={bannerPositions}
+            required
           />
 
           <FormInput
@@ -144,12 +148,13 @@ export function BannerForm({
         {/* Banner Image with Fixed 3:1 Aspect Ratio Cropper */}
         <FormImageUpload
           name="imageUrl"
-          label="Banner Image (3:1 Aspect Ratio) *"
+          label="Banner Image (3:1 Aspect Ratio)"
           folder="banners"
           cropWidth={1200}
           cropHeight={400}
           aspectRatioClassName="aspect-[3/1] w-full max-h-56"
           enableCrop={true}
+          required
         />
 
         {/* Link URL and Sort Order */}
@@ -166,6 +171,9 @@ export function BannerForm({
             name="sortOrder"
             type="number"
             label="Sort Order"
+            step="1"
+            min="0"
+            max="100"
             placeholder="0"
           />
         </div>

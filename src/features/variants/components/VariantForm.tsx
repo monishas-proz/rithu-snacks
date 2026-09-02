@@ -1,15 +1,15 @@
 "use client";
 
-import { useMemo, useEffect } from "react";
+import React, { useMemo, useEffect, useState, useRef } from "react";
 import { FormProvider, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { Info, CheckCircle2, XCircle } from "lucide-react";
 import { getMeasurementFieldConfig } from "../utils/measurement.util";
 import type { UnitOption } from "../types";
 import { FormInput } from "@/components/forms/form-input";
 import { FormSelect } from "@/components/forms/form-select";
 import { FormSubmitButton } from "@/components/forms/form-submit-button";
-import { CheckCircle2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const variantFormSchema = z.object({
@@ -28,10 +28,10 @@ const variantFormSchema = z.object({
     .min(1, "SKU cannot be empty")
     .max(100, "SKU cannot exceed 100 characters"),
   slug: z
-    .string({ message: "Slug is required" })
+    .string({ message: "Variant code is required" })
     .trim()
-    .min(1, "Slug cannot be empty")
-    .max(255, "Slug cannot exceed 255 characters"),
+    .min(1, "Variant code cannot be empty")
+    .max(255, "Variant code cannot exceed 255 characters"),
   unitId: z
     .string({ message: "Please select a unit" })
     .uuid("Invalid Unit UUID format")
@@ -45,7 +45,7 @@ const variantFormSchema = z.object({
   salePrice: z
     .number({ message: "Sale price is required" })
     .min(0, "Sale price cannot be negative"),
-  inStock: z.boolean().optional().default(true),
+  inStock: z.boolean(),
   outOfStock: z.boolean().optional(),
 });
 
@@ -54,6 +54,7 @@ export type VariantFormValues = z.infer<typeof variantFormSchema>;
 export interface SelectOption {
   value: string;
   label: string;
+  slug?: string; // Product Code
 }
 
 export type UnitFormItem = UnitOption | (SelectOption & {
@@ -68,6 +69,7 @@ interface VariantFormProps {
   initialData?: Partial<VariantFormValues>;
   isEditing?: boolean;
   fixedProductId?: string;
+  fixedProductSlug?: string;
   products?: SelectOption[];
   units?: UnitFormItem[];
   onSubmit: (data: VariantFormValues) => Promise<void>;
@@ -79,6 +81,7 @@ function VariantForm({
   initialData,
   isEditing: _isEditing = false,
   fixedProductId,
+  fixedProductSlug,
   products = [],
   units = [],
   onSubmit,
@@ -92,8 +95,52 @@ function VariantForm({
       ? !initialData.outOfStock
       : true;
 
+  // Helper to compute prefix from Product Code / Slug
+  const computePrefix = (prodId?: string): string => {
+    if (fixedProductSlug) {
+      return `${fixedProductSlug.toUpperCase().trim()}_`;
+    }
+    const p = products.find((item) => item.value === prodId);
+    const pSlug = p?.slug?.trim() || "";
+    if (pSlug) {
+      return `${pSlug.toUpperCase()}_`;
+    }
+    return "";
+  };
+
+  const initialProductId = fixedProductId || initialData?.productId || "";
+  const initialPrefix = computePrefix(initialProductId);
+
+  const extractInitialExtraSlug = (fullSlug?: string, prefix?: string): string => {
+    if (!fullSlug) return "";
+    if (prefix && fullSlug.startsWith(prefix)) {
+      return fullSlug.slice(prefix.length);
+    }
+    return fullSlug.replace(/[-\s]+/g, "_").replace(/[^A-Za-z0-9_]/g, "").toUpperCase();
+  };
+
+  const [extraSlug, setExtraSlug] = useState<string>(() =>
+    extractInitialExtraSlug(initialData?.slug, initialPrefix)
+  );
+  const [extraSlugError, setExtraSlugError] = useState<string | null>(null);
+  const [showInfo, setShowInfo] = useState<boolean>(false);
+  const infoRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showInfo) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (infoRef.current && !infoRef.current.contains(event.target as Node)) {
+        setShowInfo(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showInfo]);
+
   const methods = useForm<VariantFormValues>({
     resolver: zodResolver(variantFormSchema),
+    mode: "onChange",
+    reValidateMode: "onChange",
     defaultValues: {
       productId: fixedProductId || initialData?.productId || "",
       variantName: initialData?.variantName || "",
@@ -107,6 +154,22 @@ function VariantForm({
       outOfStock: !initialInStock,
     },
   });
+
+  const selectedProductId = methods.watch("productId");
+
+  // Dynamic non-editable prefix based on currently selected Product
+  const slugPrefix = useMemo(
+    () => computePrefix(selectedProductId || fixedProductId),
+    [selectedProductId, fixedProductId, fixedProductSlug, products]
+  );
+
+  // Sync combined variant code into form state whenever prefix or extraSlug updates
+  useEffect(() => {
+    const fullSlug = `${slugPrefix}${extraSlug}`.trim();
+    methods.setValue("slug", fullSlug, {
+      shouldValidate: methods.formState.isSubmitted,
+    });
+  }, [slugPrefix, extraSlug, methods]);
 
   useEffect(() => {
     if (initialData) {
@@ -129,8 +192,10 @@ function VariantForm({
         inStock: isStock,
         outOfStock: !isStock,
       });
+
+      setExtraSlug(extractInitialExtraSlug(initialData.slug, initialPrefix));
     }
-  }, [initialData, fixedProductId, methods]);
+  }, [initialData, fixedProductId, initialPrefix, methods]);
 
   const selectedUnitId = useWatch({
     control: methods.control,
@@ -155,24 +220,32 @@ function VariantForm({
   }, [selectedUnit]);
 
   const productOptions = useMemo(
-    () => [{ label: "Select Product", value: "" }, ...products],
+    () => products,
     [products]
   );
 
   const unitOptions = useMemo(() => {
-    return [
-      { label: "Select Unit", value: "" },
-      ...units.map((u) => {
-        if ("value" in u && "label" in u) {
-          return { value: u.value, label: u.label };
-        }
-        return {
-          value: u.id,
-          label: `${u.name} (${u.code})`,
-        };
-      }),
-    ];
+    return units.map((u) => {
+      if ("value" in u && "label" in u) {
+        return { value: u.value, label: u.label };
+      }
+      return {
+        value: u.id,
+        label: `${u.name} (${u.code})`,
+      };
+    });
   }, [units]);
+
+  const handleExtraSlugChange = (raw: string) => {
+    // Format variant code: uppercase, convert spaces/hyphens to underscore, keep only A-Z, 0-9, and _
+    const formatted = raw
+      .toUpperCase()
+      .replace(/[-\s]+/g, "_")
+      .replace(/[^A-Z0-9_]/g, "");
+    setExtraSlug(formatted);
+    if (extraSlugError) setExtraSlugError(null);
+    methods.clearErrors("slug");
+  };
 
   const handleFormSubmit = async (data: VariantFormValues) => {
     if (!fixedProductId && !data.productId) {
@@ -180,10 +253,22 @@ function VariantForm({
       return;
     }
 
+    if (!extraSlug.trim()) {
+      const msg = "Please enter the variant code (cannot be empty)";
+      setExtraSlugError(msg);
+      methods.setError("slug", {
+        type: "manual",
+        message: msg,
+      });
+      return;
+    }
+
     const inStockVal = methods.getValues("inStock") ?? true;
+    const finalSlug = `${slugPrefix}${extraSlug.trim()}`;
 
     const submissionPayload: VariantFormValues = {
       ...data,
+      slug: finalSlug,
       unitValue: Number(data.unitValue),
       basePrice: Number(data.basePrice),
       salePrice: Number(data.salePrice),
@@ -202,80 +287,261 @@ function VariantForm({
         onSubmit={methods.handleSubmit(handleFormSubmit)}
         className="space-y-6"
       >
-        {!fixedProductId && (
-          <FormSelect
-            name="productId"
-            label="Product"
-            placeholder="Select product"
-            options={productOptions}
-          />
+        {/* Row 1: Product & Variant Name (or Variant Name & SKU if product is fixed) */}
+        {!fixedProductId ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormSelect
+              name="productId"
+              label="Product"
+              placeholder="Select product"
+              options={productOptions}
+              required
+            />
+
+            <FormInput
+              name="variantName"
+              label="Variant Name"
+              placeholder="e.g. 500 Grams Pack, 1 Litre Bottle"
+              required
+            />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormInput
+              name="variantName"
+              label="Variant Name"
+              placeholder="e.g. 500 Grams Pack, 1 Litre Bottle"
+              required
+            />
+
+            <FormInput
+              name="sku"
+              label="SKU"
+              placeholder="e.g. BANANA-500G, OIL-1L"
+              required
+            />
+          </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <FormInput
-            name="variantName"
-            label="Variant Name"
-            placeholder="e.g. 500 Grams Pack, 1 Litre Bottle"
-          />
+        {/* Row 2: Variant Code (Full Width) with Category + Product Code Prefix & Floating Info Pop-Up */}
+        <div className="pt-0 mb-3">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <label className="block text-xs font-semibold text-[var(--color-neutral-800)]">
+              Variant Code <span className="text-red-500">*</span>
+            </label>
+            <div className="relative inline-flex items-center" ref={infoRef}>
+              <button
+                type="button"
+                onClick={() => setShowInfo((prev) => !prev)}
+                className="text-neutral-400 hover:text-[var(--color-secondary-600)] transition-colors focus:outline-none cursor-pointer rounded-full p-0.5"
+                title="Click for more information"
+                aria-label="Information"
+              >
+                <Info className="h-3.5 w-3.5" />
+              </button>
 
-          <FormInput
-            name="sku"
-            label="SKU"
-            placeholder="e.g. BANANA-500G, OIL-1L"
-          />
+              {showInfo && (
+                <div className="absolute left-0 top-full mt-1.5 z-50 w-72 sm:w-80 rounded-xl bg-white border border-neutral-200/90 p-3 text-xs text-neutral-700 shadow-xl shadow-neutral-900/10 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start gap-2">
+                      <Info className="h-4 w-4 text-[var(--color-secondary-600)] shrink-0 mt-0.5" />
+                      <p className="leading-relaxed text-[var(--color-neutral-800)]">
+                        Enter uppercase letters, numbers, and underscores only (e.g. 500G or PACK_OF_2). Category & Product code prefix is automatically applied. Hyphens and spaces are not allowed.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowInfo(false)}
+                      className="text-neutral-400 hover:text-neutral-700 font-bold text-sm leading-none ml-1 p-0.5 cursor-pointer"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
 
-          <FormInput
-            name="slug"
-            label="Slug"
-            placeholder="e.g. banana-chips-500g"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-          <FormSelect
-            name="unitId"
-            label="Unit"
-            placeholder="Select unit"
-            options={unitOptions}
-          />
-
-          <FormInput
-            name="unitValue"
-            label={measurementConfig.label}
-            placeholder={measurementConfig.placeholder}
-            description={measurementConfig.helperText}
-            type="number"
-            step="any"
-            min="0"
-            rightIcon={
-              measurementConfig.unitBadge ? (
-                <span className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase tracking-wider">
-                  {measurementConfig.unitBadge}
+          <div
+            className={`flex items-stretch rounded-lg border transition-all ${
+              extraSlugError || methods.formState.errors.slug
+                ? "border-red-500 ring-2 ring-red-500/10"
+                : "border-neutral-200 focus-within:border-secondary-600 focus-within:ring-2 focus-within:ring-secondary-600/20"
+            } bg-white overflow-hidden`}
+          >
+            {/* Non-editable Category + Product Code prefix */}
+            <div
+              className="flex items-center px-3 bg-neutral-100/90 border-r border-neutral-200 text-neutral-600 font-mono text-xs select-none max-w-[60%] shrink-0 truncate"
+              title={
+                slugPrefix
+                  ? `Product Prefix: ${slugPrefix}`
+                  : "Select Product to auto-generate prefix"
+              }
+            >
+              {slugPrefix ? (
+                <span className="font-semibold text-neutral-800 tracking-wide truncate">
+                  {slugPrefix}
                 </span>
-              ) : undefined
-            }
-          />
+              ) : (
+                <span className="text-neutral-400 italic text-[11px]">
+                  [category_product_code]_
+                </span>
+              )}
+            </div>
+
+            {/* Editable extra code for the variant */}
+            <input
+              type="text"
+              value={extraSlug}
+              onChange={(e) => handleExtraSlugChange(e.target.value)}
+              placeholder="e.g. 500G"
+              className="flex-1 min-w-0 px-3 py-2 text-sm text-neutral-900 bg-transparent outline-none font-mono placeholder:text-neutral-400 placeholder:font-sans uppercase"
+            />
+          </div>
+
+          {/* Helper message / live preview / error */}
+          <div className="mt-1.5 min-h-[18px]">
+            {extraSlugError || methods.formState.errors.slug?.message ? (
+              <p className="text-xs text-red-500 font-medium">
+                {extraSlugError || methods.formState.errors.slug?.message}
+              </p>
+            ) : (
+              <p className="text-[11px] text-neutral-500 font-mono flex items-center gap-1 flex-wrap">
+                <span className="font-sans font-medium text-neutral-600">Full Code:</span>
+                {slugPrefix || extraSlug ? (
+                  <span className="text-secondary-700 font-semibold bg-neutral-100 px-1.5 py-0.5 rounded border border-neutral-200">
+                    {slugPrefix}
+                    <span className={extraSlug ? "text-secondary-800 font-bold" : "text-neutral-400 italic font-normal"}>
+                      {extraSlug || "ENTER_VARIANT_CODE"}
+                    </span>
+                  </span>
+                ) : (
+                  <span className="text-neutral-400 italic font-sans">
+                    Select product to generate prefix
+                  </span>
+                )}
+              </p>
+            )}
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormInput
-            name="basePrice"
-            label="Base Price (MRP ₹)"
-            type="number"
-            step="any"
-            min="0"
-            placeholder="e.g. 260"
-          />
+        {/* Row 3: SKU & Unit (when not fixed) OR Unit & Measurement Value (when fixed) */}
+        {!fixedProductId ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormInput
+              name="sku"
+              label="SKU"
+              placeholder="e.g. BANANA-500G, OIL-1L"
+              required
+            />
 
-          <FormInput
-            name="salePrice"
-            label="Sale Price (₹)"
-            type="number"
-            step="any"
-            min="0"
-            placeholder="e.g. 230"
-          />
-        </div>
+            <FormSelect
+              name="unitId"
+              label="Unit"
+              placeholder="Select unit"
+              options={unitOptions}
+              required
+            />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+            <FormSelect
+              name="unitId"
+              label="Unit"
+              placeholder="Select unit"
+              options={unitOptions}
+              required
+            />
+
+            <FormInput
+              name="unitValue"
+              label={measurementConfig.label}
+              placeholder={measurementConfig.placeholder}
+              description={measurementConfig.helperText}
+              type="number"
+              step="any"
+              min="0"
+              required
+              rightIcon={
+                measurementConfig.unitBadge ? (
+                  <span className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase tracking-wider">
+                    {measurementConfig.unitBadge}
+                  </span>
+                ) : undefined
+              }
+            />
+          </div>
+        )}
+
+        {/* Row 4: Measurement Value & Base Price (when not fixed) OR Base Price & Sale Price (when fixed) */}
+        {!fixedProductId ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+            <FormInput
+              name="unitValue"
+              label={measurementConfig.label}
+              placeholder={measurementConfig.placeholder}
+              description={measurementConfig.helperText}
+              type="number"
+              step="any"
+              min="0"
+              required
+              rightIcon={
+                measurementConfig.unitBadge ? (
+                  <span className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase tracking-wider">
+                    {measurementConfig.unitBadge}
+                  </span>
+                ) : undefined
+              }
+            />
+
+            <FormInput
+              name="basePrice"
+              label="Base Price (MRP ₹)"
+              type="number"
+              step="any"
+              min="0"
+              placeholder="e.g. 260"
+              required
+            />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormInput
+              name="basePrice"
+              label="Base Price (MRP ₹)"
+              type="number"
+              step="any"
+              min="0"
+              placeholder="e.g. 260"
+              required
+            />
+
+            <FormInput
+              name="salePrice"
+              label="Sale Price (₹)"
+              type="number"
+              step="any"
+              min="0"
+              placeholder="e.g. 230"
+              required
+            />
+          </div>
+        )}
+
+        {/* Row 5: Sale Price (only when not fixed product, since it has an extra product field on row 1) */}
+        {!fixedProductId && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormInput
+              name="salePrice"
+              label="Sale Price (₹)"
+              type="number"
+              step="any"
+              min="0"
+              placeholder="e.g. 230"
+              required
+            />
+          </div>
+        )}
 
         {/* Stock Availability Toggle Card */}
         <div className="p-4 rounded-2xl border border-cream-border bg-cream-50/70 flex items-center justify-between gap-4">
@@ -348,4 +614,3 @@ function VariantForm({
 }
 
 export { VariantForm };
-

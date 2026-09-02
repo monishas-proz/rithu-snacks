@@ -110,14 +110,17 @@ export default function AdminProductsPage() {
       accessorKey: "name",
       header: "Product Name",
       cell: ({ row }) => (
-        <div>
-          <p className="font-semibold text-[var(--color-neutral-900)]">
+        <Link
+          href={`/admin/dashboard/products/${row.original.id}`}
+          className="group block cursor-pointer"
+        >
+          <p className="font-semibold text-[var(--color-neutral-900)] group-hover:text-secondary-600 transition-colors">
             {row.original.name}
           </p>
           <p className="text-xs text-[var(--color-neutral-500)] mt-0.5">
             {row.original.slug}
           </p>
-        </div>
+        </Link>
       ),
     },
     {
@@ -126,15 +129,6 @@ export default function AdminProductsPage() {
       cell: ({ row }) => (
         <span className="text-[var(--color-neutral-700)]">
           {row.original.categoryName || "—"}
-        </span>
-      ),
-    },
-    {
-      accessorKey: "brandName",
-      header: "Brand",
-      cell: ({ row }) => (
-        <span className="text-[var(--color-neutral-700)]">
-          {row.original.brandName || "—"}
         </span>
       ),
     },

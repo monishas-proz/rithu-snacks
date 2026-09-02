@@ -106,6 +106,7 @@ function ForgotPasswordForm() {
               placeholder="hello@example.com"
               autoComplete="email"
               leftIcon={<Mail size={18} />}
+              required
             />
 
             <FormSubmitButton

@@ -209,6 +209,7 @@ function RegisterForm() {
             placeholder="Enter your full name"
             autoComplete="name"
             leftIcon={<User size={18} />}
+            required
           />
 
           <FormInput
@@ -218,6 +219,7 @@ function RegisterForm() {
             placeholder="Enter your email"
             autoComplete="email"
             leftIcon={<Mail size={18} />}
+            required
           />
 
           <FormInput
@@ -229,6 +231,7 @@ function RegisterForm() {
             maxLength={10}
             leftIcon={<Phone size={18} />}
             inputPrefix="+91"
+            required
           />
 
           <FormPasswordInput
@@ -236,6 +239,7 @@ function RegisterForm() {
             label="Password"
             placeholder="Enter your password"
             leftIcon={<LockKeyhole size={18} />}
+            required
           />
 
           {password.length > 0 && strength && (
@@ -263,6 +267,7 @@ function RegisterForm() {
             label="Confirm Password"
             placeholder="Confirm your password"
             leftIcon={<LockKeyhole size={18} />}
+            required
           />
 
           <div className="pt-1">

@@ -12,6 +12,7 @@ interface FormPasswordInputProps
   label?: string;
   helperText?: string;
   leftIcon?: React.ReactNode;
+  required?: boolean;
 }
 
 function FormPasswordInput({
@@ -20,6 +21,7 @@ function FormPasswordInput({
   helperText,
   leftIcon,
   className,
+  required,
   ...props
 }: FormPasswordInputProps) {
   const { control } = useFormContext();
@@ -31,7 +33,14 @@ function FormPasswordInput({
       control={control}
       render={({ field, fieldState }) => (
         <div className="space-y-1.5">
-          {label && <Label htmlFor={name}>{label}</Label>}
+          {label && (
+            <Label htmlFor={name}>
+              {label}
+              {(required) && (
+                <span className="text-error-600 font-bold ml-1">*</span>
+              )}
+            </Label>
+          )}
 
           <div className="relative">
             {leftIcon && (

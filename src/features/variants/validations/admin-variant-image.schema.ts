@@ -7,7 +7,12 @@ export const adminVariantImageItemSchema = z
       .trim()
       .min(1, "Image URL cannot be empty")
       .max(500, "Image URL cannot exceed 500 characters"),
-    sortOrder: z.number().int().default(0),
+    sortOrder: z
+      .number()
+      .int("Sort order must be an integer")
+      .min(0, "Sort order cannot be negative")
+      .max(100, "Sort order cannot exceed 100")
+      .default(0),
     isPrimary: z.boolean().default(false),
   })
   .strict();
@@ -54,7 +59,12 @@ export const updateAdminVariantImageSchema = z
       .min(1, "Image URL cannot be empty")
       .max(500, "Image URL cannot exceed 500 characters")
       .optional(),
-    sortOrder: z.number().int().optional(),
+    sortOrder: z
+      .number()
+      .int("Sort order must be an integer")
+      .min(0, "Sort order cannot be negative")
+      .max(100, "Sort order cannot exceed 100")
+      .optional(),
   })
   .strict();
 

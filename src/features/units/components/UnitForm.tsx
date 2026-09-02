@@ -44,6 +44,8 @@ export function UnitForm({
 }: UnitFormProps) {
   const methods = useForm<UnitFormData>({
     resolver: zodResolver(createAdminUnitSchema),
+    mode: "onChange",
+    reValidateMode: "onChange",
     defaultValues: {
       name: initialData?.name || "",
       code: initialData?.code || "",
@@ -109,12 +111,14 @@ const filteredBaseUnits = baseUnits.filter(
             name="name"
             label="Unit Name"
             placeholder="Kilogram"
+            required
           />
 
           <FormInput
             name="code"
             label="Unit Code"
             placeholder="KG"
+            required
           />
         </div>
 
@@ -123,6 +127,7 @@ const filteredBaseUnits = baseUnits.filter(
           label="Unit Type"
           options={typeOptions}
           placeholder="Select unit type"
+          required
         />
 
         <FormSelect
@@ -140,6 +145,7 @@ const filteredBaseUnits = baseUnits.filter(
             step="any"
             min="0"
             placeholder="1"
+            required
           />
 
           <FormInput
@@ -148,6 +154,7 @@ const filteredBaseUnits = baseUnits.filter(
             type="number"
             step="1"
             min="0"
+            max="100"
             placeholder="0"
           />
         </div>

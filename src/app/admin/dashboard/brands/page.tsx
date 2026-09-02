@@ -70,7 +70,7 @@ export default function AdminBrandsPage() {
   },
   {
     accessorKey: "slug",
-    header: "SLUG",
+    header: "Brand Code",
     cell: ({ row }) => (
       <div>
         <p className="text-sm text-[var(--color-neutral-600)]">
