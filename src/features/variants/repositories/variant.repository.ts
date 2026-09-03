@@ -241,10 +241,7 @@ export const variantRepository = {
     }
 
     if (params.vegType) {
-      where.product = {
-        ...(where.product as Prisma.ProductWhereInput),
-        veg_type: params.vegType,
-      };
+      where.veg_type = params.vegType;
     }
 
     return where;
@@ -270,42 +267,10 @@ export const variantRepository = {
       db.productVariant.count({ where: { ...baseWhere, isActive: false } }),
       db.productVariant.count({ where: { ...baseWhere, out_of_stock: false } }),
       db.productVariant.count({ where: { ...baseWhere, out_of_stock: true } }),
-      db.productVariant.count({
-        where: {
-          ...baseWhere,
-          product: {
-            ...(baseWhere.product as Prisma.ProductWhereInput),
-            veg_type: "veg",
-          },
-        },
-      }),
-      db.productVariant.count({
-        where: {
-          ...baseWhere,
-          product: {
-            ...(baseWhere.product as Prisma.ProductWhereInput),
-            veg_type: "nonveg",
-          },
-        },
-      }),
-      db.productVariant.count({
-        where: {
-          ...baseWhere,
-          product: {
-            ...(baseWhere.product as Prisma.ProductWhereInput),
-            veg_type: "vegan",
-          },
-        },
-      }),
-      db.productVariant.count({
-        where: {
-          ...baseWhere,
-          product: {
-            ...(baseWhere.product as Prisma.ProductWhereInput),
-            veg_type: "na",
-          },
-        },
-      }),
+      db.productVariant.count({ where: { ...baseWhere, veg_type: "veg" } }),
+      db.productVariant.count({ where: { ...baseWhere, veg_type: "nonveg" } }),
+      db.productVariant.count({ where: { ...baseWhere, veg_type: "vegan" } }),
+      db.productVariant.count({ where: { ...baseWhere, veg_type: "na" } }),
       db.productVariant.count({ where: baseWhere }),
     ]);
 

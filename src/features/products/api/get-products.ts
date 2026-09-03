@@ -4,6 +4,7 @@ import type {
   GetAdminProductsResult,
   AdminProductListParams,
   GetAdminProductsParams,
+  AdminProductImageResponse,
 } from "../types";
 
 export async function getAdminProducts(
@@ -33,10 +34,6 @@ export async function getAdminProducts(
   if (p?.categoryId) body.categoryId = String(p.categoryId);
   if (p?.brandId) body.brandId = String(p.brandId);
   if (p?.hsnCodeId) body.hsnCodeId = String(p.hsnCodeId);
-  if (p?.vegType) body.vegType = p.vegType;
-  if (p?.isFeatured !== undefined && p?.isFeatured !== null) {
-    body.isFeatured = Boolean(p.isFeatured);
-  }
   if (p?.status !== undefined && p?.status !== null) {
     body.status = Boolean(p.status);
   }
@@ -74,6 +71,107 @@ export async function updateAdminProduct(
 
 export async function deleteAdminProduct(uuid: string) {
   return apiClient.delete(`/api/admin/products/${uuid}`);
+}
+
+// Product Images API
+export async function getAdminProductImages(
+  productUuid: string
+): Promise<AdminProductImageResponse[]> {
+  const response = await apiClient.get<AdminProductImageResponse[]>(
+    `/api/admin/products/${productUuid}/images`
+  );
+  return response.data ?? [];
+}
+
+export async function createAdminProductImages(
+  productUuid: string,
+  images: Array<{
+    imageUrl: string;
+    sortOrder?: number;
+    isPrimary?: boolean;
+  }>
+): Promise<AdminProductImageResponse[]> {
+  const response = await apiClient.post<AdminProductImageResponse[]>(
+    `/api/admin/products/${productUuid}/images`,
+    images
+  );
+  return response.data ?? [];
+}
+
+export async function updateAdminProductImage(
+  productUuid: string,
+  imageId: string,
+  data: { imageUrl?: string; sortOrder?: number }
+) {
+  return apiClient.put<AdminProductImageResponse>(
+    `/api/admin/products/${productUuid}/images/${imageId}`,
+    data
+  );
+}
+
+export async function setPrimaryAdminProductImage(
+  productUuid: string,
+  imageId: string
+) {
+  return apiClient.put<AdminProductImageResponse>(
+    `/api/admin/products/${productUuid}/images/${imageId}/primary`
+  );
+}
+
+export async function deleteAdminProductImage(
+  productUuid: string,
+  imageId: string
+) {
+  return apiClient.delete(
+    `/api/admin/products/${productUuid}/images/${imageId}`
+  );
+}
+
+// Multipart File Upload Helpers
+export async function uploadProductImageFile(
+  file: File,
+  folder: string = "products"
+): Promise<{ path: string }> {
+  const formData = new FormData();
+  formData.append("folder", folder);
+  formData.append("file", file);
+
+  const response = await fetch("/api/admin/upload", {
+    method: "POST",
+    body: formData,
+    credentials: "include",
+  });
+
+  const result = await response.json();
+  if (!response.ok || !result.success) {
+    throw new Error(result.message || "Failed to upload image");
+  }
+
+  return result.data;
+}
+
+export async function uploadProductImageFiles(
+  files: File[],
+  folder: string = "products"
+): Promise<{ paths: string[] }> {
+  const formData = new FormData();
+  formData.append("folder", folder);
+  files.forEach((file) => {
+    formData.append("files", file);
+  });
+
+  const response = await fetch("/api/admin/uploads", {
+    method: "POST",
+    body: formData,
+    credentials: "include",
+  });
+
+  const result = await response.json();
+  if (!response.ok || !result.success) {
+    throw new Error(result.message || "Failed to upload images");
+  }
+
+  return result.data;
 }
 
 // Aliases for compatibility

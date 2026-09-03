@@ -5,11 +5,9 @@ import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Info } from "lucide-react";
-import { vegTypeEnum } from "../validations/admin-product.schema";
 import { FormInput } from "@/components/forms/form-input";
-import { FormTextarea } from "@/components/forms/form-textarea";
 import { FormSelect } from "@/components/forms/form-select";
-import { FormCheckbox } from "@/components/forms/form-checkbox";
+import { FormImageUpload } from "@/components/forms/form-image-upload";
 import { FormSubmitButton } from "@/components/forms/form-submit-button";
 
 const productFormSchema = z.object({
@@ -32,14 +30,7 @@ const productFormSchema = z.object({
   hsnCodeId: z
     .string()
     .min(1, "Please select an HSN code"),
-  vegType: vegTypeEnum,
-  isFeatured: z.boolean(),
-  shortDescription: z
-    .string()
-    .trim()
-    .max(500, "Short description cannot exceed 500 characters")
-    .optional(),
-  description: z.string().trim().optional(),
+  productImage: z.string().optional(),
 });
 
 export type ProductFormValues = z.infer<typeof productFormSchema>;
@@ -52,6 +43,7 @@ export interface ProductOption {
 
 interface ProductFormProps {
   initialData?: Partial<ProductFormValues>;
+  initialImageUrl?: string | null;
   isEditing?: boolean;
   categories: ProductOption[];
   brands?: ProductOption[];
@@ -61,15 +53,9 @@ interface ProductFormProps {
   submitLabel?: string;
 }
 
-const vegTypeOptions = [
-  { label: "Vegetarian (Veg)", value: "veg" },
-  { label: "Non-Vegetarian (Non-Veg)", value: "nonveg" },
-  { label: "Vegan", value: "vegan" },
-  { label: "Not Applicable (N/A)", value: "na" },
-];
-
 function ProductForm({
   initialData,
+  initialImageUrl = null,
   isEditing = false,
   categories = [],
   brands = [],
@@ -132,10 +118,7 @@ function ProductForm({
       categoryId: initialData?.categoryId || "",
       brandId: defaultBrandId,
       hsnCodeId: initialData?.hsnCodeId || "",
-      vegType: initialData?.vegType || "veg",
-      isFeatured: initialData?.isFeatured ?? false,
-      shortDescription: initialData?.shortDescription || "",
-      description: initialData?.description || "",
+      productImage: initialImageUrl || "",
     },
   });
 
@@ -330,7 +313,7 @@ function ProductForm({
           </div>
         </div>
 
-        {/* Row 3: HSN Code & Dietary Type */}
+        {/* Row 3: HSN Code */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormSelect
             name="hsnCodeId"
@@ -339,37 +322,13 @@ function ProductForm({
             options={hsnCodeOptions}
             required
           />
-
-          <FormSelect
-            name="vegType"
-            label="Dietary Type"
-            placeholder="Select dietary type"
-            options={vegTypeOptions}
-            required
-          />
         </div>
 
-        {/* Row 4: Featured Product */}
-        <FormCheckbox
-          name="isFeatured"
-          label="Featured Product"
-          description="Display this product prominently in featured sections"
-        />
-
-        {/* Row 5: Short Description (full width) */}
-        <FormTextarea
-          name="shortDescription"
-          label="Short Description"
-          placeholder="Brief summary of the product (max 500 characters)"
-          rows={2}
-        />
-
-        {/* Row 6: Description (full width) */}
-        <FormTextarea
-          name="description"
-          label="Description"
-          placeholder="Detailed product information and description"
-          rows={4}
+        <FormImageUpload
+          name="productImage"
+          label="Product Image"
+          folder="products"
+          infoMessage="Upload a JPG, PNG, or WebP image up to 5MB. Recommended size: 500 × 500 px."
         />
 
         <div className="flex justify-end pt-4">

@@ -43,6 +43,36 @@ import {
   XCircle,
 } from "lucide-react";
 
+function renderDietaryBadge(vegType?: string | null) {
+  const type = (vegType || "na").toLowerCase();
+  let label = "Vegetarian";
+  let markBorder = "border-success-600";
+  let markBg = "bg-success-600";
+
+  if (type === "nonveg" || type === "non-veg") {
+    label = "Non-vegetarian";
+    markBorder = "border-error-600";
+    markBg = "bg-error-600";
+  } else if (type === "vegan") {
+    label = "Vegan";
+    markBorder = "border-success-700";
+    markBg = "bg-success-700";
+  } else if (type === "na" || !vegType) {
+    label = "Not Assigned";
+    markBorder = "border-neutral-400";
+    markBg = "bg-neutral-400";
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cream-200 text-neutral-700 text-xs font-bold border border-cream-border-subtle">
+      <span className={`w-3 h-3 rounded-[2px] border-[1.5px] ${markBorder} flex items-center justify-center`}>
+        <span className={`w-1.5 h-1.5 rounded-full ${markBg}`} />
+      </span>
+      <span>{label}</span>
+    </span>
+  );
+}
+
 export default function AdminVariantDetailsPage() {
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
@@ -365,6 +395,16 @@ export default function AdminVariantDetailsPage() {
                   {measurementLabel}
                 </span>
               )}
+
+              {/* Featured Badge */}
+              {variant.isFeatured && (
+                <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 text-xs font-bold">
+                  Featured
+                </span>
+              )}
+
+              {/* Dietary Badge */}
+              {renderDietaryBadge(variant.vegType)}
             </div>
 
             <div className="flex items-center gap-2 flex-wrap text-xs text-neutral-500">
@@ -480,6 +520,55 @@ export default function AdminVariantDetailsPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Description Card */}
+          <div className="bg-white border border-cream-border rounded-2xl overflow-hidden shadow-xs">
+            <div className="px-6 py-4.5 border-b border-cream-border flex items-center justify-between">
+              <h2 className="text-[15px] font-bold text-neutral-900 tracking-tight">
+                Description
+              </h2>
+            </div>
+            <div className="p-6">
+              {variant.shortDescription || variant.description ? (
+                <div className="space-y-4">
+                  {variant.shortDescription && (
+                    <div>
+                      <div className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1">
+                        Summary
+                      </div>
+                      <p className="text-xs sm:text-sm text-neutral-700 leading-relaxed">
+                        {variant.shortDescription}
+                      </p>
+                    </div>
+                  )}
+
+                  {variant.description && (
+                    <div>
+                      <div className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1">
+                        Full Description
+                      </div>
+                      <p className="text-xs sm:text-sm text-neutral-600 leading-relaxed whitespace-pre-line">
+                        {variant.description}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="py-6 px-4 text-center flex flex-col items-center gap-2">
+                  <p className="text-xs sm:text-sm font-semibold text-neutral-700">
+                    No description yet
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditModalOpen(true)}
+                    className="mt-1 border border-cream-border-subtle bg-white text-secondary-600 hover:bg-secondary-50 hover:border-secondary-200 text-xs font-bold px-3.5 py-1.5 rounded-lg cursor-pointer transition-colors"
+                  >
+                    Add description
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -615,6 +704,10 @@ export default function AdminVariantDetailsPage() {
             variantName: variant.variantName,
             sku: variant.sku,
             slug: variant.slug || "",
+            shortDescription: variant.shortDescription || "",
+            description: variant.description || "",
+            vegType: variant.vegType || "na",
+            isFeatured: variant.isFeatured ?? false,
             unitId: resolvedUnitId,
             unitValue:
               variant.unitValue ??
@@ -640,6 +733,10 @@ export default function AdminVariantDetailsPage() {
                   variantName: formData.variantName,
                   sku: formData.sku,
                   slug: formData.slug,
+                  shortDescription: formData.shortDescription || null,
+                  description: formData.description || null,
+                  vegType: formData.vegType,
+                  isFeatured: formData.isFeatured,
                   unitId: formData.unitId,
                   unitValue: Number(formData.unitValue),
                   basePrice: Number(formData.basePrice),

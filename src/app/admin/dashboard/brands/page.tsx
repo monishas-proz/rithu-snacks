@@ -144,7 +144,6 @@ export default function AdminBrandsPage() {
   }
   if (error) return <ErrorState message="Failed to load brands" onRetry={() => refetch()} />;
 
-  console.log("Brands:", brands);
   return (
     <div className="flex flex-1 min-h-0 flex-col">
       {/* <AdminBreadcrumb items={[{ label: "Brands" }]} /> */}

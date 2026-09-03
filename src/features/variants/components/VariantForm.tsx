@@ -7,10 +7,20 @@ import { z } from "zod";
 import { Info, CheckCircle2, XCircle } from "lucide-react";
 import { getMeasurementFieldConfig } from "../utils/measurement.util";
 import type { UnitOption } from "../types";
+import { vegTypeEnum } from "@/features/products/validations/admin-product.schema";
 import { FormInput } from "@/components/forms/form-input";
+import { FormTextarea } from "@/components/forms/form-textarea";
 import { FormSelect } from "@/components/forms/form-select";
+import { FormCheckbox } from "@/components/forms/form-checkbox";
 import { FormSubmitButton } from "@/components/forms/form-submit-button";
 import { cn } from "@/lib/utils";
+
+const vegTypeOptions = [
+  { label: "Vegetarian (Veg)", value: "veg" },
+  { label: "Non-Vegetarian (Non-Veg)", value: "nonveg" },
+  { label: "Vegan", value: "vegan" },
+  { label: "Not Applicable (N/A)", value: "na" },
+];
 
 const variantFormSchema = z.object({
   productId: z
@@ -32,6 +42,14 @@ const variantFormSchema = z.object({
     .trim()
     .min(1, "Item code cannot be empty")
     .max(255, "Item code cannot exceed 255 characters"),
+  shortDescription: z
+    .string()
+    .trim()
+    .max(500, "Short description cannot exceed 500 characters")
+    .optional(),
+  description: z.string().trim().optional(),
+  vegType: vegTypeEnum,
+  isFeatured: z.boolean(),
   unitId: z
     .string({ message: "Please select a unit" })
     .uuid("Invalid Unit UUID format")
@@ -146,6 +164,10 @@ function VariantForm({
       variantName: initialData?.variantName || "",
       sku: initialData?.sku || "",
       slug: initialData?.slug || "",
+      shortDescription: initialData?.shortDescription || "",
+      description: initialData?.description || "",
+      vegType: initialData?.vegType || "na",
+      isFeatured: initialData?.isFeatured ?? false,
       unitId: initialData?.unitId || "",
       unitValue: initialData?.unitValue,
       basePrice: initialData?.basePrice,
@@ -185,6 +207,10 @@ function VariantForm({
         variantName: initialData.variantName || "",
         sku: initialData.sku || "",
         slug: initialData.slug || "",
+        shortDescription: initialData.shortDescription || "",
+        description: initialData.description || "",
+        vegType: initialData.vegType || "na",
+        isFeatured: initialData.isFeatured ?? false,
         unitId: initialData.unitId || "",
         unitValue: initialData.unitValue,
         basePrice: initialData.basePrice,
@@ -598,6 +624,39 @@ function VariantForm({
             />
           </button>
         </div>
+
+        {/* Dietary Type & Featured Item */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+          <FormSelect
+            name="vegType"
+            label="Dietary Type"
+            placeholder="Select dietary type"
+            options={vegTypeOptions}
+            required
+          />
+
+          <FormCheckbox
+            name="isFeatured"
+            label="Featured Item"
+            description="Display this item prominently in featured sections"
+          />
+        </div>
+
+        {/* Short Description */}
+        <FormTextarea
+          name="shortDescription"
+          label="Short Description"
+          placeholder="Brief summary of the item (max 500 characters)"
+          rows={2}
+        />
+
+        {/* Description */}
+        <FormTextarea
+          name="description"
+          label="Description"
+          placeholder="Detailed item information and description"
+          rows={4}
+        />
 
         <div className="flex justify-end pt-2">
           <FormSubmitButton

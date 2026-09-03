@@ -219,11 +219,7 @@ export const catalogRepository = {
 
     // Search filter
     if (params.search) {
-      where.OR = [
-        { name: { contains: params.search } },
-        { description: { contains: params.search } },
-        { shortDescription: { contains: params.search } },
-      ];
+      where.OR = [{ name: { contains: params.search } }];
     }
 
     // Price range filter on active variants
@@ -300,10 +296,14 @@ export const catalogRepository = {
         imgUrl = p.variants[0].product_variant_images[0]?.image_url ?? null;
       }
 
+      const primaryVariant =
+        p.variants.find((v) => v.is_default) ?? p.variants[0] ?? null;
+
       return {
         id: p.uuid || String(p.id),
         name: p.name,
-        description: p.shortDescription || p.description || null,
+        description:
+          primaryVariant?.short_description || primaryVariant?.description || null,
         brand: p.brand
           ? {
               id: p.brand.uuid || String(p.brand.id),
@@ -427,10 +427,14 @@ export const catalogRepository = {
       };
     });
 
+    const primaryVariant =
+      product.variants.find((v) => v.is_default) ?? product.variants[0] ?? null;
+
     return {
       id: product.uuid || String(product.id),
       name: product.name,
-      description: product.description || product.shortDescription || null,
+      description:
+        primaryVariant?.description || primaryVariant?.short_description || null,
       brand: product.brand
         ? {
             id: product.brand.uuid || String(product.brand.id),

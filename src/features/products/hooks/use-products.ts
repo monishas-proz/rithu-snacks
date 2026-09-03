@@ -22,8 +22,6 @@ export function useProducts(
   if (p?.categoryId) queryParams.categoryId = p.categoryId;
   if (p?.brandId) queryParams.brandId = p.brandId;
   if (p?.hsnCodeId) queryParams.hsnCodeId = p.hsnCodeId;
-  if (p?.vegType) queryParams.vegType = p.vegType;
-  if (p?.isFeatured !== undefined) queryParams.isFeatured = p.isFeatured;
   if (p?.status !== undefined) queryParams.status = p.status;
   if (p?.sortBy) queryParams.sortBy = p.sortBy;
   if (p?.sortOrder) queryParams.sortOrder = p.sortOrder;
@@ -41,6 +39,20 @@ export function useProduct(uuid: string | null) {
     queryKey: productKeys.detail(uuid ?? ""),
     queryFn: () => getAdminProduct(uuid!),
     enabled: !!uuid,
+  });
+}
+
+export function useProductImages(productUuid: string | null) {
+  return useQuery({
+    queryKey: productUuid
+      ? ([...productKeys.all, "images", productUuid] as const)
+      : (["products", "images"] as const),
+    queryFn: async () => {
+      if (!productUuid) return [];
+      const { getAdminProductImages } = await import("../api/get-products");
+      return getAdminProductImages(productUuid);
+    },
+    enabled: !!productUuid,
   });
 }
 

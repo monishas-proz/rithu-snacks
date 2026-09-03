@@ -1,2 +1,10 @@
-export { useProducts, useProduct, useAdminProducts, useAdminProduct } from "./use-products";
-export { useCreateProduct, useUpdateProduct, useDeleteProduct } from "./use-product-mutations";
+export { useProducts, useProduct, useProductImages, useAdminProducts, useAdminProduct } from "./use-products";
+export {
+  useCreateProduct,
+  useUpdateProduct,
+  useDeleteProduct,
+  useCreateProductImages,
+  useUpdateProductImage,
+  useSetPrimaryProductImage,
+  useDeleteProductImage,
+} from "./use-product-mutations";

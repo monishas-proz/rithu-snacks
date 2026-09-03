@@ -678,6 +678,10 @@ export default function AdminVariantsPage() {
                 variantName: formData.variantName,
                 sku: formData.sku,
                 slug: formData.slug,
+                shortDescription: formData.shortDescription || null,
+                description: formData.description || null,
+                vegType: formData.vegType,
+                isFeatured: formData.isFeatured,
                 unitId: formData.unitId,
                 unitValue: Number(formData.unitValue),
                 basePrice: Number(formData.basePrice),
@@ -810,6 +814,10 @@ export default function AdminVariantsPage() {
                   variantName: selectedVariant.variantName,
                   sku: selectedVariant.sku,
                   slug: selectedVariant.slug || "",
+                  shortDescription: selectedVariant.shortDescription || "",
+                  description: selectedVariant.description || "",
+                  vegType: selectedVariant.vegType || "na",
+                  isFeatured: selectedVariant.isFeatured ?? false,
                   unitId:
                     selectedVariant.measurement?.unitId ||
                     units.find(
@@ -841,6 +849,10 @@ export default function AdminVariantsPage() {
                     variantName: formData.variantName,
                     sku: formData.sku,
                     slug: formData.slug,
+                    shortDescription: formData.shortDescription || null,
+                    description: formData.description || null,
+                    vegType: formData.vegType,
+                    isFeatured: formData.isFeatured,
                     unitId: formData.unitId,
                     unitValue: Number(formData.unitValue),
                     basePrice: Number(formData.basePrice),

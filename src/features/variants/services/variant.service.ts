@@ -40,6 +40,10 @@ function formatAdminVariantResponse(
     variant_name?: string | null;
     sku: string;
     slug?: string | null;
+    short_description?: string | null;
+    description?: string | null;
+    veg_type?: string | null;
+    is_featured?: boolean;
     unit_value: Prisma.Decimal | number;
     unit_id: bigint;
     base_price: Prisma.Decimal | number;
@@ -97,6 +101,10 @@ function formatAdminVariantResponse(
     slug: variant.slug || "",
     measurement,
     sku: variant.sku,
+    shortDescription: variant.short_description ?? null,
+    description: variant.description ?? null,
+    vegType: (variant.veg_type as AdminVariantResponse["vegType"]) || "na",
+    isFeatured: Boolean(variant.is_featured),
     basePrice: Number(variant.base_price),
     salePrice: variant.sale_price !== null && Number(variant.sale_price) > 0 ? Number(variant.sale_price) : Number(variant.base_price),
     stock,
@@ -197,6 +205,10 @@ export const variantService = {
       variant_name: variantName,
       sku: data.sku,
       slug: variantSlug,
+      short_description: data.shortDescription ?? null,
+      description: data.description ?? null,
+      veg_type: (data.vegType as Prisma.ProductVariantUncheckedCreateInput["veg_type"]) ?? "na",
+      is_featured: data.isFeatured ?? false,
       unit_value: data.unitValue,
       unit_id: unit.id,
       base_price: effectiveBasePrice,
@@ -317,6 +329,22 @@ export const variantService = {
       updateData.variant_name = data.variantName;
     }
 
+    if (data.shortDescription !== undefined) {
+      updateData.short_description = data.shortDescription;
+    }
+
+    if (data.description !== undefined) {
+      updateData.description = data.description;
+    }
+
+    if (data.vegType !== undefined) {
+      updateData.veg_type = data.vegType as Prisma.ProductVariantUncheckedUpdateInput["veg_type"];
+    }
+
+    if (data.isFeatured !== undefined) {
+      updateData.is_featured = data.isFeatured;
+    }
+
     let unitUuid: string | undefined = undefined;
     let unitName: string | undefined = undefined;
     let unitCode: string | undefined = undefined;
@@ -411,6 +439,22 @@ export const variantService = {
 
     if (data.variantName !== undefined) {
       updateData.variant_name = data.variantName;
+    }
+
+    if (data.shortDescription !== undefined) {
+      updateData.short_description = data.shortDescription;
+    }
+
+    if (data.description !== undefined) {
+      updateData.description = data.description;
+    }
+
+    if (data.vegType !== undefined) {
+      updateData.veg_type = data.vegType as Prisma.ProductVariantUncheckedUpdateInput["veg_type"];
+    }
+
+    if (data.isFeatured !== undefined) {
+      updateData.is_featured = data.isFeatured;
     }
 
     let unitUuid: string | undefined = undefined;

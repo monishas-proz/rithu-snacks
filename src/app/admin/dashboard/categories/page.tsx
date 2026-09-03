@@ -65,9 +65,6 @@ export default function AdminCategoriesPage() {
 
   const categories = data?.success && data.data ? data.data : [];
 
-  console.log("Category API response:", data);
-console.log("Categories received from API:", categories.length);
-
   const parentCategoryOptions = categories.map((category) => ({
     value: category.id.toString(),
     label: category.name,

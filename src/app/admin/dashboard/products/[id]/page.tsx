@@ -10,7 +10,6 @@ import {
   Package,
   Layers,
   Tag,
-  FileText,
   Sparkles,
   Pencil,
   Trash2,
@@ -33,7 +32,7 @@ import {
   LayoutList,
   LayoutGrid,
 } from "lucide-react";
-import { useAdminProduct } from "@/features/products/hooks";
+import { useAdminProduct, useProductImages, useCreateProductImages, useDeleteProductImage } from "@/features/products/hooks";
 import {
   useVariants,
   useCreateVariant,
@@ -217,8 +216,6 @@ export default function AdminProductDetailsPage() {
     { limit: 100 },
     { enabled: isEditProductOpen }
   );
-  console.log(brandsData,"brandName");
-  
   const { data: hsnData } = useHsnCodes(
     { pageSize: 100 },
     { enabled: isEditProductOpen }
@@ -232,6 +229,28 @@ export default function AdminProductDetailsPage() {
   const createVariantMutation = useCreateVariant();
   const updateVariantMutation = useUpdateVariant();
   const deleteVariantMutation = useDeleteVariant();
+  const createProductImagesMutation = useCreateProductImages();
+  const deleteProductImageMutation = useDeleteProductImage();
+
+  // Product Images Query (product carries at most one image)
+  const { data: productImages = [] } = useProductImages(productUuid || null);
+
+  const saveProductPrimaryImage = async (productUuid: string, imageUrl: string) => {
+    try {
+      // Remove any previous image(s) first — a product carries only one image
+      await Promise.all(
+        productImages.map((img) =>
+          deleteProductImageMutation.mutateAsync({ productUuid, imageId: img.id })
+        )
+      );
+      await createProductImagesMutation.mutateAsync({
+        productUuid,
+        images: [{ imageUrl, isPrimary: true }],
+      });
+    } catch (err) {
+      console.error("Failed to upload product image", err);
+    }
+  };
 
   // Selection State
   const [selectedVariants, setSelectedVariants] = React.useState<Record<string, boolean>>({});
@@ -480,8 +499,8 @@ export default function AdminProductDetailsPage() {
 
   // Resolve product thumbnail
   const primaryProductImage =
-    product?.images?.[0]?.url ||
-    product?.image_url ||
+    productImages.find((img) => img.isPrimary)?.imageUrl ||
+    productImages[0]?.imageUrl ||
     variants.find((v) => v.primaryImage)?.primaryImage ||
     null;
 
@@ -561,15 +580,6 @@ export default function AdminProductDetailsPage() {
                   {product.isActive ? "Active" : "Inactive"}
                 </span>
 
-                {/* Featured badge */}
-                {product.isFeatured && (
-                  <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 text-xs font-bold">
-                    Featured
-                  </span>
-                )}
-
-                {/* Dietary badge */}
-                {renderDietaryBadge(product.vegType || product.veg_type)}
               </div>
 
               {/* Category · Brand · Slug subline */}
@@ -632,54 +642,26 @@ export default function AdminProductDetailsPage() {
           </div>
         </section> */}
 
-        {/* Section 3: Two-Column Specifications & Description Grid */}
-        <section className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        {/* Section 3: Specifications */}
+        <section className="grid grid-cols-1 gap-5 items-start">
           {/* Specifications Card */}
-          <div className="lg:col-span-7 bg-white border border-cream-border rounded-2xl overflow-hidden shadow-xs">
+          <div className="bg-white border border-cream-border rounded-2xl overflow-hidden shadow-xs">
             <div className="px-5 py-4 border-b border-cream-border flex items-center justify-between">
               <h2 className="text-[15px] font-bold text-neutral-900 tracking-tight">
                 Product specifications
               </h2>
             </div>
-            <div className="divide-y divide-cream-border-subtle">
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 px-5 py-3.5 items-center hover:bg-cream-50 transition-colors">
-                <div className="sm:col-span-5 text-xs text-neutral-400 font-medium">Category</div>
-                <div className="sm:col-span-7 text-xs sm:text-sm text-neutral-900 font-semibold truncate">
-                  {categoryName || "Not Assigned"}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 px-5 py-3.5 items-center hover:bg-cream-50 transition-colors">
-                <div className="sm:col-span-5 text-xs text-neutral-400 font-medium">Brand</div>
-                <div className="sm:col-span-7 text-xs sm:text-sm text-neutral-900 font-semibold truncate">
-                  {brandName || "Not Assigned"}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 px-5 py-3.5 items-center hover:bg-cream-50 transition-colors">
-                <div className="sm:col-span-5 text-xs text-neutral-400 font-medium">HSN Code</div>
-                <div className="sm:col-span-7 text-xs sm:text-sm text-neutral-900 font-semibold truncate">
+            <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 divide-cream-border-subtle">
+              <div className="flex items-center justify-between gap-3 px-5 py-2.5 sm:border-r border-cream-border-subtle hover:bg-cream-50 transition-colors">
+                <span className="text-xs text-neutral-400 font-medium">HSN Code</span>
+                <span className="text-xs sm:text-sm text-neutral-900 font-semibold truncate text-right">
                   {hsnCodeInfo || "Not Assigned"}
-                </div>
+                </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 px-5 py-3.5 items-center hover:bg-cream-50 transition-colors">
-                <div className="sm:col-span-5 text-xs text-neutral-400 font-medium">Dietary Type</div>
-                <div className="sm:col-span-7 text-xs sm:text-sm">
-                  {renderDietaryBadge(product.vegType || product.veg_type)}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 px-5 py-3.5 items-center hover:bg-cream-50 transition-colors">
-                <div className="sm:col-span-5 text-xs text-neutral-400 font-medium">Slug</div>
-                <div className="sm:col-span-7 font-mono text-xs text-neutral-700 font-semibold truncate">
-                  {product.slug || "—"}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 px-5 py-3.5 items-center hover:bg-cream-50 transition-colors">
-                <div className="sm:col-span-5 text-xs text-neutral-400 font-medium">Created Date</div>
-                <div className="sm:col-span-7 text-xs sm:text-sm text-neutral-900 font-semibold">
+              <div className="flex items-center justify-between gap-3 px-5 py-2.5 sm:border-r border-cream-border-subtle hover:bg-cream-50 transition-colors">
+                <span className="text-xs text-neutral-400 font-medium">Created Date</span>
+                <span className="text-xs sm:text-sm text-neutral-900 font-semibold text-right">
                   {product.createdAt
                     ? new Date(product.createdAt).toLocaleDateString("en-IN", {
                         day: "numeric",
@@ -687,12 +669,12 @@ export default function AdminProductDetailsPage() {
                         year: "numeric",
                       })
                     : "—"}
-                </div>
+                </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 px-5 py-3.5 items-center hover:bg-cream-50 transition-colors">
-                <div className="sm:col-span-5 text-xs text-neutral-400 font-medium">Last Updated</div>
-                <div className="sm:col-span-7 text-xs sm:text-sm text-neutral-900 font-semibold">
+              <div className="flex items-center justify-between gap-3 px-5 py-2.5 hover:bg-cream-50 transition-colors">
+                <span className="text-xs text-neutral-400 font-medium">Last Updated</span>
+                <span className="text-xs sm:text-sm text-neutral-900 font-semibold text-right">
                   {product.updatedAt
                     ? new Date(product.updatedAt).toLocaleDateString("en-IN", {
                         day: "numeric",
@@ -702,63 +684,8 @@ export default function AdminProductDetailsPage() {
                         minute: "2-digit",
                       })
                     : "—"}
-                </div>
+                </span>
               </div>
-            </div>
-          </div>
-
-          {/* Description Card */}
-          <div className="lg:col-span-5 bg-white border border-cream-border rounded-2xl overflow-hidden shadow-xs flex flex-col">
-            <div className="px-5 py-4 border-b border-cream-border flex items-center justify-between">
-              <h2 className="text-[15px] font-bold text-neutral-900 tracking-tight">
-                Description
-              </h2>
-            </div>
-            <div className="p-5 flex-1">
-              {product.shortDescription || product.description ? (
-                <div className="space-y-4">
-                  {product.shortDescription && (
-                    <div>
-                      <div className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1">
-                        Summary
-                      </div>
-                      <p className="text-xs sm:text-sm text-neutral-700 leading-relaxed">
-                        {product.shortDescription}
-                      </p>
-                    </div>
-                  )}
-
-                  {product.description && (
-                    <div>
-                      <div className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1">
-                        Full Description
-                      </div>
-                      <p className="text-xs sm:text-sm text-neutral-600 leading-relaxed whitespace-pre-line">
-                        {product.description}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="py-8 px-4 text-center flex flex-col items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-cream-200 border border-cream-border flex items-center justify-center text-neutral-400">
-                    <FileText className="w-5 h-5 opacity-60" />
-                  </div>
-                  <div className="text-xs sm:text-sm font-semibold text-neutral-700">
-                    No description yet
-                  </div>
-                  <p className="text-xs text-neutral-400 max-w-[280px] leading-relaxed">
-                    Product descriptions appear on the storefront and in exported catalogues.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setIsEditProductOpen(true)}
-                    className="mt-1 border border-cream-border-subtle bg-white text-secondary-600 hover:bg-secondary-50 hover:border-secondary-200 text-xs font-bold px-3.5 py-1.5 rounded-lg cursor-pointer transition-colors"
-                  >
-                    Add description
-                  </button>
-                </div>
-              )}
             </div>
           </div>
         </section>
@@ -962,6 +889,7 @@ export default function AdminProductDetailsPage() {
                     <th className="px-4 py-3 min-w-[200px] border-b border-cream-border">Item</th>
                     <th className="px-4 py-3 min-w-[120px] border-b border-cream-border">SKU</th>
                     <th className="px-4 py-3 min-w-[90px] border-b border-cream-border">Size</th>
+                    <th className="px-4 py-3 min-w-[140px] border-b border-cream-border">Type</th>
                     <th className="px-4 py-3 min-w-[90px] text-right border-b border-cream-border">Base</th>
                     <th className="px-4 py-3 min-w-[110px] text-right border-b border-cream-border">Sale</th>
                     <th className="px-3 py-3 min-w-[95px] text-center border-b border-cream-border">Status</th>
@@ -1035,6 +963,18 @@ export default function AdminProductDetailsPage() {
                         {/* Size / Measurement */}
                         <td className="px-4 py-3 min-w-[90px] text-xs font-medium text-neutral-700 whitespace-nowrap">
                           {formatMeasurement(variant.measurement)}
+                        </td>
+
+                        {/* Dietary Type & Featured */}
+                        <td className="px-4 py-3 min-w-[140px] whitespace-nowrap">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {renderDietaryBadge(variant.vegType)}
+                            {variant.isFeatured && (
+                              <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 text-[10.5px] font-bold border border-amber-200">
+                                Featured
+                              </span>
+                            )}
+                          </div>
                         </td>
 
                         {/* Base Price */}
@@ -1394,11 +1334,8 @@ export default function AdminProductDetailsPage() {
             categoryId: product.categoryId || "",
             brandId: product.brandId || "",
             hsnCodeId: product.hsnCodeId || "",
-            vegType: product.vegType || product.veg_type,
-            isFeatured: Boolean(product.isFeatured),
-            shortDescription: product.shortDescription || "",
-            description: product.description || "",
           }}
+          initialImageUrl={primaryProductImage}
           isEditing
           categories={categoryOptions}
           brands={brandOptions}
@@ -1412,6 +1349,13 @@ export default function AdminProductDetailsPage() {
                 data: formData as any,
               });
               setIsEditProductOpen(false);
+
+              if (
+                formData.productImage &&
+                formData.productImage !== primaryProductImage
+              ) {
+                await saveProductPrimaryImage(canonicalProductId, formData.productImage);
+              }
             } catch (err: any) {
               console.error("Failed to update product", err);
             }
@@ -1440,6 +1384,10 @@ export default function AdminProductDetailsPage() {
                   variantName: formData.variantName,
                   sku: formData.sku,
                   slug: formData.slug,
+                  shortDescription: formData.shortDescription || null,
+                  description: formData.description || null,
+                  vegType: formData.vegType,
+                  isFeatured: formData.isFeatured,
                   unitId: formData.unitId,
                   unitValue: Number(formData.unitValue),
                   basePrice: Number(formData.basePrice),
@@ -1468,6 +1416,10 @@ export default function AdminProductDetailsPage() {
               variantName: editingVariant.variantName,
               sku: editingVariant.sku,
               slug: editingVariant.slug || "",
+              shortDescription: editingVariant.shortDescription || "",
+              description: editingVariant.description || "",
+              vegType: editingVariant.vegType || "na",
+              isFeatured: editingVariant.isFeatured ?? false,
               unitId:
                 editingVariant.unitId ||
                 unitOptions.find(
@@ -1501,6 +1453,10 @@ export default function AdminProductDetailsPage() {
                     variantName: formData.variantName,
                     sku: formData.sku,
                     slug: formData.slug,
+                    shortDescription: formData.shortDescription || null,
+                    description: formData.description || null,
+                    vegType: formData.vegType,
+                    isFeatured: formData.isFeatured,
                     unitId: formData.unitId,
                     unitValue: Number(formData.unitValue),
                     basePrice: Number(formData.basePrice),

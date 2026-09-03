@@ -6,7 +6,7 @@ import { categoryRepository } from "@/features/categories/repositories/category.
 import { brandRepository } from "@/features/brands/repositories/brand.repository";
 import { hsnCodeRepository } from "@/features/hsn-codes/repositories/hsn-code.repository";
 import { userRepository } from "@/features/users/repositories/user.repository";
-import type { Prisma, $Enums } from "@/generated/prisma";
+import type { Prisma } from "@/generated/prisma";
 import type {
   AdminProductResponse,
   GetAdminProductsParams,
@@ -16,7 +16,6 @@ import type {
   CreateAdminProductInput,
   UpdateAdminProductInput,
   AdminProductListInput,
-  VegType,
 } from "../validations/admin-product.schema";
 
 async function formatAdminProductResponse(
@@ -28,10 +27,6 @@ async function formatAdminProductResponse(
     hsn_code_id: bigint | null;
     name: string;
     slug: string;
-    shortDescription: string | null;
-    description: string | null;
-    veg_type: $Enums.products_veg_type;
-    isFeatured: boolean;
     status: boolean | null;
     isActive: boolean;
     createdAt: Date;
@@ -73,10 +68,6 @@ async function formatAdminProductResponse(
     hsnCodeName,
     name: product.name,
     slug: product.slug,
-    shortDescription: product.shortDescription ?? null,
-    description: product.description ?? null,
-    vegType: product.veg_type as VegType,
-    isFeatured: Boolean(product.isFeatured),
     status: Boolean(product.status),
     isActive: Boolean(product.isActive),
     createdAt: product.createdAt,
@@ -164,10 +155,6 @@ export const productService = {
       hsn_code_id: hsnCode.id,
       name: data.name,
       slug: data.slug, // Frontend-supplied slug preserved without modification
-      shortDescription: data.shortDescription ?? null,
-      description: data.description ?? null,
-      veg_type: data.vegType as $Enums.products_veg_type,
-      isFeatured: data.isFeatured ?? false,
       status: true, // Static reserved field - always true
       isActive: true, // Active status
       created_by: adminId,
@@ -271,10 +258,6 @@ export const productService = {
         return {
           active: 0,
           inactive: 0,
-          veg: 0,
-          nonveg: 0,
-          vegan: 0,
-          na: 0,
           all: 0,
         };
       }
@@ -287,10 +270,6 @@ export const productService = {
         return {
           active: 0,
           inactive: 0,
-          veg: 0,
-          nonveg: 0,
-          vegan: 0,
-          na: 0,
           all: 0,
         };
       }
@@ -303,10 +282,6 @@ export const productService = {
         return {
           active: 0,
           inactive: 0,
-          veg: 0,
-          nonveg: 0,
-          vegan: 0,
-          na: 0,
           all: 0,
         };
       }
@@ -391,22 +366,6 @@ export const productService = {
         throw ApiError.conflict(`An active product with name '${data.name}' already exists`);
       }
       updateData.name = data.name;
-    }
-
-    if (data.shortDescription !== undefined) {
-      updateData.shortDescription = data.shortDescription;
-    }
-
-    if (data.description !== undefined) {
-      updateData.description = data.description;
-    }
-
-    if (data.vegType !== undefined) {
-      updateData.veg_type = data.vegType as $Enums.products_veg_type;
-    }
-
-    if (data.isFeatured !== undefined) {
-      updateData.isFeatured = data.isFeatured;
     }
 
     const updated = await productRepository.updateByUuid(uuid, updateData);

@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { vegTypeEnum } from "@/features/products/validations/admin-product.schema";
+
+export { vegTypeEnum };
 
 export const createAdminVariantSchema = z
   .object({
@@ -17,6 +20,19 @@ export const createAdminVariantSchema = z
       .trim()
       .min(1, "Slug cannot be empty")
       .max(255, "Slug cannot exceed 255 characters"),
+    shortDescription: z
+      .string()
+      .trim()
+      .max(500, "Short description cannot exceed 500 characters")
+      .optional()
+      .nullable(),
+    description: z
+      .string()
+      .trim()
+      .optional()
+      .nullable(),
+    vegType: vegTypeEnum.optional(),
+    isFeatured: z.boolean().optional().default(false),
     unitValue: z
       .number({ message: "Unit value is required" })
       .gt(0, "Unit value must be greater than 0"),
@@ -73,6 +89,19 @@ export const updateAdminVariantSchema = z
       .min(1, "Slug cannot be empty")
       .max(255, "Slug cannot exceed 255 characters")
       .optional(),
+    shortDescription: z
+      .string()
+      .trim()
+      .max(500, "Short description cannot exceed 500 characters")
+      .optional()
+      .nullable(),
+    description: z
+      .string()
+      .trim()
+      .optional()
+      .nullable(),
+    vegType: vegTypeEnum.optional(),
+    isFeatured: z.boolean().optional(),
     unitValue: z
       .number()
       .gt(0, "Unit value must be greater than 0")

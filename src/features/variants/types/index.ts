@@ -43,6 +43,10 @@ export interface AdminVariantResponse {
   slug: string;
   measurement: VariantMeasurement;
   sku: string;
+  shortDescription: string | null;
+  description: string | null;
+  vegType: "veg" | "nonveg" | "vegan" | "na";
+  isFeatured: boolean;
   basePrice: number;
   salePrice: number;
   stock?: number;

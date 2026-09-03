@@ -112,6 +112,11 @@ export function VariantCard({
 
         {/* Admin Status Pill */}
         <div className="absolute top-2 right-2 flex items-center gap-1">
+          {variant.isFeatured && (
+            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold shadow-xs bg-amber-500/90 text-white backdrop-blur-md">
+              Featured
+            </span>
+          )}
           {variant.outOfStock && (
             <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold shadow-xs bg-rose-600 text-white backdrop-blur-md">
               Out of Stock
