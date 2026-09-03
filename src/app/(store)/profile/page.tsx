@@ -1,8 +1,53 @@
+"use client";
+
+import React, { Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { AccountShell } from "@/features/customers/components/account";
+import { LoadingState } from "@/components/ui/loading-state";
+
+function ProfileContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { data: session, status } = useSession();
+
+  const currentTab = searchParams.get("tab") || "dashboard";
+
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen bg-theme-bg flex items-center justify-center p-8">
+        <LoadingState text="Loading your account..." />
+      </div>
+    );
+  }
+
+  if (status === "unauthenticated" || !session) {
+    router.push("/login?callbackUrl=/profile");
+    return null;
+  }
+
+  const handleTabChange = (newTab: string) => {
+    router.push(`/profile?tab=${newTab}`, { scroll: false });
+  };
+
+  return (
+    <AccountShell
+      activeTab={currentTab}
+      onTabChange={handleTabChange}
+    />
+  );
+}
+
 export default function ProfilePage() {
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">My Profile</h1>
-      <p className="text-muted-foreground">Profile management coming soon.</p>
-    </div>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-theme-bg flex items-center justify-center p-8">
+          <LoadingState text="Loading your account..." />
+        </div>
+      }
+    >
+      <ProfileContent />
+    </Suspense>
   );
 }

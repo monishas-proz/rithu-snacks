@@ -8,5 +8,15 @@ export {
   useUpdateCustomerStatus,
   useBlockCustomer,
 } from "./use-admin-customer-mutations";
-export { useAdminCustomersCount } from "./use-admin-customers-count";
-
+export {
+  useCustomerProfile,
+  useUpdateCustomerProfile,
+  CUSTOMER_PROFILE_QUERY_KEY,
+} from "./use-customer-profile";
+export {
+  useCustomerAddresses,
+  useCreateCustomerAddress,
+  useUpdateCustomerAddress,
+  useDeleteCustomerAddress,
+  CUSTOMER_ADDRESSES_QUERY_KEY,
+} from "./use-customer-address";
