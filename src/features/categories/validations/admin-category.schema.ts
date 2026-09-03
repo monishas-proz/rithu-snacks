@@ -11,7 +11,11 @@ export const createAdminCategorySchema = z
       .string()
       .trim()
       .min(1, "Category code is required")
-      .max(170, "Category code cannot exceed 170 characters"),
+      .max(170, "Category code cannot exceed 170 characters")
+      .regex(
+        /^[A-Za-z0-9_]+$/,
+        "Category code can only contain letters, numbers, and underscores"
+      ),
     description: z
       .string()
       .trim()
