@@ -49,8 +49,8 @@ export function CustomerAddressesSection({
   }
 
   return (
-    <div className="p-6 space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="p-4 sm:p-6 space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
         {addresses.map((addr) => {
           const label =
             (addr as unknown as { label?: string }).label ||
@@ -64,7 +64,7 @@ export function CustomerAddressesSection({
           return (
             <div
               key={addr.id}
-              className="rounded-xl border border-cream-border p-5 bg-white shadow-xs transition-all relative flex flex-col justify-between"
+              className="rounded-xl border border-cream-border p-4 sm:p-5 bg-white shadow-xs transition-all relative flex flex-col justify-between"
             >
               <div className="space-y-3">
                 {/* Header: Label & Badges */}

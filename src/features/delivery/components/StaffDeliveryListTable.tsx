@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import {
   Eye,
@@ -23,6 +23,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { formatDateTime, formatPrice } from "@/lib/utils";
 import {
   useStaffDeliveries,
+  useStaffDeliveriesCount,
   useAcceptDelivery,
   useMarkOutForDelivery,
 } from "../hooks";
@@ -52,6 +53,8 @@ export function StaffDeliveryListTable({
     customerName: string;
   } | null>(null);
 
+  const [timeScope, setTimeScope] = useState<"allTime" | "today">("today");
+
   // Map tab filter to backend status query
   const backendStatus =
     statusFilter === "all"
@@ -67,11 +70,51 @@ export function StaffDeliveryListTable({
     sortOrder: "desc",
   });
 
+  const { data: countData, isLoading: isCountLoading } = useStaffDeliveriesCount({
+    search: search.trim() || undefined,
+  });
+
   const acceptMutation = useAcceptDelivery();
   const outForDeliveryMutation = useMarkOutForDelivery();
 
   const deliveries = data?.data ?? [];
   const meta = data?.meta;
+
+  const activeCounts =
+    timeScope === "today" ? countData?.today : countData?.allTime;
+
+  const tabCounts = {
+    all: activeCounts?.total ?? (timeScope === "today" ? countData?.today.total ?? 0 : meta?.total ?? 0),
+    pending: activeCounts?.pending ?? 0,
+    in_transit: activeCounts?.in_transit ?? 0,
+    out_for_delivery: activeCounts?.out_for_delivery ?? 0,
+    delivered: activeCounts?.delivered ?? 0,
+    failed: activeCounts?.failed ?? 0,
+  };
+
+  const isTodayDate = (dateInput: Date | string | null | undefined) => {
+    if (!dateInput) return false;
+    const d = new Date(dateInput);
+    const today = new Date();
+    return (
+      d.getDate() === today.getDate() &&
+      d.getMonth() === today.getMonth() &&
+      d.getFullYear() === today.getFullYear()
+    );
+  };
+
+  const displayedDeliveries = useMemo(() => {
+    if (timeScope === "today") {
+      return deliveries.filter(
+        (d) =>
+          isTodayDate(d.createdAt) ||
+          isTodayDate(d.order?.placedAt) ||
+          isTodayDate(d.order?.createdAt) ||
+          d.deliverySlot?.slotDate?.toLowerCase() === "today"
+      );
+    }
+    return deliveries;
+  }, [deliveries, timeScope]);
 
   const handleTabChange = (tabId: string) => {
     setStatusFilter(tabId);
@@ -302,13 +345,19 @@ export function StaffDeliveryListTable({
     <div className="flex flex-1 min-h-0 flex-col gap-3">
       {/* Stats Cards */}
       <DeliveryStatsCards
-        items={deliveries}
-        totalCount={meta?.total}
-        isLoading={isLoading}
+        items={displayedDeliveries}
+        totalCount={activeCounts?.total ?? meta?.total}
+        countData={countData}
+        isLoading={isLoading || isCountLoading}
+        scope={timeScope}
+        onScopeChange={(newScope) => {
+          setTimeScope(newScope);
+          setPage(1);
+        }}
       />
 
       {/* Tabs & Filter Toolbar */}
-      <div className="mt-1 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mt-1 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-1 items-center gap-2">
           <SearchInput
             placeholder="Search by order #, customer, phone, city..."
@@ -332,11 +381,17 @@ export function StaffDeliveryListTable({
           </Button>
         </div>
 
-        <div className="flex items-center gap-2 overflow-x-auto">
-          <DeliveryStatusTabs
-            activeTab={statusFilter}
-            onTabChange={handleTabChange}
-          />
+        <div className="flex flex-wrap items-center gap-2">
+          
+
+          {/* Status Tabs */}
+          <div className="flex items-center gap-2 overflow-x-auto">
+            <DeliveryStatusTabs
+              activeTab={statusFilter}
+              onTabChange={handleTabChange}
+              counts={tabCounts}
+            />
+          </div>
         </div>
       </div>
 
@@ -344,22 +399,30 @@ export function StaffDeliveryListTable({
       <div className="flex-1 min-h-0 overflow-hidden flex flex-col mt-1">
         <DataTable
           columns={columns}
-          data={deliveries}
+          data={displayedDeliveries}
           pageSize={pageSize}
           pageSizeOptions={[10, 20, 30, 50]}
           page={meta?.page ?? page}
           totalPages={
             meta?.totalPages ??
-            Math.max(1, Math.ceil((meta?.total ?? deliveries.length) / pageSize))
+            Math.max(1, Math.ceil((meta?.total ?? displayedDeliveries.length) / pageSize))
           }
-          totalItems={meta?.total ?? deliveries.length}
+          totalItems={
+            timeScope === "today"
+              ? (countData?.today.total ?? displayedDeliveries.length)
+              : (meta?.total ?? deliveries.length)
+          }
           onPageChange={setPage}
           onPageSizeChange={(newSize) => {
             setPageSize(newSize);
             setPage(1);
           }}
           className="bg-white"
-          emptyMessage="No assigned deliveries found for this filter."
+          emptyMessage={
+            timeScope === "today"
+              ? "No assigned deliveries scheduled or placed today."
+              : "No assigned deliveries found for this filter."
+          }
         />
       </div>
 

@@ -2,7 +2,7 @@
 
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { createCategorySchema,updateCategorySchema } from "../validations/category.schema";
+import { createCategorySchema } from "../validations/category.schema";
 import { FormInput } from "@/components/forms/form-input";
 import { FormTextarea } from "@/components/forms/form-textarea";
 import { FormImageUpload } from "@/components/forms/form-image-upload";
@@ -32,8 +32,10 @@ function CategoryForm({
   isLoading = false,
   submitLabel = "Save Category",
 }: CategoryFormProps) {
-  const methods = useForm({
-    resolver: zodResolver(isEditing ? updateCategorySchema : createCategorySchema),
+  const methods = useForm<CategoryFormData>({
+    resolver: zodResolver(createCategorySchema),
+    mode: "onChange",
+    reValidateMode: "onChange",
     defaultValues: {
       name: (initialData?.name as string) || "",
       slug: (initialData?.slug as string) || "",
@@ -61,12 +63,15 @@ function CategoryForm({
             name="name"
             label="Category Name"
             placeholder="Enter category name"
+            required
           />
 
           <FormInput
             name="slug"
-            label="Slug"
+            label="Category Code"
             placeholder="e.g. SWEETS_SNACKS"
+            infoMessage="Enter category code (e.g. SWEETS_SNACKS). Special characters are allowed."
+            required
           />
         </div>
 
@@ -80,6 +85,7 @@ function CategoryForm({
           name="image"
           label="Category Image"
           folder="categories"
+          required
         />
 
         {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -123,6 +129,9 @@ function CategoryForm({
             name="sortOrder"
             label="Sort Order"
             type="number"
+            min="0"
+            max="100"
+            step="1"
             placeholder="0"
         />
 

@@ -16,7 +16,7 @@ export type GetProductsQueryInput = z.infer<typeof getProductsQuerySchema>;
 
 export const createProductSchema = z.object({
   name: z.string().min(1, "Product name is required").max(255),
-  slug: z.string().min(1, "Slug is required").max(255),
+  slug: z.string().min(1, "Product code is required").max(255),
   description: z.string().optional(),
   shortDescription: z.string().max(500).optional(),
   categoryId: z.number().int().positive("Category is required"),

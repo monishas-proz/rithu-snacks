@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-export const brandSlugRegex = /^[A-Z0-9_-]+$/;
-
 export const createAdminBrandSchema = z
   .object({
     name: z
@@ -12,12 +10,8 @@ export const createAdminBrandSchema = z
     slug: z
       .string()
       .trim()
-      .min(1, "Brand slug is required")
-      .max(170, "Brand slug cannot exceed 170 characters")
-      .regex(
-        brandSlugRegex,
-        "Brand slug must be uppercase letters, numbers, hyphens, or underscores (e.g. RITHANYA_FOODS)"
-      ),
+      .min(1, "Brand code is required")
+      .max(170, "Brand code cannot exceed 170 characters"),
     description: z
       .string()
       .trim()

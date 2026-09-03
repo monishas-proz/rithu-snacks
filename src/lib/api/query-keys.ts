@@ -45,7 +45,4 @@ export const staffKeys = createQueryKeyFactory("staff");
 export const deliveryKeys = createQueryKeyFactory("delivery");
 export const returnKeys = createQueryKeyFactory("returns");
 export const adminReviewKeys = createQueryKeyFactory("admin-reviews");
-
-
-
-
+export const adminContactKeys = createQueryKeyFactory("admin-contacts");

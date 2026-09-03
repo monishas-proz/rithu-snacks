@@ -43,17 +43,20 @@ export function CustomerDetailModal({
     });
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case "active":
-        return <Badge variant="success">Active</Badge>;
-      case "inactive":
-        return <Badge variant="secondary">Inactive</Badge>;
-      case "banned":
-        return <Badge variant="destructive">Banned</Badge>;
-      default:
-        return <Badge variant="outline">{status || "Unknown"}</Badge>;
+  const getStatusBadge = (
+    status: string,
+    isBlocked?: boolean,
+    isActive?: boolean
+  ) => {
+    if (
+      isBlocked ||
+      isActive === false ||
+      status?.toLowerCase() === "banned" ||
+      status?.toLowerCase() === "inactive"
+    ) {
+      return <Badge variant="destructive">Blocked</Badge>;
     }
+    return <Badge variant="success">Active</Badge>;
   };
 
   return (
@@ -63,11 +66,6 @@ export function CustomerDetailModal({
       title="Customer Profile Details"
       description="Comprehensive customer account and profile information"
       size="lg"
-      // footer={
-      //   <Button variant="outline" onClick={onClose}>
-      //     Close
-      //   </Button>
-      // }
     >
       <div className="space-y-6">
         {/* Profile Card Header */}
@@ -98,9 +96,10 @@ export function CustomerDetailModal({
                 </p>
               </div>
               <div className="flex items-center gap-2 justify-center sm:justify-end">
-                {getStatusBadge(customer.status)}
-                {customer.isBlocked && (
-                  <Badge variant="destructive">Blocked</Badge>
+                {getStatusBadge(
+                  customer.status,
+                  customer.isBlocked,
+                  customer.isActive
                 )}
               </div>
             </div>
@@ -108,7 +107,7 @@ export function CustomerDetailModal({
         </div>
 
         {/* Verification Status Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3">
           <div className="rounded-xl border border-neutral-200 p-3 bg-white flex items-center gap-2.5">
             {customer.isActive ? (
               <CheckCircle2 className="h-5 w-5 text-success-600 shrink-0" />

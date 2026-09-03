@@ -1,41 +1,45 @@
 "use client";
 
 import { useDashboardStats } from "@/features/dashboard/hooks";
+import { useAdminOrdersCount } from "@/features/orders/hooks";
 import { formatPrice } from "@/lib/utils";
 
 export function OrderStatsCards() {
-  const { data: stats, isLoading } = useDashboardStats();
+  const { data: stats, isLoading: isStatsLoading } = useDashboardStats();
+  const { data: orderCounts, isLoading: isCountsLoading } = useAdminOrdersCount();
+
+  const isLoading = isStatsLoading && isCountsLoading;
 
   const todayOrders = stats?.todayOrders ?? 0;
-  const pendingOrders = stats?.pendingOrders ?? 0;
-  const totalOrders = stats?.totalOrders ?? 0;
+  const pendingOrders = orderCounts?.pending ?? stats?.pendingOrders ?? 0;
+  const totalOrders = orderCounts?.total ?? stats?.totalOrders ?? 0;
   const totalRevenue = stats?.totalRevenue ?? 0;
 
   const cards = [
     {
       label: "TODAY'S ORDERS",
-      value: isLoading ? "—" : String(todayOrders),
+      value: isStatsLoading ? "—" : String(todayOrders),
       note: "Orders placed today",
       noteColor: "text-neutral-500",
       accentBorder: "border-l-amber-600",
     },
     {
       label: "AWAITING CONFIRMATION",
-      value: isLoading ? "—" : String(pendingOrders),
+      value: isCountsLoading && isStatsLoading ? "—" : String(pendingOrders),
       note: pendingOrders > 0 ? "Needs action" : "All clear",
       noteColor: pendingOrders > 0 ? "text-amber-700 font-semibold" : "text-neutral-500",
       accentBorder: "border-l-primary-500",
     },
     {
       label: "TOTAL ORDERS",
-      value: isLoading ? "—" : String(totalOrders),
+      value: isCountsLoading && isStatsLoading ? "—" : String(totalOrders),
       note: "All-time total orders",
       noteColor: "text-neutral-500",
       accentBorder: "border-l-secondary-600",
     },
     {
       label: "ORDER VALUE",
-      value: isLoading ? "—" : formatPrice(totalRevenue),
+      value: isStatsLoading ? "—" : formatPrice(totalRevenue),
       note: "Total order revenue",
       noteColor: "text-neutral-500",
       accentBorder: "border-l-success-600",

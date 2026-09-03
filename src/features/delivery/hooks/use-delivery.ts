@@ -5,6 +5,7 @@ import { deliveryKeys, orderKeys, adminOrderKeys } from "@/lib/api/query-keys";
 import {
   getStaffDeliveries,
   getStaffDeliveryByUuid,
+  getStaffDeliveriesCount,
   acceptDelivery,
   markOutForDelivery,
   markDelivered,
@@ -23,6 +24,7 @@ import type {
   StaffDeliveryDetailResponse,
   AssignDeliveryResult,
   DeliveryTransitionResult,
+  StaffDeliveriesCountResponse,
 } from "../types/delivery.types";
 
 /* ----------------------- Staff Delivery Queries & Mutations ----------------------- */
@@ -43,6 +45,20 @@ export function useStaffDeliveries(params?: StaffDeliveryListInput) {
   return useQuery({
     queryKey: deliveryKeys.list(queryParams),
     queryFn: () => getStaffDeliveries(params),
+    placeholderData: keepPreviousData,
+    staleTime: 15 * 1000,
+  });
+}
+
+export function useStaffDeliveriesCount(params?: Partial<StaffDeliveryListInput>) {
+  const queryParams: Record<string, string | number | undefined> = {
+    status: params?.status,
+    search: params?.search,
+  };
+
+  return useQuery<StaffDeliveriesCountResponse>({
+    queryKey: [...deliveryKeys.all, "staff-count", queryParams] as const,
+    queryFn: () => getStaffDeliveriesCount(params),
     placeholderData: keepPreviousData,
     staleTime: 15 * 1000,
   });

@@ -9,15 +9,20 @@ export type GetCategoriesQueryInput = z.infer<typeof getCategoriesQuerySchema>;
 
 export const createCategorySchema = z.object({
   name: z.string().min(1, "Category name is required").max(255),
-  slug: z.string().min(1, "Slug is required").max(255).regex(
-    /^[A-Z0-9_-]+$/,
-    "Category slug must be uppercase letters, numbers, hyphens, or underscores (e.g. RITHANYA_SNACKS)"
-  ),
+  slug: z.string().trim().min(1, "Category code is required").max(255),
   description: z.string().max(1000).optional(),
-  image: z.string().max(500).optional(),
+  image: z
+    .string({ message: "Category image is required" })
+    .min(1, "Category image is required")
+    .max(500),
   parentId: z.number().int().positive().nullable().optional(),
   isActive: z.boolean().default(true),
-  sortOrder: z.coerce.number().int().min(0).default(0),
+  sortOrder: z.coerce
+    .number()
+    .int("Sort order must be an integer")
+    .min(0, "Sort order cannot be negative")
+    .max(100, "Sort order cannot exceed 100")
+    .default(0),
   metaTitle: z.string().max(255).optional(),
   metaDescription: z.string().max(1000).optional(),
 });

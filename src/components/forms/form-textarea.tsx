@@ -10,6 +10,7 @@ interface FormTextareaProps
   name: string;
   label?: string;
   description?: string;
+  required?: boolean;
 }
 
 function FormTextarea({
@@ -17,6 +18,7 @@ function FormTextarea({
   label,
   description,
   className,
+  required,
   ...props
 }: FormTextareaProps) {
   const { control } = useFormContext();
@@ -27,7 +29,14 @@ function FormTextarea({
       control={control}
       render={({ field, fieldState }) => (
         <div className="space-y-2">
-          {label && <Label htmlFor={name}>{label}</Label>}
+          {label && (
+            <Label htmlFor={name}>
+              {label}
+              {(required) && (
+                <span className="text-error-600 font-bold ml-1">*</span>
+              )}
+            </Label>
+          )}
           <Textarea
             id={name}
             {...field}

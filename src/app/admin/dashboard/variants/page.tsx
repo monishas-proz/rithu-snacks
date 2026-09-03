@@ -118,6 +118,7 @@ export default function AdminVariantsPage() {
     return products.map((p) => ({
       value: p.id,
       label: p.name,
+      slug: p.slug,
     }));
   }, [products]);
 
@@ -140,7 +141,7 @@ export default function AdminVariantsPage() {
       });
       refetch();
     } catch (err) {
-      console.error("Failed to toggle variant status", err);
+      console.error("Failed to toggle Items status", err);
     }
   };
 
@@ -179,16 +180,22 @@ export default function AdminVariantsPage() {
     },
     {
       accessorKey: "variantName",
-      header: "Variant & SKU",
+      header: "Item & SKU",
       cell: ({ row }) => (
-        <div>
-          <p className="font-medium text-[var(--color-neutral-900)]">
+        <Link
+          href={`/admin/dashboard/variants/${encodeURIComponent(
+            row.original.id
+          )}?productId=${encodeURIComponent(row.original.productId)}`}
+          className="group block cursor-pointer"
+          title="View Variant Details"
+        >
+          <p className="font-medium text-[var(--color-neutral-900)] group-hover:text-secondary-600 transition-colors">
             {row.original.variantName || "—"}
           </p>
           <p className="text-xs text-[var(--color-neutral-500)] mt-0.5 font-mono">
             {row.original.sku}
           </p>
-        </div>
+        </Link>
       ),
     },
     {
@@ -297,7 +304,7 @@ export default function AdminVariantsPage() {
               row.original.id
             )}?productId=${encodeURIComponent(row.original.productId)}`}
             className="inline-flex items-center justify-center h-8 w-8 rounded-md text-[var(--color-neutral-500)] hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
-            title="View Variant Details"
+            title="View Item Details"
           >
             <Eye className="h-4 w-4" />
           </Link>
@@ -314,7 +321,7 @@ export default function AdminVariantsPage() {
           <Button
             variant="ghost"
             size="icon"
-            title="Edit Variant Details"
+            title="Edit Item Details"
             onClick={() => {
               setSelectedVariant(row.original);
               setEditTab("details");
@@ -340,7 +347,7 @@ export default function AdminVariantsPage() {
           <Button
             variant="ghost"
             size="icon"
-            title="Delete Variant"
+            title="Delete Item"
             onClick={() =>
               setDeleteTarget({
                 productUuid: row.original.productId,
@@ -363,13 +370,13 @@ export default function AdminVariantsPage() {
   };
 
   if (isLoading && !data) {
-    return <LoadingState text="Loading product variants..." />;
+    return <LoadingState text="Loading product Items..." />;
   }
 
   if (error) {
     return (
       <ErrorState
-        message="Failed to load product variants"
+        message="Failed to load product Items"
         onRetry={() => refetch()}
       />
     );
@@ -381,8 +388,8 @@ export default function AdminVariantsPage() {
   return (
     <div className="flex flex-1 min-h-0 flex-col">
       <AdminPageHeader
-        title="Product Variant Management"
-        description="Manage product variants, sizing, packaging, pricing, SKUs, and images with realistic customer card preview."
+        title="Product Items Management"
+        description="Manage product Items, sizing, packaging, pricing, SKUs, and images with realistic customer card preview."
       />
 
       <AdminContent className="flex-1 min-h-0 overflow-hidden">
@@ -391,7 +398,7 @@ export default function AdminVariantsPage() {
           <div className="flex-shrink-0 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
               <SearchInput
-                placeholder="Search variants by name, SKU..."
+                placeholder="Search Items by name, SKU..."
                 defaultValue={search}
                 onSearch={(val) => {
                   setSearch(val);
@@ -452,7 +459,7 @@ export default function AdminVariantsPage() {
                 className="h-11 rounded-xl bg-[var(--color-secondary-600)] px-5 text-sm font-semibold text-white hover:bg-[var(--color-secondary-700)] cursor-pointer"
               >
                 <Plus className="mr-2 h-4 w-4" />
-                Add Variant
+                Add Item
               </Button>
             </div>
           </div>
@@ -481,12 +488,12 @@ export default function AdminVariantsPage() {
                   <div className="flex flex-col items-center justify-center py-20 text-center bg-white rounded-2xl border border-neutral-200">
                     <Package className="h-12 w-12 text-neutral-300 mb-3" />
                     <h3 className="text-base font-bold text-neutral-800">
-                      No variants found
+                      No Items found
                     </h3>
                     <p className="text-xs text-neutral-400 mt-1 max-w-sm">
                       {search || selectedProductFilter
-                        ? "Try clearing filters or search query to find variants."
-                        : "Start by adding your first product variant."}
+                        ? "Try clearing filters or search query to find Items."
+                        : "Start by adding your first product Item."}
                     </p>
                     <Button
                       onClick={() => {
@@ -497,7 +504,7 @@ export default function AdminVariantsPage() {
                       className="mt-5 rounded-xl bg-[var(--color-secondary-600)] text-xs font-semibold text-white"
                     >
                       <Plus className="mr-1.5 h-3.5 w-3.5" />
-                      Add Variant
+                      Add Item
                     </Button>
                   </div>
                 ) : (
@@ -537,7 +544,7 @@ export default function AdminVariantsPage() {
                   <div className="mt-8 flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 bg-white border border-neutral-200 rounded-xl shadow-2xs">
                     <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-xs sm:text-sm text-[var(--color-neutral-500)]">
                       <p>
-                        Showing {startEntry}–{endEntry} of {totalItems} variants
+                        Showing {startEntry}–{endEntry} of {totalItems} Items
                       </p>
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-medium text-[var(--color-neutral-600)]">
@@ -596,17 +603,17 @@ export default function AdminVariantsPage() {
         onClose={handleCloseCreateModal}
         title={
           createStep === 1
-            ? "Add Product Variant"
+            ? "Add Product Item"
             : createStep === 2
-            ? `Add Images: ${createdVariant?.name || "Variant"}`
-            : `Variant Created: ${createdVariant?.name || "Variant"}`
+            ? `Add Images: ${createdVariant?.name || "Item"}`
+            : `Item Created: ${createdVariant?.name || "Item"}`
         }
         description={
           createStep === 1
-            ? "Step 1 of 3: Enter variant specifications and pricing"
+            ? "Step 1 of 3: Enter Item specifications and pricing"
             : createStep === 2
-            ? "Step 2 of 3: Upload images for this variant"
-            : "Step 3 of 3: Preview how customers see this variant on the storefront"
+            ? "Step 2 of 3: Upload images for this Item"
+            : "Step 3 of 3: Preview how customers see this Item on the storefront"
         }
         size="lg"
       >
@@ -624,7 +631,7 @@ export default function AdminVariantsPage() {
             ) : (
               <span>1</span>
             )}
-            <span>Variant Details</span>
+            <span>Item Details</span>
           </div>
 
           <span className="text-xs text-[var(--color-neutral-400)]">→</span>
@@ -643,7 +650,7 @@ export default function AdminVariantsPage() {
             ) : (
               <span>2</span>
             )}
-            <span>Variant Images</span>
+            <span>Item Images</span>
           </div>
 
           <span className="text-xs text-[var(--color-neutral-400)]">→</span>
@@ -711,9 +718,9 @@ export default function AdminVariantsPage() {
             <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 text-emerald-800 text-xs flex items-center gap-3">
               <Check className="h-5 w-5 text-emerald-600 shrink-0" />
               <div>
-                <p className="font-bold">Variant Created Successfully!</p>
+                <p className="font-bold">Item Created Successfully!</p>
                 <p className="text-emerald-700 mt-0.5">
-                  Here is how this variant appears to customers on the storefront:
+                  Here is how this Item appears to customers on the storefront:
                 </p>
               </div>
             </div>
@@ -761,8 +768,8 @@ export default function AdminVariantsPage() {
           setSelectedVariant(null);
           refetch();
         }}
-        title={`Update Variant: ${selectedVariant?.variantName || ""}`}
-        description="Update variant details or manage product images"
+        title={`Update Item: ${selectedVariant?.variantName || ""}`}
+        description="Update Item details or manage product images"
         size="lg"
       >
         {selectedVariant && (
@@ -779,7 +786,7 @@ export default function AdminVariantsPage() {
                 }`}
               >
                 <Package className="h-4 w-4" />
-                Variant Details
+                Item Details
               </button>
 
               <button
@@ -887,8 +894,8 @@ export default function AdminVariantsPage() {
             });
           }
         }}
-        title="Delete Product Variant"
-        description="Are you sure you want to delete this product variant? This action cannot be undone."
+        title="Delete Product Item"
+        description="Are you sure you want to delete this product Item? This action cannot be undone."
         confirmText="Delete"
         variant="destructive"
         isLoading={deleteMutation.isPending}

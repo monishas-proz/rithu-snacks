@@ -111,21 +111,21 @@ export function CustomerOrdersSection({
   };
 
   return (
-    <div className="w-full">
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[580px] text-left text-sm">
+    <div className="w-full overflow-hidden">
+      <div className="overflow-x-auto scrollbar-thin">
+        <table className="w-full min-w-[520px] text-left text-sm">
           <thead>
-            <tr className="border-b border-cream-border-subtle">
-              <th className="py-4 px-6 text-xs font-semibold uppercase tracking-wider text-neutral-400 font-mono">
+            <tr className="border-b border-cream-border-subtle bg-cream-50/50">
+              <th className="py-3 sm:py-4 px-3.5 sm:px-6 text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-neutral-500 font-mono">
                 Order ID
               </th>
-              <th className="py-4 px-6 text-xs font-semibold uppercase tracking-wider text-neutral-400 font-mono">
+              <th className="py-3 sm:py-4 px-3.5 sm:px-6 text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-neutral-500 font-mono">
                 Date
               </th>
-              <th className="py-4 px-6 text-center text-xs font-semibold uppercase tracking-wider text-neutral-400 font-mono">
+              <th className="py-3 sm:py-4 px-3.5 sm:px-6 text-center text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-neutral-500 font-mono">
                 Status
               </th>
-              <th className="py-4 px-6 text-right text-xs font-semibold uppercase tracking-wider text-neutral-400 font-mono">
+              <th className="py-3 sm:py-4 px-3.5 sm:px-6 text-right text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-neutral-500 font-mono">
                 Total
               </th>
             </tr>
@@ -142,24 +142,24 @@ export function CustomerOrdersSection({
                   className="hover:bg-neutral-50/60 transition-colors"
                 >
                   {/* Order ID */}
-                  <td className="py-4 px-6 whitespace-nowrap">
-                    <span className="font-semibold text-neutral-900 font-mono text-sm">
+                  <td className="py-3 sm:py-4 px-3.5 sm:px-6 whitespace-nowrap">
+                    <span className="font-semibold text-neutral-900 font-mono text-xs sm:text-sm">
                       {formattedOrderNumber}
                     </span>
                   </td>
 
                   {/* Date */}
-                  <td className="py-4 px-6 whitespace-nowrap text-sm text-neutral-600">
+                  <td className="py-3 sm:py-4 px-3.5 sm:px-6 whitespace-nowrap text-xs sm:text-sm text-neutral-600">
                     {formatDate(order.placedAt || order.createdAt)}
                   </td>
 
                   {/* Status */}
-                  <td className="py-4 px-6 whitespace-nowrap text-center">
+                  <td className="py-3 sm:py-4 px-3.5 sm:px-6 whitespace-nowrap text-center">
                     {getOrderStatusBadge(order.status)}
                   </td>
 
                   {/* Total */}
-                  <td className="py-4 px-6 whitespace-nowrap text-right text-sm font-semibold text-neutral-900 font-mono">
+                  <td className="py-3 sm:py-4 px-3.5 sm:px-6 whitespace-nowrap text-right text-xs sm:text-sm font-semibold text-neutral-900 font-mono">
                     {formatAmount(order.totalAmount)}
                   </td>
                 </tr>
@@ -171,7 +171,7 @@ export function CustomerOrdersSection({
 
       {/* Pagination Footer (if multi-page) */}
       {meta && meta.totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-cream-border-subtle px-6 py-3 bg-neutral-50/50">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-cream-border-subtle px-4 sm:px-6 py-3 bg-neutral-50/50">
           <p className="text-xs text-neutral-500">
             Page <span className="font-medium text-neutral-900">{meta.page}</span> of{" "}
             <span className="font-medium text-neutral-900">{meta.totalPages}</span> ({meta.total} orders)

@@ -6,6 +6,7 @@ import type {
   DeliveryStaffBasic,
   AssignDeliveryResult,
   DeliveryTransitionResult,
+  StaffDeliveriesCountResponse,
 } from "../types/delivery.types";
 import type {
   StaffDeliveryListInput,
@@ -163,6 +164,42 @@ export async function markDelivered(
   }
 
   return response.data;
+}
+
+/**
+ * Fetch staff deliveries count (today and all-time breakdown).
+ * Postman: POST /api/staff/deliveries/count
+ */
+export async function getStaffDeliveriesCount(
+  params?: Partial<StaffDeliveryListInput>
+): Promise<StaffDeliveriesCountResponse> {
+  const response = await apiClient.post<StaffDeliveriesCountResponse>(
+    "/api/staff/deliveries/count",
+    params ?? {}
+  );
+
+  return (
+    response.data ?? {
+      today: {
+        pending: 0,
+        picked_up: 0,
+        in_transit: 0,
+        out_for_delivery: 0,
+        delivered: 0,
+        failed: 0,
+        total: 0,
+      },
+      allTime: {
+        pending: 0,
+        picked_up: 0,
+        in_transit: 0,
+        out_for_delivery: 0,
+        delivered: 0,
+        failed: 0,
+        total: 0,
+      },
+    }
+  );
 }
 
 /* ----------------------- Admin Delivery Overview & Dispatch APIs ----------------------- */

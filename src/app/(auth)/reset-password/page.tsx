@@ -160,6 +160,7 @@ function ResetPasswordForm() {
               label="New Password"
               placeholder="Enter your new password"
               leftIcon={<LockKeyhole size={18} />}
+              required
             />
 
             {password.length > 0 && strength && (
@@ -187,6 +188,7 @@ function ResetPasswordForm() {
               label="Confirm Password"
               placeholder="Confirm your password"
               leftIcon={<LockKeyhole size={18} />}
+              required
             />
 
             <FormSubmitButton

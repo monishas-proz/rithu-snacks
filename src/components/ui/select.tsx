@@ -156,7 +156,11 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
           className="sr-only pointer-events-none"
           {...props}
         >
-          {placeholder && <option value="">{placeholder}</option>}
+          {placeholder && (
+            <option value="" disabled>
+              {placeholder}
+            </option>
+          )}
           {options.map((opt) => (
             <option key={opt.value} value={opt.value} disabled={opt.disabled}>
               {opt.label}
@@ -250,7 +254,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                           ? "bg-secondary-50 font-medium text-secondary-900"
                           : "text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900",
                         option.disabled &&
-                          "cursor-not-allowed opacity-40 hover:bg-transparent"
+                          "cursor-not-allowed opacity-40 hover:bg-transparent pointer-events-none select-none"
                       )}
                     >
                       <span className="truncate">{option.label}</span>

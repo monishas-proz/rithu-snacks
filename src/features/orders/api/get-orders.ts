@@ -8,6 +8,12 @@ import type {
   OrderListItem,
   PlaceOrderInput,
   UpdateOrderStatusInput,
+  AdminOrdersListParams,
+  AdminOrdersCountResponse,
+  OrderListResponse,
+  OrderListItemResponse,
+  OrderDetailResponse,
+  OrderStatusTransitionResponse,
 } from "../types";
 
 function buildParams(params?: GetOrdersParams) {
@@ -97,6 +103,49 @@ export async function getAdminOrders(
       totalPages: 1,
     },
   };
+}
+
+/**
+ * Fetch admin orders count broken down by status.
+ * Postman: POST /api/admin/orders/count
+ */
+export async function getAdminOrdersCount(
+  params?: Partial<AdminOrdersListParams>
+): Promise<AdminOrdersCountResponse> {
+  const body: Record<string, unknown> = {};
+
+  if (params?.search && params.search.trim()) {
+    body.search = params.search.trim();
+  }
+  if (params?.customerId) {
+    body.customerId = params.customerId;
+  }
+  if (params?.status) {
+    body.status = params.status;
+  }
+  if (params?.paymentStatus) {
+    body.paymentStatus = params.paymentStatus;
+  }
+
+  const response = await apiClient.post<AdminOrdersCountResponse>(
+    "/api/admin/orders/count",
+    body
+  );
+
+  return (
+    response.data ?? {
+      pending: 0,
+      confirmed: 0,
+      processing: 0,
+      packed: 0,
+      shipped: 0,
+      out_for_delivery: 0,
+      delivered: 0,
+      cancelled: 0,
+      returned: 0,
+      total: 0,
+    }
+  );
 }
 
 export async function getAdminOrder(

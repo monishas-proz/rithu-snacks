@@ -20,10 +20,10 @@ export const createAdminProductSchema = z
       .min(1, "Product name cannot be empty")
       .max(200, "Product name cannot exceed 200 characters"),
     slug: z
-      .string({ message: "Product slug is required" })
+      .string({ message: "Product code is required" })
       .trim()
-      .min(1, "Product slug cannot be empty")
-      .max(220, "Product slug cannot exceed 220 characters"),
+      .min(1, "Product code cannot be empty")
+      .max(220, "Product code cannot exceed 220 characters"),
     shortDescription: z
       .string()
       .trim()

@@ -81,9 +81,9 @@ export function CustomerCartSection({
       : items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
 
   return (
-    <div className="w-full">
+    <div className="w-full overflow-hidden">
       {/* Subtotal Summary Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4 border-b border-cream-border-subtle bg-cream-50">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 sm:px-6 py-3.5 sm:py-4 border-b border-cream-border-subtle bg-cream-50">
         <div>
           <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-800 font-mono">
             Active Cart Items
@@ -95,33 +95,33 @@ export function CustomerCartSection({
 
         <div className="flex items-center gap-2">
           <span className="text-xs text-neutral-500 font-medium">Cart Subtotal:</span>
-          <span className="text-base font-bold text-secondary-600 font-mono">
+          <span className="text-sm sm:text-base font-bold text-secondary-600 font-mono">
             ₹{calculatedSubtotal.toLocaleString("en-IN")}
           </span>
         </div>
       </div>
 
       {/* Cart Items Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[580px] text-left text-sm">
+      <div className="overflow-x-auto scrollbar-thin">
+        <table className="w-full min-w-[520px] text-left text-sm">
           <thead>
-            <tr className="border-b border-cream-border-subtle">
-              <th className="py-4 px-6 text-xs font-semibold uppercase tracking-wider text-neutral-400 font-mono">
+            <tr className="border-b border-cream-border-subtle bg-cream-50/50">
+              <th className="py-3 sm:py-4 px-3.5 sm:px-6 text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-neutral-500 font-mono">
                 Item Details
               </th>
-              <th className="py-4 px-6 text-xs font-semibold uppercase tracking-wider text-neutral-400 font-mono">
+              <th className="py-3 sm:py-4 px-3.5 sm:px-6 text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-neutral-500 font-mono">
                 SKU
               </th>
-              <th className="py-4 px-6 text-xs font-semibold uppercase tracking-wider text-neutral-400 font-mono">
+              <th className="py-3 sm:py-4 px-3.5 sm:px-6 text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-neutral-500 font-mono">
                 Measurement
               </th>
-              <th className="py-4 px-6 text-right text-xs font-semibold uppercase tracking-wider text-neutral-400 font-mono">
+              <th className="py-3 sm:py-4 px-3.5 sm:px-6 text-right text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-neutral-500 font-mono">
                 Unit Price
               </th>
-              <th className="py-4 px-6 text-center text-xs font-semibold uppercase tracking-wider text-neutral-400 font-mono">
-                Quantity
+              <th className="py-3 sm:py-4 px-3.5 sm:px-6 text-center text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-neutral-500 font-mono">
+                Qty
               </th>
-              <th className="py-4 px-6 text-right text-xs font-semibold uppercase tracking-wider text-neutral-400 font-mono">
+              <th className="py-3 sm:py-4 px-3.5 sm:px-6 text-right text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-neutral-500 font-mono">
                 Item Total
               </th>
             </tr>
