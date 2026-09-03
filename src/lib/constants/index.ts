@@ -62,6 +62,7 @@ export const UPLOAD_PATHS = {
   BLOGS: "uploads/blogs",
   BANNERS: "uploads/banners",
   AVATARS: "uploads/avatars",
+  COMPANY: "uploads/company",
 } as const;
 
 export const COOKIE_NAME = "rithu-snacks.session-token";
