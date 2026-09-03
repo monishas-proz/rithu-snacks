@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { AdminBreadcrumb } from "@/components/admin/AdminBreadcrumb";
 import { AdminContent } from "@/components/admin/AdminPageHeader";
-import { LoadingState } from "@/components/ui/loading-state";
+import { AdminDetailSkeleton } from "@/components/admin/AdminDetailSkeleton";
 import { ErrorState } from "@/components/ui/error-state";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -76,9 +76,7 @@ export default function ReviewDetailPage({ params }: ReviewDetailPageProps) {
             { label: "Loading..." },
           ]}
         />
-        <div className="py-24 flex justify-center">
-          <LoadingState text="Loading review details..." />
-        </div>
+        <AdminDetailSkeleton />
       </div>
     );
   }

@@ -15,7 +15,7 @@ import {
   AdminPageHeader,
   AdminContent,
 } from "@/components/admin/AdminPageHeader";
-import { LoadingState } from "@/components/ui/loading-state";
+import { AdminTableSkeleton } from "@/components/admin/AdminTableSkeleton";
 import { ErrorState } from "@/components/ui/error-state";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
@@ -234,7 +234,7 @@ export default function AdminProductsPage() {
   ];
 
   if (isLoading && !data) {
-    return <LoadingState text="Loading products..." />;
+    return <AdminTableSkeleton />;
   }
 
   if (error) {

@@ -55,7 +55,8 @@ import {
   type VariantFormValues,
   type UnitFormItem,
 } from "@/features/variants/components";
-import { LoadingState } from "@/components/ui/loading-state";
+import { AdminDetailSkeleton } from "@/components/admin/AdminDetailSkeleton";
+import { AdminTableSkeleton } from "@/components/admin/AdminTableSkeleton";
 import { ErrorState } from "@/components/ui/error-state";
 import { FormModal } from "@/components/common/FormModal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -485,7 +486,7 @@ export default function AdminProductDetailsPage() {
     null;
 
   if (isLoadingProduct && !product) {
-    return <LoadingState text="Loading product details..." />;
+    return <AdminDetailSkeleton />;
   }
 
   if (isProductError || !product) {
@@ -901,9 +902,7 @@ export default function AdminProductDetailsPage() {
 
           {/* Variants Rendering: Table vs Cards */}
           {isLoadingVariants ? (
-            <div className="py-16 flex justify-center">
-              <LoadingState text="Loading Items..." />
-            </div>
+            <AdminTableSkeleton bare rows={4} columns={4} />
           ) : variants.length === 0 ? (
             <div className="text-center py-16 px-4">
               <Package className="mx-auto h-10 w-10 text-neutral-300" />

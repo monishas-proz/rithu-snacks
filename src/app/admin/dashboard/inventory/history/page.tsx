@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
-import { LoadingState } from "@/components/ui/loading-state";
+import { AdminTableSkeleton } from "@/components/admin/AdminTableSkeleton";
 import { ErrorState } from "@/components/ui/error-state";
 import { AdminBreadcrumb } from "@/components/admin/AdminBreadcrumb";
 import {
@@ -73,7 +73,7 @@ export default function InventoryHistoryPage() {
     params
   );
 
-  if (isLoading) return <LoadingState />;
+  if (isLoading) return <AdminTableSkeleton />;
   if (error) return <ErrorState message={error.message} />;
 
   const transactionData = data?.data?.data ?? [];

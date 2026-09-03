@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { LoadingState } from "@/components/ui/loading-state";
+import { AdminTableSkeleton } from "@/components/admin/AdminTableSkeleton";
 
 export default function DeliveryLayout({
   children,
@@ -21,11 +21,7 @@ export default function DeliveryLayout({
   }, [status, isAdmin, router]);
 
   if (status === "loading" || (status === "authenticated" && isAdmin)) {
-    return (
-      <div className="flex flex-1 items-center justify-center min-h-[300px]">
-        <LoadingState text={isAdmin ? "Redirecting to orders..." : "Loading deliveries..."} />
-      </div>
-    );
+    return <AdminTableSkeleton showStats />;
   }
 
   return <div className="flex flex-1 min-h-0 flex-col">{children}</div>;

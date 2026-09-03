@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DataTable } from "@/components/admin/data-table/DataTable";
-import { LoadingState } from "@/components/ui/loading-state";
+import { AdminTableSkeleton } from "@/components/admin/AdminTableSkeleton";
 import { ErrorState } from "@/components/ui/error-state";
 import {
   AdminPageHeader,
@@ -241,7 +241,7 @@ export default function AdminBannersPage() {
   ];
 
   if (isLoading && !data) {
-    return <LoadingState text="Loading banners..." />;
+    return <AdminTableSkeleton />;
   }
 
   if (error) {

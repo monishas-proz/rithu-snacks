@@ -10,7 +10,7 @@ import { z } from "zod";
 import {
   FormModal,
 } from "@/components/common/FormModal";
-import { LoadingState } from "@/components/ui/loading-state";
+import { AdminTableSkeleton } from "@/components/admin/AdminTableSkeleton";
 import { ErrorState } from "@/components/ui/error-state";
 import { AdminBreadcrumb } from "@/components/admin/AdminBreadcrumb";
 import {
@@ -181,7 +181,7 @@ export default function InventoryStockPage() {
     });
   };
 
-  if (isLoading) return <LoadingState />;
+  if (isLoading) return <AdminTableSkeleton />;
   if (error) return <ErrorState message={error.message} />;
 
   const inventoryData = data?.data?.data ?? [];

@@ -19,7 +19,7 @@ import {
   useAdminCustomerWishlist,
   useAdminCustomerCart,
 } from "@/features/customers/hooks";
-import { LoadingState } from "@/components/ui/loading-state";
+import { AdminDetailSkeleton } from "@/components/admin/AdminDetailSkeleton";
 import { ErrorState } from "@/components/ui/error-state";
 
 type ProfileTab = "orders" | "addresses" | "wishlist" | "cart";
@@ -110,7 +110,7 @@ export default function AdminCustomerProfilePage() {
   ];
 
   if (isLoadingProfile && !customer) {
-    return <LoadingState text="Loading customer profile..." />;
+    return <AdminDetailSkeleton />;
   }
 
   if (isProfileError || !customer) {

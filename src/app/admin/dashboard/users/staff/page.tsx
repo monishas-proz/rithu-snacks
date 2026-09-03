@@ -17,7 +17,7 @@ import { StatsCard } from "@/components/admin/StatsCard";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import { Select } from "@/components/ui/select";
-import { LoadingState } from "@/components/ui/loading-state";
+import { AdminTableSkeleton } from "@/components/admin/AdminTableSkeleton";
 import { ErrorState } from "@/components/ui/error-state";
 import { useStaffList, useStaffCount, StaffFormModal } from "@/features/staff";
 import type { StaffResponse } from "@/features/staff/types";
@@ -286,7 +286,7 @@ export default function AdminStaffPage() {
         <div className="flex-1 min-h-0 overflow-hidden flex flex-col rounded-2xl border border-neutral-200 bg-white shadow-xs">
           {isLoading && !data ? (
             <div className="flex-1 flex items-center justify-center p-12">
-              <LoadingState text="Loading staff members..." />
+              <AdminTableSkeleton />
             </div>
           ) : error ? (
             <div className="flex-1 flex items-center justify-center p-12">

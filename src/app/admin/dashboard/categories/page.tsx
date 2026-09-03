@@ -24,7 +24,7 @@ import {
 import { DataTable } from "@/components/admin/data-table/DataTable";
 import { AdminPageHeader, AdminContent } from "@/components/admin/AdminPageHeader";
 import { AdminBreadcrumb } from "@/components/admin/AdminBreadcrumb";
-import { LoadingState } from "@/components/ui/loading-state";
+import { AdminTableSkeleton } from "@/components/admin/AdminTableSkeleton";
 import { ErrorState } from "@/components/ui/error-state";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -164,7 +164,7 @@ console.log("Categories received from API:", categories.length);
   ];
 
   if (isLoading && !data) {
-    return <LoadingState text="Loading categories..." />;
+    return <AdminTableSkeleton />;
   }
   if (error) return <ErrorState message="Failed to load categories" onRetry={() => refetch()} />;
 

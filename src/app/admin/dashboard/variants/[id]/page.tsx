@@ -12,7 +12,7 @@ import {
   useDeleteVariant,
 } from "@/features/variants/hooks";
 import { useUnits } from "@/features/units/hooks";
-import { LoadingState } from "@/components/ui/loading-state";
+import { AdminDetailSkeleton } from "@/components/admin/AdminDetailSkeleton";
 import { ErrorState } from "@/components/ui/error-state";
 import { Button } from "@/components/ui/button";
 import { FormModal } from "@/components/common/FormModal";
@@ -161,11 +161,7 @@ export default function AdminVariantDetailsPage() {
     (!productIdParam && isLoadingList && !foundVariant);
 
   if (isLoading) {
-    return (
-      <LoadingState
-        text="Loading variant specifications, images and price history..."
-      />
-    );
+    return <AdminDetailSkeleton />;
   }
 
   if (variantError || !variant) {
