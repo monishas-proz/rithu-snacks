@@ -70,7 +70,7 @@ function CategoryForm({
             name="slug"
             label="Category Code"
             placeholder="e.g. SWEETS_SNACKS"
-            infoMessage="Enter category code (e.g. SWEETS_SNACKS). Special characters are allowed."
+            infoMessage="Use letters, numbers, and underscores only (e.g. SWEETS_SNACKS). No spaces or other special characters allowed."
             required
           />
         </div>
@@ -85,6 +85,7 @@ function CategoryForm({
           name="image"
           label="Category Image"
           folder="categories"
+          infoMessage="Upload a JPG, PNG, or WebP image up to 5MB. Recommended size: 500 × 500 px."
           required
         />
 

@@ -13,7 +13,7 @@ import { DataTable } from "@/components/admin/data-table/DataTable";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminBreadcrumb } from "@/components/admin/AdminBreadcrumb";
 import { StatsCard } from "@/components/admin/StatsCard";
-import { LoadingState } from "@/components/ui/loading-state";
+import { AdminTableSkeleton } from "@/components/admin/AdminTableSkeleton";
 import { ErrorState } from "@/components/ui/error-state";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -246,7 +246,7 @@ export default function AdminContactsPage() {
   ];
 
   if (isLoading && !data) {
-    return <LoadingState text="Loading contact messages..." />;
+    return <AdminTableSkeleton />;
   }
 
   if (error) {
@@ -300,7 +300,7 @@ export default function AdminContactsPage() {
           <div className="flex flex-1 flex-col sm:flex-row sm:items-center gap-3 flex-wrap">
             <SearchInput
               placeholder="Search by name, email, phone, subject, or message..."
-              defaultValue={search}
+              value={search}
               onSearch={(val) => {
                 setSearch(val);
                 setPage(1);

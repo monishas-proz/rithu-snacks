@@ -9,6 +9,7 @@ import {
   Trash2,
   CheckCircle2,
   AlertCircle,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ImageCropperModal } from "@/components/common";
@@ -336,25 +337,42 @@ export function VariantImageUploader({
                       setPrimaryImageMutation.isPending ||
                       deleteImageMutation.isPending
                     }
-                    className="absolute top-2 left-2 rounded-lg bg-black/70 hover:bg-secondary-600 px-2 py-1 text-[10px] font-medium text-white opacity-0 group-hover:opacity-100 transition-all flex items-center gap-1 cursor-pointer shadow-sm"
+                    className={`absolute top-2 left-2 rounded-lg bg-black/70 hover:bg-secondary-600 px-2 py-1 text-[10px] font-medium text-white transition-all flex items-center gap-1 cursor-pointer shadow-sm disabled:cursor-not-allowed ${
+                      setPrimaryImageMutation.isPending &&
+                      setPrimaryImageMutation.variables?.imageUuid === img.id
+                        ? "opacity-100"
+                        : "opacity-0 group-hover:opacity-100"
+                    }`}
                     title="Set as primary image"
                   >
-                    <Star className="h-3 w-3" />
-                    <span>Set Primary</span>
+                    {setPrimaryImageMutation.isPending &&
+                    setPrimaryImageMutation.variables?.imageUuid === img.id ? (
+                      <>
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        <span>Setting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Star className="h-3 w-3" />
+                        <span>Set Primary</span>
+                      </>
+                    )}
                   </button>
                 )}
-                <button
-                  type="button"
-                  onClick={() => handleDeleteExistingImage(img.id)}
-                  disabled={
-                    deleteImageMutation.isPending ||
-                    setPrimaryImageMutation.isPending
-                  }
-                  aria-label="Delete Image"
-                  className="absolute top-2 right-2 rounded-lg bg-black/60 p-1.5 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 cursor-pointer"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                {!img.isPrimary && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteExistingImage(img.id)}
+                    disabled={
+                      deleteImageMutation.isPending ||
+                      setPrimaryImageMutation.isPending
+                    }
+                    aria-label="Delete Image"
+                    className="absolute top-2 right-2 rounded-lg bg-black/60 p-1.5 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 cursor-pointer"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
               </div>
             ))}
           </div>

@@ -1,5 +1,3 @@
-import type { VegType } from "../validations/admin-product.schema";
-
 export interface ProductListItem {
   id: number;
   name: string;
@@ -100,10 +98,6 @@ export interface AdminProductResponse {
   hsnCodeName: string | null;
   name: string;
   slug: string;
-  shortDescription: string | null;
-  description: string | null;
-  vegType: VegType;
-  isFeatured: boolean;
   status: boolean;
   isActive: boolean;
   createdAt: Date;
@@ -125,10 +119,8 @@ export interface AdminProductListParams {
   categoryId?: string;
   brandId?: string;
   hsnCodeId?: string;
-  vegType?: VegType;
-  isFeatured?: boolean;
   status?: boolean;
-  sortBy?: "name" | "slug" | "createdAt" | "updatedAt" | "isFeatured" | "status" | "isActive";
+  sortBy?: "name" | "slug" | "createdAt" | "updatedAt" | "status" | "isActive";
   sortOrder?: "asc" | "desc";
 }
 
@@ -146,11 +138,38 @@ export interface GetAdminProductsResult {
 export interface AdminProductsCountResponse {
   active: number;
   inactive: number;
-  veg: number;
-  nonveg: number;
-  vegan: number;
-  na: number;
   all: number;
 }
 
+export interface AdminProductImageResponse {
+  id: string; // Public Product Image ID
+  imageUrl: string;
+  sortOrder: number;
+  isPrimary: boolean;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Customer-facing product/variant DTOs (real schema-backed shapes, used by the
+// storefront - see src/features/customers/types/catalog.types.ts for the
+// source of truth).
+export type {
+  CustomerProductListItemDto,
+  CustomerProductDetailDto,
+  CustomerVariantListItemDto,
+  CustomerVariantUnitPriceDto,
+} from "@/features/customers/types";
+
+export interface CustomerProductListParams {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  brandIds?: string[];
+  categoryIds?: string[];
+  minPrice?: number | null;
+  maxPrice?: number | null;
+  sortBy?: "name" | "price" | "createdAt";
+  sortOrder?: "asc" | "desc";
+}
 

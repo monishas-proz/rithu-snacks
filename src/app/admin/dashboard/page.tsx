@@ -12,7 +12,7 @@ import {
   Calendar,
 } from "lucide-react";
 import { StatsCard } from "@/components/admin/StatsCard";
-import { LoadingState } from "@/components/ui/loading-state";
+import { AdminTableSkeleton } from "@/components/admin/AdminTableSkeleton";
 import { ErrorState } from "@/components/ui/error-state";
 import { useDashboardStats } from "@/features/dashboard/hooks";
 import { formatPrice } from "@/lib/utils";
@@ -62,7 +62,7 @@ export default function AdminDashboardPage() {
   const { data: stats, isLoading, error, refetch } = useDashboardStats();
 
   if (isLoading) {
-    return <LoadingState text="Loading dashboard..." />;
+    return <AdminTableSkeleton showStats />;
   }
 
   if (error) {

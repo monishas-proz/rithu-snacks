@@ -77,8 +77,6 @@ export const productRepository = {
       where.OR = [
         { name: { contains: params.search } },
         { slug: { contains: params.search } },
-        { shortDescription: { contains: params.search } },
-        { description: { contains: params.search } },
       ];
     }
 
@@ -131,14 +129,6 @@ export const productRepository = {
       where.hsn_code_id = resolvedHsnCodeInternalId;
     }
 
-    if (params.vegType !== undefined) {
-      where.veg_type = params.vegType;
-    }
-
-    if (params.isFeatured !== undefined) {
-      where.isFeatured = params.isFeatured;
-    }
-
     if (params.status !== undefined) {
       where.status = params.status;
     }
@@ -148,8 +138,6 @@ export const productRepository = {
       where.OR = [
         { name: { contains: search } },
         { slug: { contains: search } },
-        { shortDescription: { contains: search } },
-        { description: { contains: search } },
         { sku: { contains: search } },
       ];
     }
@@ -179,10 +167,6 @@ export const productRepository = {
       where.hsn_code_id = resolvedHsnCodeInternalId;
     }
 
-    if (params.isFeatured !== undefined) {
-      where.isFeatured = params.isFeatured;
-    }
-
     if (params.status !== undefined) {
       where.status = params.status;
     }
@@ -192,8 +176,6 @@ export const productRepository = {
       where.OR = [
         { name: { contains: search } },
         { slug: { contains: search } },
-        { shortDescription: { contains: search } },
-        { description: { contains: search } },
         { sku: { contains: search } },
       ];
     }
@@ -214,31 +196,15 @@ export const productRepository = {
       resolvedHsnCodeInternalId
     );
 
-    const [
-      active,
-      inactive,
-      veg,
-      nonveg,
-      vegan,
-      na,
-      all,
-    ] = await Promise.all([
+    const [active, inactive, all] = await Promise.all([
       db.product.count({ where: { ...baseWhere, isActive: true } }),
       db.product.count({ where: { ...baseWhere, isActive: false } }),
-      db.product.count({ where: { ...baseWhere, veg_type: "veg" } }),
-      db.product.count({ where: { ...baseWhere, veg_type: "nonveg" } }),
-      db.product.count({ where: { ...baseWhere, veg_type: "vegan" } }),
-      db.product.count({ where: { ...baseWhere, veg_type: "na" } }),
       db.product.count({ where: baseWhere }),
     ]);
 
     return {
       active,
       inactive,
-      veg,
-      nonveg,
-      vegan,
-      na,
       all,
     };
   },

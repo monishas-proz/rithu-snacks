@@ -13,20 +13,23 @@ import type {
   CartCountResponse,
 } from "../types/cart.types";
 
-function calculateVariantPrice(variant: {
+type DefaultUnitPrice = {
   base_price: unknown;
-  sale_price: unknown;
-}): number {
-  const salePrice =
-    variant.sale_price !== null && variant.sale_price !== undefined
-      ? Number(variant.sale_price)
-      : 0;
+} | null | undefined;
+
+/**
+ * Selling price is not stored on the unit price row - it is base_price minus
+ * any active offer/discount. Offer/discount application is out of scope of
+ * this cart pricing helper; callers should apply the existing offer logic on
+ * top of this base price if/when it needs to be reflected in the cart.
+ */
+function calculateVariantPrice(unitPrice: DefaultUnitPrice): number {
   const basePrice =
-    variant.base_price !== null && variant.base_price !== undefined
-      ? Number(variant.base_price)
+    unitPrice?.base_price !== null && unitPrice?.base_price !== undefined
+      ? Number(unitPrice.base_price)
       : 0;
 
-  return salePrice > 0 ? salePrice : basePrice;
+  return basePrice;
 }
 
 function formatCartResponse(
@@ -45,12 +48,13 @@ function formatCartResponse(
   let totalItems = 0;
 
   const items: CartItemResponse[] = cart.items
-    .filter((item) => item.variant && item.product && item.is_active)
+    .filter((item) => item.variant_unit_price && item.product && item.is_active)
     .map((item) => {
-      const variant = item.variant;
+      const unitPrice = item.variant_unit_price;
+      const variant = unitPrice.variant;
       const product = item.product;
 
-      const currentPrice = calculateVariantPrice(variant);
+      const currentPrice = calculateVariantPrice(unitPrice);
       const priceAtAdd = Number(item.price_at_add);
       const priceChanged = priceAtAdd !== currentPrice;
       const itemTotal = item.quantity * currentPrice;
@@ -64,18 +68,19 @@ function formatCartResponse(
         null;
 
       const measurement = formatVariantMeasurement(
-        variant.product_units,
-        variant.unit_value
+        unitPrice.product_units,
+        unitPrice.unit_value ?? 0
       );
 
       const variantName =
         variant.variant_name ||
-        `${variant.unit_value} ${variant.product_units?.code || ""}`.trim();
+        `${unitPrice.unit_value ?? ""} ${unitPrice.product_units?.code || ""}`.trim();
 
       return {
         id: item.uuid || String(item.id),
         productId: product.uuid || String(product.id),
         variantId: variant.uuid || String(variant.id),
+        variantUnitPriceId: unitPrice.uuid || String(unitPrice.id),
         productName: product.name,
         variantName,
         measurement,
@@ -121,31 +126,42 @@ export const cartService = {
   ): Promise<CartResponse> {
     const userId = await resolveInternalUserId(sessionUserId);
 
-    // 1. Validate requested variant & parent product
-    const variant = await db.productVariant.findFirst({
+    // 1. Validate requested variant unit price (exact pack size) & parents
+    const unitPrice = await db.variantUnitPrice.findFirst({
       where: {
-        uuid: input.variantId,
+        uuid: input.variantUnitPriceId,
+        deleted_at: null,
       },
       include: {
-        product: true,
+        variant: { include: { product: true } },
       },
     });
 
-    if (!variant || variant.deleted_at !== null) {
-      throw ApiError.notFound("Product variant not found");
+    if (!unitPrice) {
+      throw ApiError.notFound("Product pack size not found");
     }
 
-    if (!variant.isActive || !variant.product || !variant.product.isActive || variant.product.deleted_at !== null) {
+    const variant = unitPrice.variant;
+
+    if (
+      !unitPrice.isActive ||
+      !variant ||
+      !variant.isActive ||
+      variant.deleted_at !== null ||
+      !variant.product ||
+      !variant.product.isActive ||
+      variant.product.deleted_at !== null
+    ) {
       throw ApiError.badRequest("Product variant is unavailable");
     }
 
-    const currentPrice = calculateVariantPrice(variant);
+    const currentPrice = calculateVariantPrice(unitPrice);
 
     // 2. Add to cart in transaction
     const updatedCart = await cartRepository.addItemToCart({
       userId,
       productId: variant.productId,
-      variantId: variant.id,
+      variantUnitPriceId: unitPrice.id,
       quantity: input.quantity,
       currentPrice,
       adminOrUserId: userId,
@@ -156,35 +172,45 @@ export const cartService = {
 
   async updateItemQuantity(
     sessionUserId: string,
-    variantUuid: string,
+    variantUnitPriceUuid: string,
     input: UpdateCartItemInput
   ): Promise<CartResponse> {
     const userId = await resolveInternalUserId(sessionUserId);
 
-    // Validate variant exists and is active
-    const variant = await db.productVariant.findFirst({
+    // Validate variant unit price exists and is active
+    const unitPrice = await db.variantUnitPrice.findFirst({
       where: {
-        uuid: variantUuid,
+        uuid: variantUnitPriceUuid,
         deleted_at: null,
       },
       include: {
-        product: true,
+        variant: { include: { product: true } },
       },
     });
 
-    if (!variant) {
-      throw ApiError.notFound("Product variant not found");
+    if (!unitPrice) {
+      throw ApiError.notFound("Product pack size not found");
     }
 
-    if (!variant.isActive || !variant.product || !variant.product.isActive || variant.product.deleted_at !== null) {
+    const variant = unitPrice.variant;
+
+    if (
+      !unitPrice.isActive ||
+      !variant ||
+      !variant.isActive ||
+      variant.deleted_at !== null ||
+      !variant.product ||
+      !variant.product.isActive ||
+      variant.product.deleted_at !== null
+    ) {
       throw ApiError.badRequest("Product variant is unavailable");
     }
 
-    const currentPrice = calculateVariantPrice(variant);
+    const currentPrice = calculateVariantPrice(unitPrice);
 
     const updatedCart = await cartRepository.updateItemQuantity({
       userId,
-      variantUuid,
+      variantUnitPriceUuid,
       quantity: input.quantity,
       currentPrice,
       adminOrUserId: userId,
@@ -199,13 +225,13 @@ export const cartService = {
 
   async removeItem(
     sessionUserId: string,
-    variantUuid: string
+    variantUnitPriceUuid: string
   ): Promise<CartResponse> {
     const userId = await resolveInternalUserId(sessionUserId);
 
     const updatedCart = await cartRepository.removeCartItem({
       userId,
-      variantUuid,
+      variantUnitPriceUuid,
       adminOrUserId: userId,
     });
 

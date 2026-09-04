@@ -1,17 +1,20 @@
 import { createApiHandler } from "@/lib/api/api-handler";
 import { apiSuccess } from "@/lib/api/api-response";
+import { ApiError } from "@/lib/api/api-error";
 import { contactService } from "@/features/contact/services/contact.service";
-import {
-  contactUuidParamSchema,
-  type ContactUuidParamInput,
-} from "@/features/contact/validations/contact.schema";
+import { contactUuidParamSchema } from "@/features/contact/validations/contact.schema";
 
 export const GET = createApiHandler(
   {
     GET: async (_request, context) => {
-      const params = context.params as ContactUuidParamInput;
+      const rawUuid = context.params?.uuid;
+      const parsedParam = contactUuidParamSchema.safeParse({ uuid: rawUuid });
+      if (!parsedParam.success) {
+        throw ApiError.badRequest("Invalid Contact Message UUID format");
+      }
+
       const result = await contactService.getAdminContactMessageByUuid(
-        params.uuid
+        parsedParam.data.uuid
       );
 
       return apiSuccess(result, "Contact message fetched successfully", 200);
@@ -20,6 +23,5 @@ export const GET = createApiHandler(
   {
     requireAuth: true,
     requiredRole: ["ADMIN"],
-    paramSchema: contactUuidParamSchema,
   }
 );

@@ -2,76 +2,34 @@
 
 import * as React from "react";
 import Image from "next/image";
-import {
-  ICONS,
-  SNACKSLOGOS,
-  sampleStorefrontProducts,
-  type StorefrontProduct,
-} from "@/constants/storefront";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { ICONS, type StorefrontProduct } from "@/constants/storefront";
 import { ProductCard } from "./cards/ProductCard";
 import { ProductCardSkeleton } from "./cards/ProductCardSkeleton";
 import { SectionHeading } from "./heading/SectionHeading";
 import { PrimaryButton } from "./buttons/PrimaryButton";
 import { Section } from "./Section";
-import { useCustomerVariants, type CustomerVariantListItemDto } from "@/features/variants";
-import { getImageUrl } from "@/lib/utils";
-
-function resolveSnackFallbackImage(name: string): string {
-  const lower = name.toLowerCase();
-  if (lower.includes("murukku") && lower.includes("kai")) return SNACKSLOGOS.kai_murukku;
-  if (lower.includes("murukku") && lower.includes("thenkuzhal")) return SNACKSLOGOS.thenkuzhal_murukku;
-  if (lower.includes("murukku") || lower.includes("butter")) return SNACKSLOGOS.special_butter_murukku;
-  if (lower.includes("chip")) return SNACKSLOGOS.special_spicy_chips;
-  if (lower.includes("mixture") || lower.includes("namkeen")) return SNACKSLOGOS.mixture;
-  if (lower.includes("laddu")) return SNACKSLOGOS.laddu;
-  if (lower.includes("jalebi")) return SNACKSLOGOS.jalebi;
-  if (lower.includes("palkova")) return SNACKSLOGOS.palkova;
-  return SNACKSLOGOS.special_butter_murukku;
-}
-
-function mapVariantToProduct(variant: CustomerVariantListItemDto): StorefrontProduct {
-  const discount =
-    variant.basePrice > variant.salePrice && variant.basePrice > 0
-      ? Math.round(
-          ((variant.basePrice - variant.salePrice) / variant.basePrice) * 100
-        )
-      : 0;
-
-  const imageUrl = variant.primaryImage
-    ? getImageUrl(variant.primaryImage)
-    : resolveSnackFallbackImage(variant.productName || variant.variantName);
-
-  const measurementStr =
-    typeof variant.measurement === "string"
-      ? variant.measurement
-      : variant.variantName || "100g";
-
-  return {
-    productId: variant.id,
-    productName: variant.productName || variant.variantName,
-    image: imageUrl,
-    discount,
-    price50g: variant.salePrice,
-    price100g: variant.salePrice,
-    activeWeight: measurementStr,
-    price: variant.salePrice,
-    originalPrice: variant.basePrice,
-  };
-}
+import { useCustomerVariants } from "@/features/variants";
+import { useAddToCart } from "@/features/cart/hooks/use-cart";
+import {
+  useAddToWishlist,
+  useRemoveFromWishlist,
+  useWishlistedUnitPriceIds,
+} from "@/features/wishlist/hooks/use-wishlist";
+import { mapVariantToStorefrontProduct } from "@/lib/storefront";
 
 export interface ProductSectionProps {
   selectedCategoryId?: string | null;
 }
 
 export function ProductSection({ selectedCategoryId }: ProductSectionProps) {
-  const [selectedWeight, setSelectedWeight] = React.useState<
-    Record<string | number, string>
-  >({});
+  const router = useRouter();
+  const { data: session } = useSession();
   const [showAll, setShowAll] = React.useState(false);
-  const [wishlistIds, setWishlistIds] = React.useState<Array<string | number>>([]);
   const [toastMessage, setToastMessage] = React.useState<string | null>(null);
 
-  // Fetch variants from Customer Catalog Get All Variants API
+  // Fetch variants from the real Customer Catalog API
   const { data: response, isLoading, isError } = useCustomerVariants({
     categoryIds: selectedCategoryId ? [selectedCategoryId] : undefined,
     page: 1,
@@ -80,42 +38,46 @@ export function ProductSection({ selectedCategoryId }: ProductSectionProps) {
     sortOrder: "desc",
   });
 
-  const apiVariants = response?.data;
+  const { wishlistedIds } = useWishlistedUnitPriceIds({ enabled: !!session });
+  const addToCart = useAddToCart();
+  const addToWishlist = useAddToWishlist();
+  const removeFromWishlist = useRemoveFromWishlist();
 
-  // Process products: map API variants if available, otherwise use sample fallback
   const products: StorefrontProduct[] = React.useMemo(() => {
-    if (apiVariants && apiVariants.length > 0) {
-      return apiVariants.map(mapVariantToProduct);
-    }
-    // If a category is selected and has 0 variants, return empty list
-    if (selectedCategoryId && apiVariants && apiVariants.length === 0) {
-      return [];
-    }
-    // Default fallback when initial DB is empty
-    return sampleStorefrontProducts;
-  }, [apiVariants, selectedCategoryId]);
+    return (response?.data ?? []).map(mapVariantToStorefrontProduct);
+  }, [response]);
 
   const showNotification = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  const handleAddToCart = (product: StorefrontProduct) => {
-    const activeWeight = selectedWeight[product.productId] || product.activeWeight || "100g";
-    showNotification(`Added ${product.productName} (${activeWeight}) to cart`);
+  const requireLogin = () => {
+    router.push("/login?callbackUrl=/");
   };
 
-  const handleAddToWishlist = (product: StorefrontProduct) => {
-    setWishlistIds((prev) => {
-      const exists = prev.includes(product.productId);
-      if (exists) {
-        showNotification(`Removed from wishlist`);
-        return prev.filter((id) => id !== product.productId);
-      } else {
-        showNotification(`Added ${product.productName} to wishlist`);
-        return [...prev, product.productId];
+  const handleAddToCart = (product: StorefrontProduct, unitPriceId: string) => {
+    if (!session) return requireLogin();
+    addToCart.mutate(
+      { variantUnitPriceId: unitPriceId, quantity: 1 },
+      {
+        onSuccess: () => showNotification(`Added ${product.name} to cart`),
+        onError: () => showNotification("Could not add item to cart"),
       }
-    });
+    );
+  };
+
+  const handleWishlistToggle = (product: StorefrontProduct, unitPriceId: string) => {
+    if (!session) return requireLogin();
+    if (wishlistedIds.has(unitPriceId)) {
+      removeFromWishlist.mutate(unitPriceId, {
+        onSuccess: () => showNotification(`Removed ${product.name} from wishlist`),
+      });
+    } else {
+      addToWishlist.mutate(unitPriceId, {
+        onSuccess: () => showNotification(`Added ${product.name} to wishlist`),
+      });
+    }
   };
 
   const visibleProducts = showAll ? products : products.slice(0, 4);
@@ -148,29 +110,17 @@ export function ProductSection({ selectedCategoryId }: ProductSectionProps) {
           ))}
 
         {!isLoading &&
-          visibleProducts.map((product) => {
-            const activeWeight = selectedWeight[product.productId] || product.activeWeight || "100g";
-            const isWishlisted = wishlistIds.includes(product.productId);
-
-            const productData: StorefrontProduct = {
-              ...product,
-              activeWeight,
-              price: product.price,
-              originalPrice: product.originalPrice,
-            };
-
-            return (
-              <ProductCard
-                key={product.productId}
-                type="product"
-                product={productData}
-                isWishlisted={isWishlisted}
-                setSelectedWeight={setSelectedWeight}
-                onWishlistClick={() => handleAddToWishlist(productData)}
-                onButtonClick={() => handleAddToCart(productData)}
-              />
-            );
-          })}
+          visibleProducts.map((product) => (
+            <ProductCard
+              key={product.id}
+              type="product"
+              product={product}
+              isWishlisted={product.unitPrices.some((u) => wishlistedIds.has(u.id))}
+              onWishlistClick={(unitPriceId) => handleWishlistToggle(product, unitPriceId)}
+              onAddToCart={(unitPriceId) => handleAddToCart(product, unitPriceId)}
+              disabled={addToCart.isPending}
+            />
+          ))}
       </div>
 
       {/* Empty State */}

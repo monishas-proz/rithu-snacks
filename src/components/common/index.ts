@@ -1,6 +1,7 @@
 export { StatusBadge } from "./status-badge";
 export { SearchInput } from "./search-input";
 export { FilterDropdown } from "./filter-dropdown";
+export { ClearFiltersButton } from "./clear-filters-button";
 export { Drawer } from "./drawer";
 export { Tooltip } from "./tooltip";
 export { Dropdown, DropdownItem } from "./dropdown";

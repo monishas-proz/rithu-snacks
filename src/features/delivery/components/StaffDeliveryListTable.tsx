@@ -361,7 +361,7 @@ export function StaffDeliveryListTable({
         <div className="flex flex-1 items-center gap-2">
           <SearchInput
             placeholder="Search by order #, customer, phone, city..."
-            defaultValue={search}
+            value={search}
             onSearch={(val) => {
               setSearch(val.trim());
               setPage(1);

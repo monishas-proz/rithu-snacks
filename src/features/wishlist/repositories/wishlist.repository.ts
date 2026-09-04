@@ -24,14 +24,12 @@ export const wishlistItemInclude = Prisma.validator<Prisma.WishlistItemInclude>(
       },
     },
   },
-  product_variants: {
+  variant_unit_price: {
     select: {
       id: true,
       uuid: true,
-      variant_name: true,
       sku: true,
       base_price: true,
-      sale_price: true,
       unit_value: true,
       isActive: true,
       deleted_at: true,
@@ -44,11 +42,20 @@ export const wishlistItemInclude = Prisma.validator<Prisma.WishlistItemInclude>(
           type: true,
         },
       },
-      product_variant_images: {
-        where: { is_active: true },
-        orderBy: [{ is_primary: "desc" }, { sort_order: "asc" }],
-        take: 1,
-        select: { image_url: true },
+      variant: {
+        select: {
+          id: true,
+          uuid: true,
+          variant_name: true,
+          isActive: true,
+          deleted_at: true,
+          product_variant_images: {
+            where: { is_active: true },
+            orderBy: [{ is_primary: "desc" }, { sort_order: "asc" }],
+            take: 1,
+            select: { image_url: true },
+          },
+        },
       },
     },
   },
@@ -57,15 +64,16 @@ export const wishlistItemInclude = Prisma.validator<Prisma.WishlistItemInclude>(
 export function formatWishlistItem(
   item: Prisma.WishlistItemGetPayload<{ include: typeof wishlistItemInclude }>
 ): CustomerWishlistItemDto | null {
-  const variant = item.product_variants;
+  const unitPrice = item.variant_unit_price;
+  const variant = unitPrice?.variant;
   const product = item.product;
-  if (!variant || !product) return null;
+  if (!unitPrice || !variant || !product) return null;
 
-  const salePrice =
-    variant.sale_price !== null && Number(variant.sale_price) > 0
-      ? Number(variant.sale_price)
-      : null;
-  const basePrice = Number(variant.base_price);
+  // Selling price is computed on the frontend from basePrice minus any
+  // active offer/discount; salePrice is mirrored here for backward-compat
+  // consumers only.
+  const salePrice: number | null = null;
+  const basePrice = Number(unitPrice.base_price);
   const livePrice = salePrice ?? basePrice;
 
   const primaryImage =
@@ -74,11 +82,13 @@ export function formatWishlistItem(
     null;
 
   const measurement = formatVariantMeasurement(
-    variant.product_units,
-    variant.unit_value
+    unitPrice.product_units,
+    unitPrice.unit_value ?? 0
   );
 
   const isAvailable =
+    Boolean(unitPrice.isActive) &&
+    unitPrice.deleted_at === null &&
     Boolean(variant.isActive) &&
     variant.deleted_at === null &&
     Boolean(product.isActive) &&
@@ -87,8 +97,9 @@ export function formatWishlistItem(
   return {
     id: item.uuid || String(item.id),
     variantId: variant.uuid || String(variant.id),
+    variantUnitPriceId: unitPrice.uuid || String(unitPrice.id),
     variantName: variant.variant_name,
-    sku: variant.sku,
+    sku: unitPrice.sku ?? "",
     price: livePrice,
     basePrice,
     salePrice,
@@ -131,11 +142,14 @@ export const wishlistRepository = {
     };
   },
 
-  async findWishlistItemByUserAndVariant(userId: bigint, variantId: bigint) {
+  async findWishlistItemByUserAndVariant(
+    userId: bigint,
+    variantUnitPriceId: bigint
+  ) {
     return db.wishlistItem.findFirst({
       where: {
         userId,
-        variant_id: variantId,
+        variant_unit_price_id: variantUnitPriceId,
       },
       include: wishlistItemInclude,
     });
@@ -144,13 +158,13 @@ export const wishlistRepository = {
   async addOrReactivateWishlistItem(params: {
     userId: bigint;
     productId: bigint;
-    variantId: bigint;
+    variantUnitPriceId: bigint;
     userInternalId: bigint;
   }): Promise<CustomerWishlistItemDto> {
     const existing = await db.wishlistItem.findFirst({
       where: {
         userId: params.userId,
-        variant_id: params.variantId,
+        variant_unit_price_id: params.variantUnitPriceId,
       },
       include: wishlistItemInclude,
     });
@@ -180,7 +194,7 @@ export const wishlistRepository = {
         uuid: crypto.randomUUID(),
         userId: params.userId,
         productId: params.productId,
-        variant_id: params.variantId,
+        variant_unit_price_id: params.variantUnitPriceId,
         is_active: true,
         created_by: params.userInternalId,
         updated_by: params.userInternalId,
@@ -195,13 +209,13 @@ export const wishlistRepository = {
 
   async softRemoveWishlistItem(
     userId: bigint,
-    variantId: bigint,
+    variantUnitPriceId: bigint,
     userInternalId?: bigint
   ): Promise<boolean> {
     const existing = await db.wishlistItem.findFirst({
       where: {
         userId,
-        variant_id: variantId,
+        variant_unit_price_id: variantUnitPriceId,
         is_active: true,
       },
     });
@@ -225,9 +239,13 @@ export const wishlistRepository = {
       where: {
         userId,
         is_active: true,
-        product_variants: {
+        variant_unit_price: {
           isActive: true,
           deleted_at: null,
+          variant: {
+            isActive: true,
+            deleted_at: null,
+          },
         },
         product: {
           isActive: true,

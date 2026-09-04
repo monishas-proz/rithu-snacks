@@ -10,11 +10,15 @@ import {
   useVariantImages,
   useUpdateVariant,
   useDeleteVariant,
+  useSetPrimaryVariantImage,
+  useDeleteVariantImage,
 } from "@/features/variants/hooks";
 import { useUnits } from "@/features/units/hooks";
-import { LoadingState } from "@/components/ui/loading-state";
+import { AdminDetailSkeleton } from "@/components/admin/AdminDetailSkeleton";
 import { ErrorState } from "@/components/ui/error-state";
+import { sanitizeRichText } from "@/lib/sanitize-html";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/Switch";
 import { FormModal } from "@/components/common/FormModal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
@@ -24,6 +28,7 @@ import {
   VariantCustomerPreviewModal,
   VariantPriceHistoryCard,
   VariantReviewsCard,
+  VariantUnitPriceList,
 } from "@/features/variants/components";
 import type { UnitFormItem } from "@/features/variants/components/VariantForm";
 import type { AdminVariantResponse } from "@/features/variants/types";
@@ -36,12 +41,43 @@ import {
   ImageIcon,
   Layers,
   Sparkles,
-  Power,
   Eye,
   EyeOff,
   CheckCircle2,
   XCircle,
+  Star,
+  Loader2,
 } from "lucide-react";
+
+function renderDietaryBadge(vegType?: string | null) {
+  const type = (vegType || "na").toLowerCase();
+  let label = "Vegetarian";
+  let markBorder = "border-success-600";
+  let markBg = "bg-success-600";
+
+  if (type === "nonveg" || type === "non-veg") {
+    label = "Non-vegetarian";
+    markBorder = "border-error-600";
+    markBg = "bg-error-600";
+  } else if (type === "vegan") {
+    label = "Vegan";
+    markBorder = "border-success-700";
+    markBg = "bg-success-700";
+  } else if (type === "na" || !vegType) {
+    label = "Not Assigned";
+    markBorder = "border-neutral-400";
+    markBg = "bg-neutral-400";
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cream-200 text-neutral-700 text-xs font-bold border border-cream-border-subtle">
+      <span className={`w-3 h-3 rounded-[2px] border-[1.5px] ${markBorder} flex items-center justify-center`}>
+        <span className={`w-1.5 h-1.5 rounded-full ${markBg}`} />
+      </span>
+      <span>{label}</span>
+    </span>
+  );
+}
 
 export default function AdminVariantDetailsPage() {
   const params = useParams<{ id: string }>();
@@ -85,9 +121,11 @@ export default function AdminVariantDetailsPage() {
 
   // Modal States
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isUnitPricesModalOpen, setIsUnitPricesModalOpen] = useState(false);
   const [isImageUploaderOpen, setIsImageUploaderOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [imagePendingDeleteId, setImagePendingDeleteId] = useState<string | null>(null);
 
   // 4. Reference Units for the Edit Modal
   const { data: unitsData } = useUnits({ pageSize: 100 });
@@ -125,6 +163,36 @@ export default function AdminVariantDetailsPage() {
   // Mutation Hooks
   const updateVariantMutation = useUpdateVariant();
   const deleteVariantMutation = useDeleteVariant();
+  const setPrimaryImageMutation = useSetPrimaryVariantImage();
+  const deleteImageMutation = useDeleteVariantImage();
+
+  // Image Handlers
+  const handleSetPrimaryImage = async (imageUuid: string) => {
+    if (!canonicalProductUuid || !variantId) return;
+    try {
+      await setPrimaryImageMutation.mutateAsync({
+        productUuid: canonicalProductUuid,
+        variantUuid: variantId,
+        imageUuid,
+      });
+    } catch (err) {
+      console.error("Failed to set primary image", err);
+    }
+  };
+
+  const handleDeleteImage = async () => {
+    if (!canonicalProductUuid || !variantId || !imagePendingDeleteId) return;
+    try {
+      await deleteImageMutation.mutateAsync({
+        productUuid: canonicalProductUuid,
+        variantUuid: variantId,
+        imageUuid: imagePendingDeleteId,
+      });
+      setImagePendingDeleteId(null);
+    } catch (err) {
+      console.error("Failed to delete image", err);
+    }
+  };
 
   // Delete Handler
   const handleDeleteVariant = async () => {
@@ -156,25 +224,36 @@ export default function AdminVariantDetailsPage() {
     }
   };
 
+  // Toggle In Stock / Out of Stock Handler
+  const handleToggleStock = async () => {
+    if (!variant || !canonicalProductUuid) return;
+    try {
+      await updateVariantMutation.mutateAsync({
+        productUuid: canonicalProductUuid,
+        variantUuid: variant.id,
+        data: { outOfStock: !variant.outOfStock },
+      });
+      refetchVariant();
+    } catch (err) {
+      console.error("Failed to toggle variant stock", err);
+    }
+  };
+
   const isLoading =
     (isLoadingVariant && !variant) ||
     (!productIdParam && isLoadingList && !foundVariant);
 
   if (isLoading) {
-    return (
-      <LoadingState
-        text="Loading variant specifications, images and price history..."
-      />
-    );
+    return <AdminDetailSkeleton />;
   }
 
   if (variantError || !variant) {
     return (
       <ErrorState
-        title="Variant not found"
+        title="Item not found"
         message={
           (variantError as any)?.message ||
-          "The requested product variant could not be located or may have been deleted."
+          "The requested item could not be located or may have been deleted."
         }
         onRetry={() => {
           refetchVariant();
@@ -191,38 +270,7 @@ export default function AdminVariantDetailsPage() {
     { label: "Product Name", value: variant.productName || "—" },
     { label: "Variant Name", value: variant.variantName || "—" },
     {
-      label: "SKU Code",
-      value: (
-        <span className="font-mono text-xs font-bold text-neutral-700 bg-cream-100 px-2.5 py-1 rounded border border-cream-border">
-          {variant.sku}
-        </span>
-      ),
-    },
-    { label: "Measurement", value: measurementLabel },
-    {
-      label: "Measurement Type",
-      value: variant.measurement?.type ? (
-        <span className="inline-flex px-2 py-0.5 rounded bg-neutral-100 border border-neutral-200 uppercase font-semibold text-xs text-neutral-600">
-          {variant.measurement.type}
-        </span>
-      ) : (
-        "—"
-      ),
-    },
-    {
-      label: "Base Price (MRP)",
-      value: `₹${variant.basePrice?.toLocaleString("en-IN")}.00`,
-    },
-    {
-      label: "Sale Price",
-      value: (
-        <span className="text-sm font-bold text-secondary-900 font-mono">
-          ₹{variant.salePrice?.toLocaleString("en-IN")}.00
-        </span>
-      ),
-    },
-    {
-      label: "Stock Availability",
+      label: "Total Stock (all pack sizes)",
       value: (
         <span
           className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border ${
@@ -296,7 +344,7 @@ export default function AdminVariantDetailsPage() {
             href="/admin/dashboard/variants"
             className="hover:text-secondary-600 transition-colors"
           >
-            Variants
+            Items
           </Link>
           <span className="opacity-40">/</span>
           {variant.productName && canonicalProductUuid && (
@@ -367,8 +415,19 @@ export default function AdminVariantDetailsPage() {
               {variant.measurement?.value && (
                 <span className="px-2.5 py-1 rounded-lg bg-cream-200 text-neutral-700 text-xs font-bold border border-cream-border-subtle">
                   {measurementLabel}
+                  {variant.unitPrices.length > 1 && ` +${variant.unitPrices.length - 1} more`}
                 </span>
               )}
+
+              {/* Featured Badge */}
+              {variant.isFeatured && (
+                <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 text-xs font-bold">
+                  Featured
+                </span>
+              )}
+
+              {/* Dietary Badge */}
+              {renderDietaryBadge(variant.vegType)}
             </div>
 
             <div className="flex items-center gap-2 flex-wrap text-xs text-neutral-500">
@@ -403,8 +462,43 @@ export default function AdminVariantDetailsPage() {
           </div>
         </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center gap-2.5 flex-wrap self-end md:self-center">
+        {/* Status Controls + Action Buttons */}
+        <div className="flex flex-col gap-3 items-stretch sm:items-end w-full md:w-auto shrink-0 md:pl-6 md:border-l md:border-cream-border">
+          {/* Status Toggle Panel */}
+          <div className="flex items-center gap-4 h-9 px-3.5 rounded-lg border border-cream-border bg-cream-50 self-start sm:self-end">
+            <label
+              className="flex items-center gap-2 cursor-pointer"
+              title={variant.isActive ? "Deactivate this variant" : "Activate this variant"}
+            >
+              <Switch
+                checked={variant.isActive}
+                onCheckedChange={handleToggleStatus}
+                disabled={updateVariantMutation.isPending}
+              />
+              <span className="text-xs font-bold text-neutral-700 whitespace-nowrap">
+                {variant.isActive ? "Active" : "Inactive"}
+              </span>
+            </label>
+
+            <div className="w-px h-4 bg-cream-border" />
+
+            <label
+              className="flex items-center gap-2 cursor-pointer"
+              title={variant.outOfStock ? "Mark as in stock" : "Mark as out of stock"}
+            >
+              <Switch
+                checked={!variant.outOfStock}
+                onCheckedChange={handleToggleStock}
+                disabled={updateVariantMutation.isPending}
+              />
+              <span className="text-xs font-bold text-neutral-700 whitespace-nowrap">
+                {!variant.outOfStock ? "In Stock" : "Out of Stock"}
+              </span>
+            </label>
+          </div>
+
+          {/* Action Buttons Row */}
+          <div className="flex items-center gap-2 flex-wrap justify-start sm:justify-end">
             <Button
               variant="outline"
               size="sm"
@@ -419,17 +513,10 @@ export default function AdminVariantDetailsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={handleToggleStatus}
-              disabled={updateVariantMutation.isPending}
-              className={`h-9 bg-white border-cream-border cursor-pointer transition-colors ${
-                variant.isActive
-                  ? "text-neutral-700 hover:bg-neutral-50"
-                  : "text-emerald-700 hover:bg-emerald-50"
-              }`}
-              title={variant.isActive ? "Deactivate Variant" : "Activate Variant"}
+              onClick={() => setIsUnitPricesModalOpen(true)}
+              className="h-9 bg-white border-cream-border text-neutral-700 hover:bg-neutral-50 cursor-pointer"
             >
-              <Power className="w-3.5 h-3.5 mr-1.5" />
-              <span>{variant.isActive ? "Deactivate" : "Activate"}</span>
+              <span>Units & Pricing</span>
             </Button>
 
             <Button
@@ -452,66 +539,29 @@ export default function AdminVariantDetailsPage() {
               <Trash2 className="w-4 h-4" />
             </Button>
           </div>
-        </section>
+        </div>
+      </section>
 
       {/* Main 2-Column Content Grid */}
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column (lg:col-span-7): Pricing & Price History Card + Variant Attributes Card */}
+        {/* Left Column (lg:col-span-7): Pricing & Price History Card */}
         <div className="lg:col-span-7 space-y-6">
           {/* Price History & Pricing Breakdown Card */}
           <VariantPriceHistoryCard variant={variant} />
-
-          {/* Variant Attributes Technical Specifications Card */}
-          <div className="bg-white border border-cream-border rounded-2xl overflow-hidden shadow-xs">
-            <div className="px-6 py-4.5 border-b border-cream-border flex items-center justify-between">
-              <h2 className="text-[15px] font-bold text-neutral-900 tracking-tight flex items-center gap-2">
-                <Layers className="w-4 h-4 text-secondary-600" />
-                <span>Item attributes</span>
-              </h2>
-            </div>
-
-            <div className="divide-y divide-cream-border-subtle">
-              {attributes.map((attr, idx) => (
-                <div
-                  key={idx}
-                  className="grid grid-cols-1 sm:grid-cols-12 gap-2 px-6 py-3.5 items-center hover:bg-cream-50 transition-colors"
-                >
-                  <span className="sm:col-span-5 text-xs font-medium text-neutral-400">
-                    {attr.label}
-                  </span>
-                  <div className="sm:col-span-7 text-xs sm:text-sm font-semibold text-neutral-900">
-                    {attr.value}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
 
-        {/* Right Column (lg:col-span-5): Images Card & Live Storefront Card Preview */}
+        {/* Right Column (lg:col-span-5): Images, Item Attributes & Description */}
         <div className="lg:col-span-5 space-y-6">
           {/* Images Card */}
           <div className="bg-white border border-cream-border rounded-2xl overflow-hidden shadow-xs">
-            <div className="px-6 py-4.5 border-b border-cream-border flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <ImageIcon className="w-4 h-4 text-secondary-600" />
-                <h2 className="text-[15px] font-bold text-neutral-900 tracking-tight">
-                  Images
-                </h2>
-                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-cream-200 text-neutral-600 border border-cream-border">
-                  {images.length || (variant.primaryImage ? 1 : 0)}
-                </span>
-              </div>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsImageUploaderOpen(true)}
-                className="h-8 text-xs font-semibold text-secondary-700 hover:text-secondary-900 hover:bg-secondary-50 cursor-pointer"
-              >
-                <Upload className="w-3.5 h-3.5 mr-1" />
-                <span>Upload</span>
-              </Button>
+            <div className="px-6 py-4.5 border-b border-cream-border flex items-center gap-2">
+              <ImageIcon className="w-4 h-4 text-secondary-600" />
+              <h2 className="text-[15px] font-bold text-neutral-900 tracking-tight">
+                Images
+              </h2>
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-cream-200 text-neutral-600 border border-cream-border">
+                {images.length || (variant.primaryImage ? 1 : 0)}
+              </span>
             </div>
 
             {/* Images Gallery */}
@@ -532,10 +582,48 @@ export default function AdminVariantDetailsPage() {
                       fill
                       className="object-cover"
                     />
-                    {img.isPrimary && (
+                    {img.isPrimary ? (
                       <span className="absolute bottom-1.5 left-1.5 right-1.5 text-center bg-secondary-600 text-cream-white text-[9px] font-bold tracking-wider uppercase px-1 py-0.5 rounded-md shadow-xs">
                         Primary
                       </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleSetPrimaryImage(img.id)}
+                        disabled={setPrimaryImageMutation.isPending || deleteImageMutation.isPending}
+                        title="Set as primary image"
+                        className={`absolute bottom-1.5 left-1.5 right-1.5 flex items-center justify-center gap-1 rounded-md bg-black/70 hover:bg-secondary-600 text-cream-white text-[9px] font-bold tracking-wider uppercase px-1 py-0.5 transition-opacity cursor-pointer disabled:cursor-not-allowed ${
+                          setPrimaryImageMutation.isPending &&
+                          setPrimaryImageMutation.variables?.imageUuid === img.id
+                            ? "opacity-100"
+                            : "opacity-0 group-hover:opacity-100"
+                        }`}
+                      >
+                        {setPrimaryImageMutation.isPending &&
+                        setPrimaryImageMutation.variables?.imageUuid === img.id ? (
+                          <>
+                            <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                            Setting...
+                          </>
+                        ) : (
+                          <>
+                            <Star className="w-2.5 h-2.5" />
+                            Set Primary
+                          </>
+                        )}
+                      </button>
+                    )}
+                    {!img.isPrimary && (
+                      <button
+                        type="button"
+                        onClick={() => setImagePendingDeleteId(img.id)}
+                        disabled={setPrimaryImageMutation.isPending || deleteImageMutation.isPending}
+                        aria-label="Delete image"
+                        title="Delete image"
+                        className="absolute top-1.5 right-1.5 rounded-lg bg-black/60 p-1 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-error-600 cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     )}
                   </div>
                 ))}
@@ -598,6 +686,86 @@ export default function AdminVariantDetailsPage() {
               </div>
             )}
           </div>
+
+          {/* Variant Attributes Technical Specifications Card */}
+          <div className="bg-white border border-cream-border rounded-2xl overflow-hidden shadow-xs">
+            <div className="px-6 py-4.5 border-b border-cream-border">
+              <h2 className="text-[15px] font-bold text-neutral-900 tracking-tight flex items-center gap-2">
+                <Layers className="w-4 h-4 text-secondary-600" />
+                <span>Item attributes</span>
+              </h2>
+              <p className="text-xs text-neutral-400 mt-1">
+                General details for this item. Pack sizes, SKU codes and pricing are managed in
+                "Units & Pricing" above.
+              </p>
+            </div>
+
+            <div className="divide-y divide-cream-border-subtle">
+              {attributes.map((attr, idx) => (
+                <div
+                  key={idx}
+                  className="grid grid-cols-1 sm:grid-cols-12 gap-2 px-6 py-3.5 items-center hover:bg-cream-50 transition-colors"
+                >
+                  <span className="sm:col-span-5 text-xs font-medium text-neutral-400">
+                    {attr.label}
+                  </span>
+                  <div className="sm:col-span-7 text-xs sm:text-sm font-semibold text-neutral-900">
+                    {attr.value}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Description Card */}
+          <div className="bg-white border border-cream-border rounded-2xl overflow-hidden shadow-xs">
+            <div className="px-6 py-4.5 border-b border-cream-border flex items-center justify-between">
+              <h2 className="text-[15px] font-bold text-neutral-900 tracking-tight">
+                Description
+              </h2>
+            </div>
+            <div className="p-6">
+              {variant.shortDescription || variant.description ? (
+                <div className="space-y-4">
+                  {variant.shortDescription && (
+                    <div>
+                      <div className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1">
+                        Summary
+                      </div>
+                      <p className="text-xs sm:text-sm text-neutral-700 leading-relaxed">
+                        {variant.shortDescription}
+                      </p>
+                    </div>
+                  )}
+
+                  {variant.description && (
+                    <div>
+                      <div className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1">
+                        Full Description
+                      </div>
+                      <div
+                        className="rich-text-content text-xs sm:text-sm text-neutral-600"
+                        dangerouslySetInnerHTML={{ __html: sanitizeRichText(variant.description) }}
+                      />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="py-6 px-4 text-center flex flex-col items-center gap-2">
+                  <p className="text-xs sm:text-sm font-semibold text-neutral-700">
+                    No description yet
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditModalOpen(true)}
+                    className="mt-1 border border-cream-border-subtle bg-white text-secondary-600 hover:bg-secondary-50 hover:border-secondary-200 text-xs font-bold px-3.5 py-1.5 rounded-lg cursor-pointer transition-colors"
+                  >
+                    Add description
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -617,22 +785,15 @@ export default function AdminVariantDetailsPage() {
         <VariantForm
           initialData={{
             variantName: variant.variantName,
-            sku: variant.sku,
             slug: variant.slug || "",
-            unitId: resolvedUnitId,
-            unitValue:
-              variant.unitValue ??
-              (typeof variant.measurement?.value === "number"
-                ? variant.measurement.value
-                : Number(variant.measurement?.value) || 1),
-            basePrice: variant.basePrice,
-            salePrice: variant.salePrice,
-            inStock: !variant.outOfStock,
-            outOfStock: variant.outOfStock,
+            shortDescription: variant.shortDescription || "",
+            description: variant.description || "",
+            vegType: variant.vegType || "na",
+            isFeatured: variant.isFeatured ?? false,
           }}
           isEditing
           fixedProductId={canonicalProductUuid}
-          units={unitOptions}
+          fixedProductSlug={variant.productSlug}
           isLoading={updateVariantMutation.isPending}
           submitLabel="Save Changes"
           onSubmit={async (formData) => {
@@ -642,13 +803,11 @@ export default function AdminVariantDetailsPage() {
                 variantUuid: variant.id,
                 data: {
                   variantName: formData.variantName,
-                  sku: formData.sku,
                   slug: formData.slug,
-                  unitId: formData.unitId,
-                  unitValue: Number(formData.unitValue),
-                  basePrice: Number(formData.basePrice),
-                  salePrice: Number(formData.salePrice),
-                  outOfStock: !formData.inStock,
+                  shortDescription: formData.shortDescription || null,
+                  description: formData.description || null,
+                  vegType: formData.vegType,
+                  isFeatured: formData.isFeatured,
                 },
               });
               setIsEditModalOpen(false);
@@ -657,6 +816,20 @@ export default function AdminVariantDetailsPage() {
               console.error("Failed to update variant", err);
             }
           }}
+        />
+      </FormModal>
+
+      {/* 1b. Manage Units & Pricing Modal */}
+      <FormModal
+        open={isUnitPricesModalOpen}
+        onClose={() => setIsUnitPricesModalOpen(false)}
+        title={`Units & Pricing: ${variant.variantName}`}
+        description="Manage the unit + price combinations this item can be purchased in"
+        size="lg"
+      >
+        <VariantUnitPriceList
+          productUuid={canonicalProductUuid}
+          variantUuid={variant.id}
         />
       </FormModal>
 
@@ -691,6 +864,19 @@ export default function AdminVariantDetailsPage() {
         cancelText="Cancel"
         variant="destructive"
         isLoading={deleteVariantMutation.isPending}
+      />
+
+      {/* 3b. Delete Image Confirmation Dialog */}
+      <ConfirmDialog
+        open={Boolean(imagePendingDeleteId)}
+        onClose={() => setImagePendingDeleteId(null)}
+        onConfirm={handleDeleteImage}
+        title="Delete Image"
+        description="Are you sure you want to delete this image? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="destructive"
+        isLoading={deleteImageMutation.isPending}
       />
 
       {/* 4. Customer View Live Card Preview Modal */}

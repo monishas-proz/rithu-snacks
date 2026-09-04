@@ -10,6 +10,7 @@ export const ALLOWED_FOLDERS = [
   "variants",
   "customers",
   "banners",
+  "company",
 ] as const;
 
 export type AllowedFolder = (typeof ALLOWED_FOLDERS)[number];

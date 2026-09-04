@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const addWishlistSchema = z
   .object({
-    variantId: z.string().uuid("Invalid variant UUID"),
+    variantUnitPriceId: z.string().uuid("Invalid variant unit price UUID"),
   })
   .strict();
 

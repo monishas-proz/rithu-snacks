@@ -6,6 +6,9 @@ import {
   useCreateProduct,
   useUpdateProduct,
   useDeleteProduct,
+  useCreateProductImages,
+  useDeleteProductImage,
+  useProductImages,
 } from "@/features/products/hooks";
 import { useCategories } from "@/features/categories/hooks";
 import { useBrands } from "@/features/brands/hooks";
@@ -15,15 +18,16 @@ import {
   AdminPageHeader,
   AdminContent,
 } from "@/components/admin/AdminPageHeader";
-import { LoadingState } from "@/components/ui/loading-state";
+import { AdminTableSkeleton } from "@/components/admin/AdminTableSkeleton";
 import { ErrorState } from "@/components/ui/error-state";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FormModal } from "@/components/common/FormModal";
 import { SearchInput } from "@/components/ui/search-input";
+import { ClearFiltersButton } from "@/components/common/clear-filters-button";
 import Link from "next/link";
-import { Plus, Pencil, Trash2, Eye } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { AdminProductResponse } from "@/features/products/types";
 import { ProductForm } from "@/features/products/components/ProductForm";
@@ -64,6 +68,46 @@ export default function AdminProductsPage() {
   const createMutation = useCreateProduct();
   const updateMutation = useUpdateProduct();
   const deleteMutation = useDeleteProduct();
+  const createImagesMutation = useCreateProductImages();
+  const deleteImageMutation = useDeleteProductImage();
+
+  // Existing primary image for the product being edited (to prefill the form)
+  const { data: selectedProductImages = [], isLoading: isLoadingSelectedProductImages } = useProductImages(
+    isEditOpen ? selectedProduct?.id ?? null : null
+  );
+  const selectedProductPrimaryImage =
+    selectedProductImages.find((img) => img.isPrimary)?.imageUrl ||
+    selectedProductImages[0]?.imageUrl ||
+    null;
+
+  // A product carries only one image — remove any existing ones before saving the new one
+  const saveProductPrimaryImage = async (
+    productUuid: string,
+    imageUrl: string,
+    existingImages: { id: string }[] = []
+  ) => {
+    try {
+      await Promise.all(
+        existingImages.map((img) =>
+          deleteImageMutation.mutateAsync({ productUuid, imageId: img.id })
+        )
+      );
+      await createImagesMutation.mutateAsync({
+        productUuid,
+        images: [{ imageUrl, isPrimary: true }],
+      });
+    } catch (err) {
+      console.error("Failed to save product image", err);
+    }
+  };
+
+  const handleClearFilters = () => {
+    setSearch("");
+    setSelectedCategoryFilter("");
+    setPage(1);
+  };
+
+  const hasActiveFilters = search.trim() !== "" || selectedCategoryFilter !== "";
 
   const products = data?.data ?? [];
   const categories = categoriesData?.data ?? [];
@@ -114,7 +158,7 @@ export default function AdminProductsPage() {
           href={`/admin/dashboard/products/${row.original.id}`}
           className="group block cursor-pointer"
         >
-          <p className="font-semibold text-[var(--color-neutral-900)] group-hover:text-secondary-600 transition-colors">
+          <p className="font-semibold text-secondary-600 underline-offset-2 group-hover:underline transition-colors">
             {row.original.name}
           </p>
           <p className="text-xs text-[var(--color-neutral-500)] mt-0.5">
@@ -141,51 +185,6 @@ export default function AdminProductsPage() {
         </span>
       ),
     },
-    {
-      accessorKey: "vegType",
-      header: "Type",
-      cell: ({ row }) => {
-        const vegType = row.original.vegType;
-        switch (vegType) {
-          case "veg":
-            return (
-              <span className="inline-flex items-center rounded-full bg-[var(--color-success-50)] px-2.5 py-0.5 text-xs font-medium text-[var(--color-success-700)]">
-                Veg
-              </span>
-            );
-          case "nonveg":
-            return (
-              <span className="inline-flex items-center rounded-full bg-[var(--color-error-50)] px-2.5 py-0.5 text-xs font-medium text-[var(--color-error-700)]">
-                Non-Veg
-              </span>
-            );
-          case "vegan":
-            return (
-              <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
-                Vegan
-              </span>
-            );
-          default:
-            return (
-              <span className="inline-flex items-center rounded-full bg-[var(--color-neutral-100)] px-2.5 py-0.5 text-xs font-medium text-[var(--color-neutral-600)]">
-                N/A
-              </span>
-            );
-        }
-      },
-    },
-    {
-      accessorKey: "isFeatured",
-      header: "Featured",
-      cell: ({ row }) =>
-        row.original.isFeatured ? (
-          <span className="inline-flex items-center rounded-full bg-[var(--color-info-50)] px-2.5 py-0.5 text-xs font-medium text-[var(--color-info-700)]">
-            Featured
-          </span>
-        ) : (
-          <span className="text-[var(--color-neutral-400)]">—</span>
-        ),
-    },
     // {
     //   accessorKey: "createdAt",
     //   header: "Created Date",
@@ -200,14 +199,6 @@ export default function AdminProductsPage() {
       header: "Actions",
       cell: ({ row }) => (
         <div className="flex items-center gap-1">
-          <Link
-            href={`/admin/dashboard/products/${row.original.id}`}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md text-[var(--color-neutral-500)] hover:text-secondary-600 hover:bg-neutral-100 transition-colors"
-            title="View Product Details"
-          >
-            <Eye className="h-4 w-4" />
-          </Link>
-
           <Button
             variant="ghost"
             size="icon"
@@ -234,7 +225,7 @@ export default function AdminProductsPage() {
   ];
 
   if (isLoading && !data) {
-    return <LoadingState text="Loading products..." />;
+    return <AdminTableSkeleton />;
   }
 
   if (error) {
@@ -259,7 +250,7 @@ export default function AdminProductsPage() {
             <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
               <SearchInput
                 placeholder="Search products..."
-                defaultValue={search}
+                value={search}
                 onSearch={(val) => {
                   setSearch(val);
                   setPage(1);
@@ -279,6 +270,8 @@ export default function AdminProductsPage() {
                   className="h-11 rounded-xl"
                 />
               </div>
+
+              {hasActiveFilters && <ClearFiltersButton onClick={handleClearFilters} />}
             </div>
 
             <Button
@@ -331,14 +324,14 @@ export default function AdminProductsPage() {
               categoryId: formData.categoryId,
               brandId: formData.brandId,
               hsnCodeId: formData.hsnCodeId,
-              vegType: formData.vegType,
-              isFeatured: formData.isFeatured,
-              shortDescription: formData.shortDescription || null,
-              description: formData.description || null,
             };
 
-            await createMutation.mutateAsync(payload);
+            const created = await createMutation.mutateAsync(payload);
             setIsCreateOpen(false);
+
+            if (formData.productImage && created?.data?.id) {
+              await saveProductPrimaryImage(created.data.id, formData.productImage);
+            }
           }}
         />
       </FormModal>
@@ -354,19 +347,17 @@ export default function AdminProductsPage() {
         description="Update the selected product"
         size="lg"
       >
-        {selectedProduct && (
+        {selectedProduct && !isLoadingSelectedProductImages && (
           <ProductForm
+            key={`${selectedProduct.id}-${selectedProductPrimaryImage ?? ""}`}
             initialData={{
               name: selectedProduct.name,
               slug: selectedProduct.slug,
               categoryId: selectedProduct.categoryId || "",
               brandId: selectedProduct.brandId || "",
               hsnCodeId: selectedProduct.hsnCodeId || "",
-              vegType: selectedProduct.vegType,
-              isFeatured: selectedProduct.isFeatured,
-              shortDescription: selectedProduct.shortDescription || "",
-              description: selectedProduct.description || "",
             }}
+            initialImageUrl={selectedProductPrimaryImage}
             isEditing
             categories={categoryOptions}
             brands={brandOptions}
@@ -380,10 +371,6 @@ export default function AdminProductsPage() {
                 categoryId: formData.categoryId,
                 brandId: formData.brandId,
                 hsnCodeId: formData.hsnCodeId,
-                vegType: formData.vegType,
-                isFeatured: formData.isFeatured,
-                shortDescription: formData.shortDescription || null,
-                description: formData.description || null,
               };
 
               await updateMutation.mutateAsync({
@@ -392,6 +379,18 @@ export default function AdminProductsPage() {
               });
 
               setIsEditOpen(false);
+
+              if (
+                formData.productImage &&
+                formData.productImage !== selectedProductPrimaryImage
+              ) {
+                await saveProductPrimaryImage(
+                  selectedProduct.id,
+                  formData.productImage,
+                  selectedProductImages
+                );
+              }
+
               setSelectedProduct(null);
               refetch();
             }}

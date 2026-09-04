@@ -8,7 +8,8 @@ export interface CustomerWishlistProductSummary {
 
 export interface CustomerWishlistItemDto {
   id: string; // wishlistItem.uuid
-  variantId: string; // variant.uuid
+  variantId: string; // variant.uuid (item-level)
+  variantUnitPriceId: string; // variant_unit_price.uuid (pack size)
   variantName: string;
   sku: string;
   price: number;

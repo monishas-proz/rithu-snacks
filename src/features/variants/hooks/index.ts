@@ -8,6 +8,7 @@ export {
   useCustomerVariants,
   useVariantPriceHistory,
   useVariantPriceHistoryChart,
+  useVariantUnitPrices,
 } from "./use-variants";
 
 export {
@@ -19,4 +20,7 @@ export {
   useUpdateVariantImage,
   useSetPrimaryVariantImage,
   useDeleteVariantImage,
+  useCreateVariantUnitPrice,
+  useUpdateVariantUnitPrice,
+  useDeleteVariantUnitPrice,
 } from "./use-variant-mutations";

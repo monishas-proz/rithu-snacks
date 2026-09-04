@@ -1,18 +1,22 @@
 import { createApiHandler } from "@/lib/api/api-handler";
 import { apiSuccess } from "@/lib/api/api-response";
 import { ApiError } from "@/lib/api/api-error";
-import { variantService } from "@/features/variants/services/variant.service";
+import { variantUnitPriceService } from "@/features/variants/services/variant-unit-price.service";
 import {
   variantPriceHistoryQuerySchema,
   type VariantPriceHistoryQueryInput,
 } from "@/features/variants/validations/admin-variant.schema";
 
+// NOTE: `variantUuid` here is the VariantUnitPrice UUID (a variant's price
+// history is now tracked per (unit, price) combination, not per item). The
+// route segment name is kept for backward compatibility with existing
+// frontend callers.
 export const GET = createApiHandler(
   {
     GET: async (_request, context) => {
-      const variantUuid = context.params?.variantUuid;
-      if (!variantUuid || typeof variantUuid !== "string") {
-        throw ApiError.badRequest("Invalid variant UUID");
+      const unitPriceUuid = context.params?.variantUuid;
+      if (!unitPriceUuid || typeof unitPriceUuid !== "string") {
+        throw ApiError.badRequest("Invalid variant unit price UUID");
       }
 
       const query = (context.query || {}) as Record<string, any>;
@@ -25,8 +29,8 @@ export const GET = createApiHandler(
       });
 
       const params = parsed.success ? parsed.data : {};
-      const result = await variantService.getVariantPriceHistory(
-        variantUuid,
+      const result = await variantUnitPriceService.getPriceHistory(
+        unitPriceUuid,
         params
       );
       const meta = result.meta
@@ -46,14 +50,14 @@ export const GET = createApiHandler(
       );
     },
     POST: async (_request, context) => {
-      const variantUuid = context.params?.variantUuid;
-      if (!variantUuid || typeof variantUuid !== "string") {
-        throw ApiError.badRequest("Invalid variant UUID");
+      const unitPriceUuid = context.params?.variantUuid;
+      if (!unitPriceUuid || typeof unitPriceUuid !== "string") {
+        throw ApiError.badRequest("Invalid variant unit price UUID");
       }
 
       const body = (context.body || {}) as VariantPriceHistoryQueryInput;
-      const result = await variantService.getVariantPriceHistory(
-        variantUuid,
+      const result = await variantUnitPriceService.getPriceHistory(
+        unitPriceUuid,
         body
       );
 

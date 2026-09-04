@@ -133,5 +133,22 @@ export function useVariantPriceHistoryChart(
   });
 }
 
+export function useVariantUnitPrices(
+  productUuid: string | null,
+  variantUuid: string | null
+) {
+  return useQuery({
+    queryKey: variantUuid
+      ? ([...variantKeys.all, "unit-prices", variantUuid] as const)
+      : (["variants", "unit-prices"] as const),
+    queryFn: async () => {
+      if (!productUuid || !variantUuid) return [];
+      const { getVariantUnitPrices } = await import("../api/get-variants");
+      return getVariantUnitPrices(productUuid, variantUuid);
+    },
+    enabled: !!productUuid && !!variantUuid,
+  });
+}
+
 export const useAdminVariants = useVariants;
 export const useAdminVariant = useVariant;

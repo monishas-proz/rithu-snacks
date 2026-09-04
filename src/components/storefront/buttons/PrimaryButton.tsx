@@ -8,6 +8,7 @@ export interface PrimaryButtonProps {
   className?: string;
   type?: "button" | "submit" | "reset";
   variant?: "yellow" | "brown";
+  disabled?: boolean;
 }
 
 export function PrimaryButton({
@@ -16,6 +17,7 @@ export function PrimaryButton({
   className = "",
   type = "button",
   variant = "yellow",
+  disabled = false,
 }: PrimaryButtonProps) {
   const variants = {
     yellow: "btn-yellow text-[var(--brown-900)]",
@@ -26,15 +28,14 @@ export function PrimaryButton({
     <button
       type={type}
       onClick={onClick}
+      disabled={disabled}
       className={`
         h-[40px]
         font-semibold
         text-sm
-        hover:scale-105
-        active:scale-95
         transition-all
         duration-150
-        cursor-pointer
+        ${disabled ? "opacity-50 cursor-not-allowed" : "hover:scale-105 active:scale-95 cursor-pointer"}
         ${variants[variant]}
         ${className}
       `}

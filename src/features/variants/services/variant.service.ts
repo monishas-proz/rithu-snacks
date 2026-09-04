@@ -2,23 +2,19 @@ import crypto from "crypto";
 import { ApiError } from "@/lib/api/api-error";
 import { variantRepository } from "../repositories/variant.repository";
 import { productRepository } from "@/features/products/repositories/product.repository";
-import { unitRepository } from "@/features/units/repositories/unit.repository";
 import { userRepository } from "@/features/users/repositories/user.repository";
 import { formatVariantMeasurement } from "../utils/measurement.util";
 import type { Prisma } from "@/generated/prisma";
 import type {
   AdminVariantResponse,
+  VariantUnitPriceResponse,
   GetAdminVariantsParams,
   AdminVariantListParams,
-  VariantPriceHistoryResponse,
-  GetVariantPriceHistoryParams,
-  PriceHistoryChartItem,
   AdminVariantsCountResponse,
 } from "../types";
 import type {
   CreateAdminVariantInput,
   UpdateAdminVariantInput,
-  BulkEditVariantsInput,
 } from "../validations/admin-variant.schema";
 
 function slugify(text: string): string {
@@ -32,116 +28,127 @@ function slugify(text: string): string {
     .replace(/\-\-+/g, "-");
 }
 
+type VariantUnitPriceWithRelations = {
+  id: bigint;
+  uuid: string;
+  variant_id: bigint;
+  sku: string;
+  base_price: Prisma.Decimal | number;
+  unit_value: Prisma.Decimal | number;
+  unit_id: bigint;
+  is_default: boolean;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  product_units?: { uuid: string | null; name: string; code: string; type?: string | null } | null;
+  inventories?: { quantity_available: number; quantity_reserved: number } | null;
+};
+
+export function formatUnitPriceResponse(
+  variantUuid: string,
+  item: VariantUnitPriceWithRelations
+): VariantUnitPriceResponse {
+  const unitUuid = item.product_units?.uuid || String(item.unit_id);
+  const measurement = formatVariantMeasurement(
+    {
+      type: item.product_units?.type,
+      code: item.product_units?.code,
+      uuid: unitUuid,
+    },
+    item.unit_value,
+    unitUuid
+  );
+
+  return {
+    id: item.uuid,
+    variantId: variantUuid,
+    sku: item.sku,
+    basePrice: Number(item.base_price),
+    measurement,
+    unitId: unitUuid,
+    unitValue: Number(item.unit_value),
+    unitName: item.product_units?.name,
+    unitCode: item.product_units?.code,
+    isDefault: Boolean(item.is_default),
+    isActive: Boolean(item.isActive),
+    stock: item.inventories?.quantity_available,
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+  };
+}
+
 function formatAdminVariantResponse(
   variant: {
     id: bigint;
     uuid: string;
     productId: bigint;
     variant_name?: string | null;
-    sku: string;
     slug?: string | null;
-    unit_value: Prisma.Decimal | number;
-    unit_id: bigint;
-    base_price: Prisma.Decimal | number;
-    sale_price: Prisma.Decimal | number;
+    short_description?: string | null;
+    description?: string | null;
+    veg_type?: string | null;
+    is_featured?: boolean;
     isActive: boolean;
     out_of_stock?: boolean;
     createdAt: Date;
     updatedAt: Date;
-    product?: { uuid: string | null; name: string } | null;
-    product_units?: { uuid: string | null; name: string; code: string; type?: string | null } | null;
+    product?: { uuid: string | null; name: string; slug?: string | null } | null;
     product_variant_images?: Array<{ image_url: string; is_primary: boolean }> | null;
-    inventories?: { quantity_available: number; quantity_reserved: number } | null;
+    variant_unit_prices?: VariantUnitPriceWithRelations[] | null;
   },
   cachedProductUuid?: string,
-  cachedUnitUuid?: string,
-  cachedProductName?: string,
-  cachedUnitName?: string,
-  cachedUnitCode?: string,
-  cachedUnitType?: string
+  cachedProductName?: string
 ): AdminVariantResponse {
   const variantUuid = variant.uuid;
   const productUuid = cachedProductUuid ?? variant.product?.uuid ?? String(variant.productId);
-
   const productName = cachedProductName || variant.product?.name || "";
+  const productSlug = variant.product?.slug || "";
   const variantName = variant.variant_name || "";
-  const unitCode = cachedUnitCode || variant.product_units?.code || "";
-  const unitType = cachedUnitType || (variant.product_units as any)?.type || "";
 
   const primaryImgObj =
     variant.product_variant_images?.find((img) => img.is_primary) ??
     variant.product_variant_images?.[0];
   const primaryImage = primaryImgObj ? primaryImgObj.image_url : null;
 
-  const unitUuid =
-    cachedUnitUuid ||
-    variant.product_units?.uuid ||
-    (variant.unit_id ? String(variant.unit_id) : null);
-
-  const measurement = formatVariantMeasurement(
-    { type: unitType, code: unitCode, uuid: unitUuid },
-    variant.unit_value,
-    unitUuid
+  const unitPrices = (variant.variant_unit_prices || []).map((up) =>
+    formatUnitPriceResponse(variantUuid, up)
   );
 
-  const stock =
-    variant.inventories?.quantity_available !== undefined
-      ? Number(variant.inventories.quantity_available)
-      : undefined;
+  const defaultUnitPrice =
+    unitPrices.find((up) => up.isDefault) ?? unitPrices[0] ?? undefined;
+
+  const totalStock = unitPrices.reduce(
+    (sum, up) => (up.stock !== undefined ? sum + up.stock : sum),
+    0
+  );
 
   return {
     id: variantUuid,
     productId: productUuid,
     productName,
+    productSlug,
     variantName,
     slug: variant.slug || "",
-    measurement,
-    sku: variant.sku,
-    basePrice: Number(variant.base_price),
-    salePrice: variant.sale_price !== null && Number(variant.sale_price) > 0 ? Number(variant.sale_price) : Number(variant.base_price),
-    stock,
+    shortDescription: variant.short_description ?? null,
+    description: variant.description ?? null,
+    vegType: (variant.veg_type as AdminVariantResponse["vegType"]) || "na",
+    isFeatured: Boolean(variant.is_featured),
     primaryImage,
     isActive: Boolean(variant.isActive),
     outOfStock: Boolean(variant.out_of_stock),
     createdAt: variant.createdAt,
     updatedAt: variant.updatedAt,
-  };
-}
-
-function formatVariantPriceHistory(
-  item: Prisma.variant_price_historyGetPayload<{
-    include: {
-      users_variant_price_history_created_byTousers: {
-        select: {
-          id: true;
-          uuid: true;
-          name: true;
-        };
-      };
-    };
-  }>
-): VariantPriceHistoryResponse {
-  const user = item.users_variant_price_history_created_byTousers;
-  const oldPrice = item.old_base_price !== null ? Number(item.old_base_price) : null;
-  const newPrice = item.new_base_price !== null ? Number(item.new_base_price) : null;
-  const oldSalePrice = item.old_sale_price !== null ? Number(item.old_sale_price) : null;
-  const newSalePrice = item.new_sale_price !== null ? Number(item.new_sale_price) : null;
-
-  return {
-    id: item.uuid || String(item.id),
-    oldPrice,
-    newPrice,
-    oldSalePrice,
-    newSalePrice,
-    oldBasePrice: oldPrice,
-    newBasePrice: newPrice,
-    changedAt: item.changed_at,
-    changedBy: user
-      ? {
-          id: user.uuid || String(user.id),
-          name: user.name,
-        }
-      : null,
+    unitPrices,
+    // Backward-compatible convenience fields mirrored from the default unit price
+    measurement: defaultUnitPrice?.measurement,
+    sku: defaultUnitPrice?.sku,
+    basePrice: defaultUnitPrice?.basePrice,
+    salePrice: defaultUnitPrice?.basePrice,
+    stock: unitPrices.length > 0 ? totalStock : undefined,
+    unitId: defaultUnitPrice?.unitId,
+    unitValue: defaultUnitPrice?.unitValue,
+    unitName: defaultUnitPrice?.unitName,
+    unitCode: defaultUnitPrice?.unitCode,
   };
 }
 
@@ -166,66 +173,31 @@ export const variantService = {
       throw ApiError.notFound("Product not found or inactive");
     }
 
-    // 2. Resolve & Validate Unit
-    const unit = await unitRepository.findByUuid(data.unitId);
-    if (!unit || !unit.is_active) {
-      throw ApiError.badRequest("Invalid or inactive unit");
-    }
-
-    // 3. Unique SKU Check
-    const existingSku = await variantRepository.findBySku(data.sku);
-    if (existingSku) {
-      throw ApiError.conflict(`An active variant with SKU '${data.sku}' already exists`);
-    }
-
-    // 4. Derive variant_name & Validate Slug
-    const variantName = data.variantName || `${data.unitValue} ${unit.code}`;
+    // 2. Validate Slug
     const variantSlug = slugify(data.slug).substring(0, 250);
-
-    // Check slug uniqueness
     const existingSlug = await variantRepository.findBySlug(variantSlug);
     if (existingSlug) {
       throw ApiError.conflict(`An active variant with slug '${data.slug}' already exists`);
     }
 
-    const effectiveBasePrice = data.price !== undefined ? data.price : (data.basePrice ?? 0);
-
-    // 5. Create Variant
+    // 3. Create Variant (item-level only; unit/price combos are managed
+    // separately via variantUnitPriceService)
     const variant = await variantRepository.create({
       uuid: crypto.randomUUID(),
       productId: product.id,
-      variant_name: variantName,
-      sku: data.sku,
+      variant_name: data.variantName,
       slug: variantSlug,
-      unit_value: data.unitValue,
-      unit_id: unit.id,
-      base_price: effectiveBasePrice,
-      sale_price: data.salePrice,
+      short_description: data.shortDescription ?? null,
+      description: data.description ?? null,
+      veg_type: (data.vegType as Prisma.ProductVariantUncheckedCreateInput["veg_type"]) ?? "na",
+      is_featured: data.isFeatured ?? false,
       isActive: data.isActive !== undefined ? data.isActive : true,
       out_of_stock: data.outOfStock !== undefined ? data.outOfStock : false,
       created_by: adminId,
       updated_by: adminId,
     });
 
-    if (data.stock !== undefined) {
-      await variantRepository.updateByUuid(
-        variant.uuid,
-        { stock: data.stock },
-        adminId
-      );
-    }
-
-    const createdVariantWithDetails = await variantRepository.findByUuid(variant.uuid);
-
-    return formatAdminVariantResponse(
-      createdVariantWithDetails || variant,
-      product.uuid || productUuid,
-      unit.uuid || data.unitId,
-      product.name,
-      unit.name,
-      unit.code,
-      unit.type
-    );
+    return formatAdminVariantResponse(variant, product.uuid || productUuid, product.name);
   },
 
   async getAllAdminVariants(params: AdminVariantListParams = {}) {
@@ -255,7 +227,7 @@ export const variantService = {
 
     const result = await variantRepository.findAdminAllByProductId(product.id, params);
     const data = result.data.map((item) =>
-      formatAdminVariantResponse(item, product.uuid || productUuid, undefined, product.name)
+      formatAdminVariantResponse(item, product.uuid || productUuid, product.name)
     );
 
     return {
@@ -278,7 +250,7 @@ export const variantService = {
       throw ApiError.notFound("Variant not found for this product");
     }
 
-    return formatAdminVariantResponse(variant, product.uuid || productUuid, undefined, product.name);
+    return formatAdminVariantResponse(variant, product.uuid || productUuid, product.name);
   },
 
   async getVariantByUuid(variantUuid: string): Promise<AdminVariantResponse> {
@@ -307,40 +279,7 @@ export const variantService = {
     }
 
     const adminId = await getAdminInternalId(adminEmail);
-    const updateData: Prisma.ProductVariantUncheckedUpdateInput & { stock?: number } = {};
-
-    if (adminId) {
-      updateData.updated_by = adminId;
-    }
-
-    if (data.variantName !== undefined) {
-      updateData.variant_name = data.variantName;
-    }
-
-    let unitUuid: string | undefined = undefined;
-    let unitName: string | undefined = undefined;
-    let unitCode: string | undefined = undefined;
-    let unitType: string | undefined = undefined;
-
-    if (data.unitId !== undefined) {
-      const unit = await unitRepository.findByUuid(data.unitId);
-      if (!unit || !unit.is_active) {
-        throw ApiError.badRequest("Invalid or inactive unit");
-      }
-      updateData.unit_id = unit.id;
-      unitUuid = unit.uuid || data.unitId;
-      unitName = unit.name;
-      unitCode = unit.code;
-      unitType = unit.type;
-    }
-
-    if (data.sku !== undefined && data.sku !== existing.sku) {
-      const skuConflict = await variantRepository.findBySku(data.sku, variantUuid);
-      if (skuConflict) {
-        throw ApiError.conflict(`An active variant with SKU '${data.sku}' already exists`);
-      }
-      updateData.sku = data.sku;
-    }
+    const updateData = buildVariantUpdateData(data, adminId);
 
     if (data.slug !== undefined) {
       const normalizedSlug = slugify(data.slug).substring(0, 250);
@@ -351,45 +290,12 @@ export const variantService = {
       updateData.slug = normalizedSlug;
     }
 
-    if (data.unitValue !== undefined) {
-      updateData.unit_value = data.unitValue;
-    }
-
-    const effectiveBasePrice = data.price !== undefined ? data.price : data.basePrice;
-    if (effectiveBasePrice !== undefined) {
-      updateData.base_price = effectiveBasePrice;
-    }
-
-    if (data.salePrice !== undefined) {
-      updateData.sale_price = data.salePrice;
-    }
-
-    if (typeof data.isActive === "boolean") {
-      updateData.isActive = data.isActive;
-    }
-
-    if (typeof data.outOfStock === "boolean") {
-      updateData.out_of_stock = data.outOfStock;
-    }
-
-    if (data.stock !== undefined) {
-      updateData.stock = data.stock;
-    }
-
     const updated = await variantRepository.updateByUuid(variantUuid, updateData, adminId);
     if (!updated) {
       throw ApiError.notFound("Variant not found");
     }
 
-    return formatAdminVariantResponse(
-      updated,
-      product.uuid || productUuid,
-      unitUuid,
-      product.name,
-      unitName,
-      unitCode,
-      unitType
-    );
+    return formatAdminVariantResponse(updated, product.uuid || productUuid, product.name);
   },
 
   async updateVariantByUuid(
@@ -403,40 +309,7 @@ export const variantService = {
     }
 
     const adminId = await getAdminInternalId(adminEmail);
-    const updateData: Prisma.ProductVariantUncheckedUpdateInput & { stock?: number } = {};
-
-    if (adminId) {
-      updateData.updated_by = adminId;
-    }
-
-    if (data.variantName !== undefined) {
-      updateData.variant_name = data.variantName;
-    }
-
-    let unitUuid: string | undefined = undefined;
-    let unitName: string | undefined = undefined;
-    let unitCode: string | undefined = undefined;
-    let unitType: string | undefined = undefined;
-
-    if (data.unitId !== undefined) {
-      const unit = await unitRepository.findByUuid(data.unitId);
-      if (!unit || !unit.is_active) {
-        throw ApiError.badRequest("Invalid or inactive unit");
-      }
-      updateData.unit_id = unit.id;
-      unitUuid = unit.uuid || data.unitId;
-      unitName = unit.name;
-      unitCode = unit.code;
-      unitType = unit.type;
-    }
-
-    if (data.sku !== undefined && data.sku !== existing.sku) {
-      const skuConflict = await variantRepository.findBySku(data.sku, variantUuid);
-      if (skuConflict) {
-        throw ApiError.conflict(`An active variant with SKU '${data.sku}' already exists`);
-      }
-      updateData.sku = data.sku;
-    }
+    const updateData = buildVariantUpdateData(data, adminId);
 
     if (data.slug !== undefined) {
       const normalizedSlug = slugify(data.slug).substring(0, 250);
@@ -447,66 +320,12 @@ export const variantService = {
       updateData.slug = normalizedSlug;
     }
 
-    if (data.unitValue !== undefined) {
-      updateData.unit_value = data.unitValue;
-    }
-
-    const effectiveBasePrice = data.price !== undefined ? data.price : data.basePrice;
-    if (effectiveBasePrice !== undefined) {
-      updateData.base_price = effectiveBasePrice;
-    }
-
-    if (data.salePrice !== undefined) {
-      updateData.sale_price = data.salePrice;
-    }
-
-    if (typeof data.isActive === "boolean") {
-      updateData.isActive = data.isActive;
-    }
-
-    if (typeof data.outOfStock === "boolean") {
-      updateData.out_of_stock = data.outOfStock;
-    }
-
-    if (data.stock !== undefined) {
-      updateData.stock = data.stock;
-    }
-
     const updated = await variantRepository.updateByUuid(variantUuid, updateData, adminId);
     if (!updated) {
       throw ApiError.notFound("Variant not found");
     }
 
-    return formatAdminVariantResponse(
-      updated,
-      undefined,
-      unitUuid,
-      undefined,
-      unitName,
-      unitCode,
-      unitType
-    );
-  },
-
-  async bulkUpdateVariants(
-    body: { variants: Array<{ id: string; price?: number; basePrice?: number; salePrice?: number; stock?: number; isActive?: boolean; outOfStock?: boolean }> },
-    adminEmail?: string
-  ): Promise<AdminVariantResponse[]> {
-    const adminId = await getAdminInternalId(adminEmail);
-
-    try {
-      const updatedVariants = await variantRepository.bulkUpdateVariants(
-        body.variants,
-        adminId
-      );
-
-      return updatedVariants.map((item) => formatAdminVariantResponse(item));
-    } catch (e: any) {
-      if (e.message && e.message.includes("not found")) {
-        throw ApiError.notFound(e.message);
-      }
-      throw e;
-    }
+    return formatAdminVariantResponse(updated);
   },
 
   async deleteAdminVariant(
@@ -532,112 +351,38 @@ export const variantService = {
       message: "Variant deleted successfully",
     };
   },
-
-  async getVariantPriceHistory(
-    variantUuid: string,
-    params: GetVariantPriceHistoryParams = {}
-  ) {
-    const variant = await variantRepository.findByUuid(variantUuid);
-    if (!variant || variant.deleted_at !== null) {
-      throw ApiError.notFound("Variant not found");
-    }
-
-    const result = await variantRepository.findPriceHistoryByVariantId(
-      variant.id,
-      params
-    );
-
-    const data = result.data.map(formatVariantPriceHistory);
-
-    return {
-      data,
-      meta: result.meta,
-    };
-  },
-
-  async getVariantPriceHistoryChart(
-    variantUuid: string,
-    period: string = "1y"
-  ): Promise<PriceHistoryChartItem[]> {
-    const variant = await variantRepository.findByUuid(variantUuid);
-    if (!variant || variant.deleted_at !== null) {
-      throw ApiError.notFound("Variant not found");
-    }
-
-    const currentBasePrice = Number(variant.base_price);
-    const currentSalePrice =
-      variant.sale_price !== null && Number(variant.sale_price) > 0
-        ? Number(variant.sale_price)
-        : currentBasePrice;
-
-    // Get all price histories chronologically
-    const histories = await variantRepository.findPriceHistoryAllByVariantId(variant.id);
-
-    // Determine number of months
-    let monthsCount = 12;
-    if (period === "1m") monthsCount = 1;
-    else if (period === "3m") monthsCount = 3;
-    else if (period === "6m") monthsCount = 6;
-    else if (period === "1y") monthsCount = 12;
-
-    const now = new Date();
-    const monthsList: string[] = [];
-
-    for (let i = monthsCount - 1; i >= 0; i--) {
-      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
-      const year = d.getUTCFullYear();
-      const month = String(d.getUTCMonth() + 1).padStart(2, "0");
-      monthsList.push(`${year}-${month}`);
-    }
-
-    const chartData: PriceHistoryChartItem[] = [];
-
-    for (const monthStr of monthsList) {
-      const [yearStr, monthNumStr] = monthStr.split("-");
-      const year = parseInt(yearStr, 10);
-      const month = parseInt(monthNumStr, 10);
-      // End of this month (e.g. 2025-09-30 23:59:59.999 UTC)
-      const endOfMonth = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
-
-      // Find histories up to this month end
-      const historiesUpToMonth = histories.filter(
-        (h) => new Date(h.changed_at) <= endOfMonth
-      );
-
-      let price = currentBasePrice;
-      let salePrice = currentSalePrice;
-
-      if (historiesUpToMonth.length > 0) {
-        // The latest record up to this month end
-        const latestRecord = historiesUpToMonth[historiesUpToMonth.length - 1];
-        price =
-          latestRecord.new_base_price !== null
-            ? Number(latestRecord.new_base_price)
-            : currentBasePrice;
-        salePrice =
-          latestRecord.new_sale_price !== null && Number(latestRecord.new_sale_price) > 0
-            ? Number(latestRecord.new_sale_price)
-            : price;
-      } else if (histories.length > 0) {
-        // Price history exists but happened after this month; use the oldest old_price
-        const earliestRecord = histories[0];
-        price =
-          earliestRecord.old_base_price !== null
-            ? Number(earliestRecord.old_base_price)
-            : currentBasePrice;
-        salePrice =
-          earliestRecord.old_sale_price !== null && Number(earliestRecord.old_sale_price) > 0
-            ? Number(earliestRecord.old_sale_price)
-            : price;
-      }
-
-      chartData.push({
-        month: monthStr,
-        price,
-        salePrice,
-      });
-    }
-
-    return chartData;
-  },
 };
+
+function buildVariantUpdateData(
+  data: UpdateAdminVariantInput,
+  adminId: bigint | null
+): Prisma.ProductVariantUncheckedUpdateInput {
+  const updateData: Prisma.ProductVariantUncheckedUpdateInput = {};
+
+  if (adminId) {
+    updateData.updated_by = adminId;
+  }
+  if (data.variantName !== undefined) {
+    updateData.variant_name = data.variantName;
+  }
+  if (data.shortDescription !== undefined) {
+    updateData.short_description = data.shortDescription;
+  }
+  if (data.description !== undefined) {
+    updateData.description = data.description;
+  }
+  if (data.vegType !== undefined) {
+    updateData.veg_type = data.vegType as Prisma.ProductVariantUncheckedUpdateInput["veg_type"];
+  }
+  if (data.isFeatured !== undefined) {
+    updateData.is_featured = data.isFeatured;
+  }
+  if (typeof data.isActive === "boolean") {
+    updateData.isActive = data.isActive;
+  }
+  if (typeof data.outOfStock === "boolean") {
+    updateData.out_of_stock = data.outOfStock;
+  }
+
+  return updateData;
+}

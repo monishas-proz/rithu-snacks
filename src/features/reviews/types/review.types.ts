@@ -30,6 +30,7 @@ export interface ReviewResponse {
   id: string;
   productId: string;
   variantId?: string | null;
+  variantUnitPriceId?: string | null;
   orderItemId: string | null;
   rating: number;
   title: string | null;
@@ -106,6 +107,7 @@ export interface AdminReviewListParams {
   rating?: number;
   productId?: string;
   variantId?: string;
+  variantUnitPriceId?: string;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
 }

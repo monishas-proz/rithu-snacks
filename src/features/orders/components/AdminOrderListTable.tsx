@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { FormModal } from "@/components/common/FormModal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { SearchInput } from "@/components/ui/search-input";
+import { ClearFiltersButton } from "@/components/common/clear-filters-button";
 import { formatDateTime, formatPrice } from "@/lib/utils";
 import { AssignStaffModal } from "@/features/orders/components/AssignStaffModal";
 import {
@@ -82,6 +83,14 @@ export function AdminOrderListTable({
 
   const orders = data?.data ?? [];
   const meta = data?.meta;
+
+  const handleClearFilters = () => {
+    setSearch("");
+    setPaymentFilter("");
+    setPage(1);
+  };
+
+  const hasActiveFilters = search.trim() !== "" || paymentFilter !== "";
 
   const handlePrint = () => {
     if (typeof window !== "undefined") {
@@ -362,7 +371,7 @@ export function AdminOrderListTable({
         <div className="flex flex-1 items-center gap-3">
           <SearchInput
             placeholder="Search by order number, customer name, email, phone..."
-            defaultValue={search}
+            value={search}
             onSearch={(val) => {
               setSearch(val.trim());
               setPage(1);
@@ -388,6 +397,8 @@ export function AdminOrderListTable({
               </option>
             ))}
           </select>
+
+          {hasActiveFilters && <ClearFiltersButton onClick={handleClearFilters} />}
         </div>
       </div>
 

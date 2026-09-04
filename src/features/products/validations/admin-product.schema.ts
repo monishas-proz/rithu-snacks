@@ -24,19 +24,6 @@ export const createAdminProductSchema = z
       .trim()
       .min(1, "Product code cannot be empty")
       .max(220, "Product code cannot exceed 220 characters"),
-    shortDescription: z
-      .string()
-      .trim()
-      .max(500, "Short description cannot exceed 500 characters")
-      .optional()
-      .nullable(),
-    description: z
-      .string()
-      .trim()
-      .optional()
-      .nullable(),
-    vegType: vegTypeEnum,
-    isFeatured: z.boolean().default(false).optional(),
   })
   .strict();
 
@@ -81,8 +68,6 @@ export const adminProductListSchema = z
     categoryId: optionalUuidFilter,
     brandId: optionalUuidFilter,
     hsnCodeId: optionalUuidFilter,
-    vegType: vegTypeEnum.optional(),
-    isFeatured: z.boolean().optional(),
     status: z.boolean().optional(),
     sortBy: z
       .enum([
@@ -90,7 +75,6 @@ export const adminProductListSchema = z
         "slug",
         "createdAt",
         "updatedAt",
-        "isFeatured",
         "status",
         "isActive",
       ])

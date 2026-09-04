@@ -16,13 +16,14 @@ import {
   AdminPageHeader,
   AdminContent,
 } from "@/components/admin/AdminPageHeader";
-import { LoadingState } from "@/components/ui/loading-state";
+import { AdminTableSkeleton } from "@/components/admin/AdminTableSkeleton";
 import { ErrorState } from "@/components/ui/error-state";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FormModal } from "@/components/common/FormModal";
 import { SearchInput } from "@/components/ui/search-input";
+import { ClearFiltersButton } from "@/components/common/clear-filters-button";
 import {
   Plus,
   Pencil,
@@ -39,6 +40,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Filter,
+  Loader2,
+  ArrowLeftRight,
 } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { AdminVariantResponse } from "@/features/variants/types";
@@ -47,6 +50,7 @@ import {
   VariantImageUploader,
   VariantCard,
   VariantCustomerPreviewModal,
+  VariantUnitPriceList,
 } from "@/features/variants/components";
 
 type ViewMode = "table" | "cards";
@@ -67,7 +71,7 @@ export default function AdminVariantsPage() {
 
   // Add Stepper State
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [createStep, setCreateStep] = useState<1 | 2 | 3>(1);
+  const [createStep, setCreateStep] = useState<1 | 2 | 3 | 4>(1);
   const [createdVariant, setCreatedVariant] = useState<{
     id: string;
     productId: string;
@@ -77,7 +81,7 @@ export default function AdminVariantsPage() {
 
   // Edit State & Tabs
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [editTab, setEditTab] = useState<"details" | "images">("details");
+  const [editTab, setEditTab] = useState<"details" | "pricing" | "images">("details");
   const [selectedVariant, setSelectedVariant] =
     useState<AdminVariantResponse | null>(null);
 
@@ -129,6 +133,14 @@ export default function AdminVariantsPage() {
     ];
   }, [productOptions]);
 
+  const handleClearFilters = () => {
+    setSearch("");
+    setSelectedProductFilter("");
+    setPage(1);
+  };
+
+  const hasActiveFilters = search.trim() !== "" || selectedProductFilter !== "";
+
   const handleToggleStatus = async (
     variant: AdminVariantResponse,
     nextActive: boolean
@@ -142,6 +154,22 @@ export default function AdminVariantsPage() {
       refetch();
     } catch (err) {
       console.error("Failed to toggle Items status", err);
+    }
+  };
+
+  const handleToggleStock = async (
+    variant: AdminVariantResponse,
+    nextOutOfStock: boolean
+  ) => {
+    try {
+      await updateMutation.mutateAsync({
+        productUuid: variant.productId,
+        variantUuid: variant.id,
+        data: { outOfStock: nextOutOfStock },
+      });
+      refetch();
+    } catch (err) {
+      console.error("Failed to toggle Item stock", err);
     }
   };
 
@@ -200,48 +228,62 @@ export default function AdminVariantsPage() {
     },
     {
       accessorKey: "measurement",
-      header: "Measurement",
+      header: "Pack Sizes",
       cell: ({ row }) => {
+        const prices = row.original.unitPrices ?? [];
+        if (prices.length === 0) {
+          return <span className="text-[var(--color-neutral-400)] text-xs italic">No sizes added</span>;
+        }
         const m = row.original.measurement;
-        if (!m) return <span className="text-[var(--color-neutral-400)]">—</span>;
         const typeBadgeStyles =
-          m.type === "weight"
+          m?.type === "weight"
             ? "bg-[var(--color-primary-50)] text-[var(--color-primary-700)] border-[var(--color-primary-200)]"
-            : m.type === "volume"
+            : m?.type === "volume"
             ? "bg-blue-50 text-blue-700 border-blue-200"
             : "bg-amber-50 text-amber-700 border-amber-200";
 
         return (
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-[var(--color-neutral-800)]">
-              {m.value} {m.unit}
-            </span>
-            <span
-              className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase border ${typeBadgeStyles}`}
-            >
-              {m.type}
-            </span>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {m && (
+              <>
+                <span className="font-semibold text-[var(--color-neutral-800)]">
+                  {m.value} {m.unit}
+                </span>
+                <span
+                  className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase border ${typeBadgeStyles}`}
+                >
+                  {m.type}
+                </span>
+              </>
+            )}
+            {prices.length > 1 && (
+              <span
+                className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-neutral-100 text-neutral-600 border border-neutral-200"
+                title={prices.map((p) => `${p.measurement.value} ${p.measurement.unit}`).join(", ")}
+              >
+                +{prices.length - 1} more size{prices.length - 1 > 1 ? "s" : ""}
+              </span>
+            )}
           </div>
         );
       },
     },
     {
       accessorKey: "basePrice",
-      header: "Base Price",
-      cell: ({ row }) => (
-        <span className="text-[var(--color-neutral-600)]">
-          ₹{row.original.basePrice}
-        </span>
-      ),
-    },
-    {
-      accessorKey: "salePrice",
-      header: "Sale Price",
-      cell: ({ row }) => (
-        <span className="font-semibold text-[var(--color-success-700)]">
-          ₹{row.original.salePrice}
-        </span>
-      ),
+      header: "Price",
+      cell: ({ row }) => {
+        const prices = (row.original.unitPrices ?? []).map((p) => p.basePrice);
+        if (prices.length === 0) {
+          return <span className="text-[var(--color-neutral-400)] text-xs italic">—</span>;
+        }
+        const min = Math.min(...prices);
+        const max = Math.max(...prices);
+        return (
+          <span className="text-[var(--color-neutral-700)] font-medium">
+            {min === max ? `₹${min}` : `₹${min} – ₹${max}`}
+          </span>
+        );
+      },
     },
     {
       accessorKey: "outOfStock",
@@ -250,27 +292,38 @@ export default function AdminVariantsPage() {
         const isOutOfStock = Boolean(row.original.outOfStock);
         const stockCount =
           typeof row.original.stock === "number" ? row.original.stock : undefined;
+        const isRowPending =
+          updateMutation.isPending &&
+          updateMutation.variables?.variantUuid === row.original.id;
 
         return (
-          <span
-            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+          <button
+            type="button"
+            onClick={() => handleToggleStock(row.original, !isOutOfStock)}
+            disabled={isRowPending}
+            title={isOutOfStock ? "Click to mark In Stock" : "Click to mark Out of Stock"}
+            className={`group inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-bold border bg-white cursor-pointer shadow-xs transition-all hover:shadow-sm active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100 ${
               !isOutOfStock
-                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                : "bg-rose-50 text-rose-700 border-rose-200"
+                ? "text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+                : "text-rose-700 border-rose-300 hover:bg-rose-50"
             }`}
           >
-            {!isOutOfStock ? (
-              <>
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                <span>In Stock{stockCount !== undefined ? ` (${stockCount})` : ""}</span>
-              </>
+            {isRowPending ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : !isOutOfStock ? (
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
             ) : (
-              <>
-                <XCircle className="w-3.5 h-3.5 text-rose-600" />
-                <span>Out of Stock</span>
-              </>
+              <XCircle className="w-3.5 h-3.5 text-rose-600" />
             )}
-          </span>
+            <span>
+              {!isOutOfStock
+                ? `In Stock${stockCount !== undefined ? ` (${stockCount})` : ""}`
+                : "Out of Stock"}
+            </span>
+            {!isRowPending && (
+              <ArrowLeftRight className="w-3 h-3 opacity-40 group-hover:opacity-80 transition-opacity" />
+            )}
+          </button>
         );
       },
     },
@@ -304,7 +357,7 @@ export default function AdminVariantsPage() {
               row.original.id
             )}?productId=${encodeURIComponent(row.original.productId)}`}
             className="inline-flex items-center justify-center h-8 w-8 rounded-md text-[var(--color-neutral-500)] hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
-            title="View Item Details"
+            title="View full details"
           >
             <Eye className="h-4 w-4" />
           </Link>
@@ -312,16 +365,7 @@ export default function AdminVariantsPage() {
           <Button
             variant="ghost"
             size="icon"
-            title="Preview Customer Storefront Card"
-            onClick={() => setPreviewVariant(row.original)}
-          >
-            <Sparkles className="h-4 w-4 text-[var(--color-secondary-600)]" />
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            title="Edit Item Details"
+            title="Edit item (details, pricing & images)"
             onClick={() => {
               setSelectedVariant(row.original);
               setEditTab("details");
@@ -334,20 +378,7 @@ export default function AdminVariantsPage() {
           <Button
             variant="ghost"
             size="icon"
-            title="Manage Images"
-            onClick={() => {
-              setSelectedVariant(row.original);
-              setEditTab("images");
-              setIsEditOpen(true);
-            }}
-          >
-            <ImageIcon className="h-4 w-4 text-[var(--color-neutral-500)]" />
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            title="Delete Item"
+            title="Delete item"
             onClick={() =>
               setDeleteTarget({
                 productUuid: row.original.productId,
@@ -370,7 +401,7 @@ export default function AdminVariantsPage() {
   };
 
   if (isLoading && !data) {
-    return <LoadingState text="Loading product Items..." />;
+    return <AdminTableSkeleton />;
   }
 
   if (error) {
@@ -399,7 +430,7 @@ export default function AdminVariantsPage() {
             <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
               <SearchInput
                 placeholder="Search Items by name, SKU..."
-                defaultValue={search}
+                value={search}
                 onSearch={(val) => {
                   setSearch(val);
                   setPage(1);
@@ -416,6 +447,8 @@ export default function AdminVariantsPage() {
                   className="h-11 rounded-xl"
                 />
               </div>
+
+              {hasActiveFilters && <ClearFiltersButton onClick={handleClearFilters} />}
             </div>
 
             <div className="flex items-center gap-3">
@@ -533,6 +566,7 @@ export default function AdminVariantsPage() {
                           }
                           onPreview={(v) => setPreviewVariant(v)}
                           onToggleStatus={handleToggleStatus}
+                          onToggleStock={handleToggleStock}
                         />
                       ))}
                     </div>
@@ -605,15 +639,19 @@ export default function AdminVariantsPage() {
           createStep === 1
             ? "Add Product Item"
             : createStep === 2
+            ? `Units & Pricing: ${createdVariant?.name || "Item"}`
+            : createStep === 3
             ? `Add Images: ${createdVariant?.name || "Item"}`
             : `Item Created: ${createdVariant?.name || "Item"}`
         }
         description={
           createStep === 1
-            ? "Step 1 of 3: Enter Item specifications and pricing"
+            ? "Step 1 of 4: Basic details — name, description and dietary type"
             : createStep === 2
-            ? "Step 2 of 3: Upload images for this Item"
-            : "Step 3 of 3: Preview how customers see this Item on the storefront"
+            ? "Step 2 of 4: Add the pack sizes (e.g. 250g, 500g) and price for each"
+            : createStep === 3
+            ? "Step 3 of 4: Upload photos for this item"
+            : "Step 4 of 4: See how this item will look to customers"
         }
         size="lg"
       >
@@ -650,7 +688,7 @@ export default function AdminVariantsPage() {
             ) : (
               <span>2</span>
             )}
-            <span>Item Images</span>
+            <span>Units & Pricing</span>
           </div>
 
           <span className="text-xs text-[var(--color-neutral-400)]">→</span>
@@ -659,29 +697,46 @@ export default function AdminVariantsPage() {
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
               createStep === 3
                 ? "bg-[var(--color-secondary-600)] text-white shadow"
+                : createStep > 3
+                ? "bg-[var(--color-success-100)] text-[var(--color-success-700)]"
                 : "bg-[var(--color-neutral-100)] text-[var(--color-neutral-500)]"
             }`}
           >
-            <span>3</span>
-            <span>Card Preview</span>
+            {createStep > 3 ? (
+              <Check className="h-3.5 w-3.5" />
+            ) : (
+              <span>3</span>
+            )}
+            <span>Item Images</span>
+          </div>
+
+          <span className="text-xs text-[var(--color-neutral-400)]">→</span>
+
+          <div
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              createStep === 4
+                ? "bg-[var(--color-secondary-600)] text-white shadow"
+                : "bg-[var(--color-neutral-100)] text-[var(--color-neutral-500)]"
+            }`}
+          >
+            <span>4</span>
+            <span>Preview</span>
           </div>
         </div>
 
         {createStep === 1 && (
           <VariantForm
             products={productOptions}
-            units={units}
             isLoading={createMutation.isPending}
-            submitLabel="Next: Upload Images"
+            submitLabel="Next: Units & Pricing"
             onSubmit={async (formData) => {
               const payload = {
                 variantName: formData.variantName,
-                sku: formData.sku,
                 slug: formData.slug,
-                unitId: formData.unitId,
-                unitValue: Number(formData.unitValue),
-                basePrice: Number(formData.basePrice),
-                salePrice: Number(formData.salePrice),
+                shortDescription: formData.shortDescription || null,
+                description: formData.description || null,
+                vegType: formData.vegType,
+                isFeatured: formData.isFeatured,
               };
 
               const res = await createMutation.mutateAsync({
@@ -703,17 +758,35 @@ export default function AdminVariantsPage() {
         )}
 
         {createStep === 2 && createdVariant && (
+          <div className="space-y-4">
+            <VariantUnitPriceList
+              productUuid={createdVariant.productId}
+              variantUuid={createdVariant.id}
+            />
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                onClick={() => setCreateStep(3)}
+                className="h-10 rounded-xl bg-[var(--color-secondary-600)] px-5 text-sm font-semibold text-white hover:bg-[var(--color-secondary-700)]"
+              >
+                Next: Upload Images
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {createStep === 3 && createdVariant && (
           <VariantImageUploader
             productUuid={createdVariant.productId}
             variantUuid={createdVariant.id}
             variantName={createdVariant.name}
             isStepperMode={true}
-            onFinish={() => setCreateStep(3)}
-            onSkip={() => setCreateStep(3)}
+            onFinish={() => setCreateStep(4)}
+            onSkip={() => setCreateStep(4)}
           />
         )}
 
-        {createStep === 3 && createdVariant && (
+        {createStep === 4 && createdVariant && (
           <div className="space-y-6">
             <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 text-emerald-800 text-xs flex items-center gap-3">
               <Check className="h-5 w-5 text-emerald-600 shrink-0" />
@@ -791,6 +864,19 @@ export default function AdminVariantsPage() {
 
               <button
                 type="button"
+                onClick={() => setEditTab("pricing")}
+                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors cursor-pointer ${
+                  editTab === "pricing"
+                    ? "border-[var(--color-secondary-600)] text-[var(--color-secondary-600)]"
+                    : "border-transparent text-[var(--color-neutral-500)] hover:text-[var(--color-neutral-800)]"
+                }`}
+              >
+                <Package className="h-4 w-4" />
+                Units & Pricing
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setEditTab("images")}
                 className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors cursor-pointer ${
                   editTab === "images"
@@ -808,44 +894,25 @@ export default function AdminVariantsPage() {
                 initialData={{
                   productId: selectedVariant.productId,
                   variantName: selectedVariant.variantName,
-                  sku: selectedVariant.sku,
                   slug: selectedVariant.slug || "",
-                  unitId:
-                    selectedVariant.measurement?.unitId ||
-                    units.find(
-                      (u) =>
-                        u.code?.toLowerCase() ===
-                          selectedVariant.measurement?.unit?.toLowerCase() ||
-                        u.name?.toLowerCase() ===
-                          selectedVariant.measurement?.unit?.toLowerCase() ||
-                        u.id === selectedVariant.unitId
-                    )?.id ||
-                    selectedVariant.unitId ||
-                    "",
-                  unitValue:
-                    selectedVariant.measurement?.value ??
-                    selectedVariant.unitValue,
-                  basePrice: selectedVariant.basePrice,
-                  salePrice: selectedVariant.salePrice,
-                  inStock: !selectedVariant.outOfStock,
-                  outOfStock: selectedVariant.outOfStock,
+                  shortDescription: selectedVariant.shortDescription || "",
+                  description: selectedVariant.description || "",
+                  vegType: selectedVariant.vegType || "na",
+                  isFeatured: selectedVariant.isFeatured ?? false,
                 }}
                 isEditing
                 fixedProductId={selectedVariant.productId}
                 products={productOptions}
-                units={units}
                 isLoading={updateMutation.isPending}
                 submitLabel="Update Details"
                 onSubmit={async (formData) => {
                   const payload = {
                     variantName: formData.variantName,
-                    sku: formData.sku,
                     slug: formData.slug,
-                    unitId: formData.unitId,
-                    unitValue: Number(formData.unitValue),
-                    basePrice: Number(formData.basePrice),
-                    salePrice: Number(formData.salePrice),
-                    outOfStock: !formData.inStock,
+                    shortDescription: formData.shortDescription || null,
+                    description: formData.description || null,
+                    vegType: formData.vegType,
+                    isFeatured: formData.isFeatured,
                   };
 
                   await updateMutation.mutateAsync({
@@ -858,6 +925,11 @@ export default function AdminVariantsPage() {
                   setSelectedVariant(null);
                   refetch();
                 }}
+              />
+            ) : editTab === "pricing" ? (
+              <VariantUnitPriceList
+                productUuid={selectedVariant.productId}
+                variantUuid={selectedVariant.id}
               />
             ) : (
               <VariantImageUploader

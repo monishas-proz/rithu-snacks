@@ -20,22 +20,29 @@ async function resolveInternalUser(sessionUserId: string) {
   return user;
 }
 
-async function validateActiveVariant(variantUuid: string) {
-  const variant = await db.productVariant.findFirst({
+async function validateActiveVariantUnitPrice(variantUnitPriceUuid: string) {
+  const unitPrice = await db.variantUnitPrice.findFirst({
     where: {
-      uuid: variantUuid,
+      uuid: variantUnitPriceUuid,
     },
     include: {
-      product: true,
+      variant: {
+        include: { product: true },
+      },
     },
   });
 
-  if (!variant || variant.deleted_at !== null) {
-    throw ApiError.notFound("Product variant not found");
+  if (!unitPrice || unitPrice.deleted_at !== null) {
+    throw ApiError.notFound("Product pack size not found");
   }
 
+  const variant = unitPrice.variant;
+
   if (
+    !unitPrice.isActive ||
+    !variant ||
     !variant.isActive ||
+    variant.deleted_at !== null ||
     !variant.product ||
     !variant.product.isActive ||
     variant.product.deleted_at !== null
@@ -43,7 +50,7 @@ async function validateActiveVariant(variantUuid: string) {
     throw ApiError.badRequest("Product variant is inactive or unavailable");
   }
 
-  return variant;
+  return unitPrice;
 }
 
 export const wishlistService = {
@@ -59,32 +66,34 @@ export const wishlistService = {
     input: AddWishlistInput
   ): Promise<CustomerWishlistItemDto> {
     const user = await resolveInternalUser(sessionUserId);
-    const variant = await validateActiveVariant(input.variantId);
+    const unitPrice = await validateActiveVariantUnitPrice(
+      input.variantUnitPriceId
+    );
 
     return wishlistRepository.addOrReactivateWishlistItem({
       userId: user.internalId,
-      productId: variant.productId,
-      variantId: variant.id,
+      productId: unitPrice.variant.productId,
+      variantUnitPriceId: unitPrice.id,
       userInternalId: user.internalId,
     });
   },
 
   async removeFromWishlist(
     sessionUserId: string,
-    variantUuid: string
+    variantUnitPriceUuid: string
   ): Promise<void> {
     const user = await resolveInternalUser(sessionUserId);
-    const variant = await db.productVariant.findFirst({
-      where: { uuid: variantUuid },
+    const unitPrice = await db.variantUnitPrice.findFirst({
+      where: { uuid: variantUnitPriceUuid },
     });
 
-    if (!variant) {
-      throw ApiError.notFound("Product variant not found");
+    if (!unitPrice) {
+      throw ApiError.notFound("Product pack size not found");
     }
 
     const removed = await wishlistRepository.softRemoveWishlistItem(
       user.internalId,
-      variant.id,
+      unitPrice.id,
       user.internalId
     );
 
@@ -93,14 +102,14 @@ export const wishlistService = {
     }
   },
 
-  async moveToCart(sessionUserId: string, variantUuid: string) {
+  async moveToCart(sessionUserId: string, variantUnitPriceUuid: string) {
     const user = await resolveInternalUser(sessionUserId);
-    const variant = await validateActiveVariant(variantUuid);
+    const unitPrice = await validateActiveVariantUnitPrice(variantUnitPriceUuid);
 
     const wishlistItem =
       await wishlistRepository.findWishlistItemByUserAndVariant(
         user.internalId,
-        variant.id
+        unitPrice.id
       );
 
     if (!wishlistItem || !wishlistItem.is_active) {
@@ -109,20 +118,20 @@ export const wishlistService = {
 
     // 1. Add to active cart
     const cart = await cartService.addItem(sessionUserId, {
-      variantId: variant.uuid,
+      variantUnitPriceId: unitPrice.uuid,
       quantity: 1,
     });
 
     // 2. Remove from wishlist
     await wishlistRepository.softRemoveWishlistItem(
       user.internalId,
-      variant.id,
+      unitPrice.id,
       user.internalId
     );
 
     return {
       cart,
-      movedVariantId: variant.uuid,
+      movedVariantUnitPriceId: unitPrice.uuid,
     };
   },
 

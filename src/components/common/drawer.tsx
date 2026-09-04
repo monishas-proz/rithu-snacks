@@ -14,6 +14,12 @@ interface DrawerProps {
 }
 
 function Drawer({ open, onClose, children, title, side = "right", className }: DrawerProps) {
+  const [hasOpened, setHasOpened] = React.useState(open);
+
+  React.useEffect(() => {
+    if (open) setHasOpened(true);
+  }, [open]);
+
   React.useEffect(() => {
     if (!open) return;
 
@@ -70,7 +76,7 @@ function Drawer({ open, onClose, children, title, side = "right", className }: D
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto">{children}</div>
+        <div className="flex-1 overflow-y-auto">{hasOpened ? children : null}</div>
       </div>
     </div>
   );

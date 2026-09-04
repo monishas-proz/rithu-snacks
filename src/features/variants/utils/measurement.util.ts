@@ -37,6 +37,18 @@ export function formatVariantMeasurement(
   };
 }
 
+/**
+ * Human-readable pack-size label for a measurement, e.g. "250 g", "1 kg".
+ * Mirrors the `${value} ${unit}` convention already used across the admin
+ * variant UI (VariantCard, VariantUnitPriceList, VariantPriceHistoryCard).
+ */
+export function formatMeasurementLabel(measurement: VariantMeasurement | null | undefined): string {
+  if (!measurement) return "";
+  const value = measurement.value ?? 0;
+  const unit = measurement.unit ?? "";
+  return unit ? `${value} ${unit}` : `${value}`;
+}
+
 export function getMeasurementFieldConfig(
   unit?: { type?: string | null; code?: string | null; name?: string | null } | null
 ): MeasurementFieldConfig {

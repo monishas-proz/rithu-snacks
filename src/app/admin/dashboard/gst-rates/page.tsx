@@ -13,7 +13,7 @@ import {
   AdminPageHeader,
   AdminContent,
 } from "@/components/admin/AdminPageHeader";
-import { LoadingState } from "@/components/ui/loading-state";
+import { AdminTableSkeleton } from "@/components/admin/AdminTableSkeleton";
 import { ErrorState } from "@/components/ui/error-state";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -123,7 +123,7 @@ export default function AdminGstRatesPage() {
   ];
 
   if (isLoading && !data) {
-    return <LoadingState text="Loading GST rates..." />;
+    return <AdminTableSkeleton />;
   }
 
   if (error) {

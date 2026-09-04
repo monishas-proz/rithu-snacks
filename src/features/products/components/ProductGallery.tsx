@@ -5,10 +5,15 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ImageWithFallback } from "@/components/common/ImageWithFallback";
-import type { ProductDetail } from "../types";
+
+export interface GalleryImage {
+  id: string;
+  url: string;
+  altText?: string | null;
+}
 
 interface ProductGalleryProps {
-  images: ProductDetail["images"];
+  images: GalleryImage[];
   productName: string;
   className?: string;
 }

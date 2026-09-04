@@ -16,13 +16,19 @@ const reviewInclude = {
       slug: true,
     },
   },
-  product_variant: {
+  variant_unit_price: {
     select: {
       id: true,
       uuid: true,
-      variant_name: true,
       sku: true,
-      slug: true,
+      variant: {
+        select: {
+          id: true,
+          uuid: true,
+          variant_name: true,
+          slug: true,
+        },
+      },
     },
   },
   order_items: {
@@ -72,6 +78,10 @@ export const reviewRepository = {
     });
   },
 
+  /**
+   * Resolves an item-level ProductVariant (e.g. "Mango Mysore Pak"). Used to
+   * scope reviews across *all* of that variant's pack sizes.
+   */
   async findVariantByIdentifier(identifier: string) {
     const isNum = !isNaN(Number(identifier)) && !identifier.includes("-");
     const orConditions: Prisma.ProductVariantWhereInput[] = [
@@ -97,6 +107,49 @@ export const reviewRepository = {
             slug: true,
           },
         },
+        variant_unit_prices: {
+          where: { deleted_at: null, isActive: true },
+          select: { sku: true },
+          orderBy: [{ is_default: "desc" as const }, { createdAt: "asc" as const }],
+          take: 1,
+        },
+      },
+    });
+  },
+
+  /**
+   * Resolves an exact sellable pack size (VariantUnitPrice) — used when a
+   * review needs to be scoped to the precise size a customer bought.
+   */
+  async findVariantUnitPriceByIdentifier(identifier: string) {
+    const isNum = !isNaN(Number(identifier)) && !identifier.includes("-");
+    const orConditions: Prisma.VariantUnitPriceWhereInput[] = [
+      { uuid: identifier },
+      { sku: identifier },
+    ];
+    if (isNum) {
+      orConditions.push({ id: BigInt(identifier) });
+    }
+
+    return db.variantUnitPrice.findFirst({
+      where: {
+        OR: orConditions,
+        isActive: true,
+        deleted_at: null,
+      },
+      include: {
+        variant: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                uuid: true,
+                name: true,
+                slug: true,
+              },
+            },
+          },
+        },
       },
     });
   },
@@ -114,7 +167,7 @@ export const reviewRepository = {
       include: {
         order: true,
         product: true,
-        variant: true,
+        variant_unit_price: true,
       },
     });
   },
@@ -131,7 +184,7 @@ export const reviewRepository = {
 
   async createReviewTransaction(params: {
     productId: bigint;
-    variantId: bigint;
+    variantUnitPriceId: bigint;
     userId: bigint;
     orderItemId: bigint;
     rating: number;
@@ -146,7 +199,7 @@ export const reviewRepository = {
         data: {
           uuid: reviewUuid,
           productId: params.productId,
-          variant_id: params.variantId,
+          variant_unit_price_id: params.variantUnitPriceId,
           userId: params.userId,
           order_item_id: params.orderItemId,
           rating: params.rating,
@@ -352,13 +405,19 @@ export const reviewRepository = {
               avatar: true,
             },
           },
-          product_variant: {
+          variant_unit_price: {
             select: {
               id: true,
               uuid: true,
-              variant_name: true,
               sku: true,
-              slug: true,
+              variant: {
+                select: {
+                  id: true,
+                  uuid: true,
+                  variant_name: true,
+                  slug: true,
+                },
+              },
             },
           },
           images: {
@@ -388,8 +447,9 @@ export const reviewRepository = {
     const limit = params.limit ?? 10;
     const skip = (page - 1) * limit;
 
+    // Aggregate reviews across every pack size of this item-level variant.
     const where: Prisma.ReviewWhereInput = {
-      variant_id: variantId,
+      variant_unit_price: { variant_id: variantId },
       isApproved: true,
       is_active: true,
     };
@@ -417,13 +477,19 @@ export const reviewRepository = {
               avatar: true,
             },
           },
-          product_variant: {
+          variant_unit_price: {
             select: {
               id: true,
               uuid: true,
-              variant_name: true,
               sku: true,
-              slug: true,
+              variant: {
+                select: {
+                  id: true,
+                  uuid: true,
+                  variant_name: true,
+                  slug: true,
+                },
+              },
             },
           },
           images: {
@@ -493,7 +559,7 @@ export const reviewRepository = {
 
   async getPublicVariantRatingSummary(variantId: bigint) {
     const where: Prisma.ReviewWhereInput = {
-      variant_id: variantId,
+      variant_unit_price: { variant_id: variantId },
       isApproved: true,
       is_active: true,
     };
@@ -540,7 +606,8 @@ export const reviewRepository = {
   async findAdminReviews(
     params: AdminReviewListInput,
     resolvedProductId?: bigint,
-    resolvedVariantId?: bigint
+    resolvedVariantId?: bigint,
+    resolvedVariantUnitPriceId?: bigint
   ) {
     const page = params.page ?? 1;
     const limit = params.limit ?? 10;
@@ -554,8 +621,11 @@ export const reviewRepository = {
       where.productId = resolvedProductId;
     }
 
-    if (resolvedVariantId) {
-      where.variant_id = resolvedVariantId;
+    if (resolvedVariantUnitPriceId) {
+      // Exact pack size takes precedence over the item-level filter.
+      where.variant_unit_price_id = resolvedVariantUnitPriceId;
+    } else if (resolvedVariantId) {
+      where.variant_unit_price = { variant_id: resolvedVariantId };
     }
 
     if (params.isApproved !== undefined) {
@@ -572,8 +642,8 @@ export const reviewRepository = {
         { title: { contains: s } },
         { comment: { contains: s } },
         { product: { name: { contains: s } } },
-        { product_variant: { variant_name: { contains: s } } },
-        { product_variant: { sku: { contains: s } } },
+        { variant_unit_price: { variant: { variant_name: { contains: s } } } },
+        { variant_unit_price: { sku: { contains: s } } },
         { user: { name: { contains: s } } },
         { user: { email: { contains: s } } },
       ];

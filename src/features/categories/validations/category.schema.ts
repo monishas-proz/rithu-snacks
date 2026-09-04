@@ -9,7 +9,15 @@ export type GetCategoriesQueryInput = z.infer<typeof getCategoriesQuerySchema>;
 
 export const createCategorySchema = z.object({
   name: z.string().min(1, "Category name is required").max(255),
-  slug: z.string().trim().min(1, "Category code is required").max(255),
+  slug: z
+    .string()
+    .trim()
+    .min(1, "Category code is required")
+    .max(255)
+    .regex(
+      /^[A-Za-z0-9_]+$/,
+      "Category code can only contain letters, numbers, and underscores"
+    ),
   description: z.string().max(1000).optional(),
   image: z
     .string({ message: "Category image is required" })

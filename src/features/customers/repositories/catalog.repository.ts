@@ -16,7 +16,101 @@ import type {
   CustomerVariantListItemDto,
   CustomerVariantDetailDto,
   CustomerVariantImageDto,
+  CustomerVariantUnitPriceDto,
 } from "../types/catalog.types";
+
+/**
+ * Selling price is not stored on the unit price row - it is basePrice minus
+ * any active offer/discount, computed here at read time. No offer/discount
+ * engine is wired up for the storefront yet, so this currently returns
+ * basePrice unchanged. When one exists, apply it here so every price shown
+ * to customers (list, detail, cart, wishlist) flows through this single
+ * function instead of reading base_price directly.
+ */
+function computeSellingPrice(basePrice: number): number {
+  return basePrice;
+}
+
+// Unit prices are always loaded with this shape when we need to derive a
+// variant's display sku/price/measurement (the storefront still shows one
+// price per variant - the default unit price - since cart/wishlist/orders
+// key off the item-level variant, not a specific unit price).
+const unitPriceListArgs = {
+  where: { deleted_at: null, isActive: true },
+  include: {
+    product_units: {
+      select: { id: true, uuid: true, name: true, code: true, type: true },
+    },
+  },
+  orderBy: [{ is_default: "desc" as const }, { createdAt: "asc" as const }],
+};
+
+type VariantUnitPriceForDto = {
+  uuid: string;
+  sku: string;
+  base_price: Prisma.Decimal | number;
+  unit_value: Prisma.Decimal | number;
+  is_default: boolean;
+  product_units: { id: bigint; uuid: string | null; name: string; code: string; type: string } | null;
+};
+
+function pickDefaultUnitPrice(
+  unitPrices: VariantUnitPriceForDto[] | null | undefined
+): VariantUnitPriceForDto | null {
+  if (!unitPrices || unitPrices.length === 0) return null;
+  return unitPrices.find((up) => up.is_default) ?? unitPrices[0];
+}
+
+function toVariantListItemDto(
+  variant: {
+    id: bigint;
+    uuid: string;
+    variant_name: string | null;
+    out_of_stock?: boolean;
+    variant_unit_prices?: VariantUnitPriceForDto[] | null;
+    product_variant_images?: Array<{ image_url: string }> | null;
+  },
+  productUuid: string,
+  productName: string
+): CustomerVariantListItemDto {
+  const defaultUnitPrice = pickDefaultUnitPrice(variant.variant_unit_prices);
+
+  const unitPrices: CustomerVariantUnitPriceDto[] = (
+    variant.variant_unit_prices || []
+  ).map((up) => {
+    const basePrice = Number(up.base_price);
+    return {
+      id: up.uuid,
+      sku: up.sku,
+      measurement: formatVariantMeasurement(up.product_units, up.unit_value ?? 0),
+      basePrice,
+      sellingPrice: computeSellingPrice(basePrice),
+      isDefault: Boolean(up.is_default),
+    };
+  });
+
+  return {
+    id: variant.uuid || String(variant.id),
+    productId: productUuid,
+    productName,
+    variantName: variant.variant_name || "",
+    measurement: formatVariantMeasurement(
+      defaultUnitPrice?.product_units,
+      defaultUnitPrice?.unit_value ?? 0
+    ),
+    sku: defaultUnitPrice?.sku ?? "",
+    basePrice: defaultUnitPrice ? Number(defaultUnitPrice.base_price) : 0,
+    // Selling price is not stored - it is basePrice minus any active
+    // offer/discount (see computeSellingPrice). Mirrored here for callers
+    // that still read `salePrice` directly instead of `unitPrices`.
+    salePrice: defaultUnitPrice
+      ? computeSellingPrice(Number(defaultUnitPrice.base_price))
+      : 0,
+    primaryImage: variant.product_variant_images?.[0]?.image_url ?? null,
+    outOfStock: Boolean(variant.out_of_stock),
+    unitPrices,
+  };
+}
 
 export const catalogRepository = {
   // ----------------------------------------------------
@@ -219,14 +313,10 @@ export const catalogRepository = {
 
     // Search filter
     if (params.search) {
-      where.OR = [
-        { name: { contains: params.search } },
-        { description: { contains: params.search } },
-        { shortDescription: { contains: params.search } },
-      ];
+      where.OR = [{ name: { contains: params.search } }];
     }
 
-    // Price range filter on active variants
+    // Price range filter on active variants' unit prices
     if (params.minPrice !== undefined || params.maxPrice !== undefined) {
       const minP = params.minPrice ?? 0;
       const maxP = params.maxPrice ?? Number.MAX_SAFE_INTEGER;
@@ -235,14 +325,13 @@ export const catalogRepository = {
         some: {
           isActive: true,
           deleted_at: null,
-          OR: [
-            {
-              sale_price: { gte: minP, lte: maxP },
-            },
-            {
+          variant_unit_prices: {
+            some: {
+              deleted_at: null,
+              isActive: true,
               base_price: { gte: minP, lte: maxP },
             },
-          ],
+          },
         },
       };
     }
@@ -274,6 +363,7 @@ export const catalogRepository = {
                 orderBy: [{ is_primary: "desc" }, { sort_order: "asc" }],
                 take: 1,
               },
+              variant_unit_prices: unitPriceListArgs,
             },
           },
         },
@@ -281,18 +371,14 @@ export const catalogRepository = {
       db.product.count({ where }),
     ]);
 
-    // Map each product & calculate minPrice/maxPrice
+    // Map each product & calculate minPrice/maxPrice across all variants' unit prices
     let items: CustomerProductListItemDto[] = products.map((p) => {
-      let minP = Number(p.base_price);
-      let maxP = Number(p.base_price);
+      const allPrices = p.variants.flatMap((v) =>
+        (v.variant_unit_prices || []).map((up) => Number(up.base_price))
+      );
 
-      if (p.variants.length > 0) {
-        const prices = p.variants.map((v) =>
-          v.sale_price !== null ? Number(v.sale_price) : Number(v.base_price)
-        );
-        minP = Math.min(...prices);
-        maxP = Math.max(...prices);
-      }
+      let minP = allPrices.length > 0 ? Math.min(...allPrices) : 0;
+      let maxP = allPrices.length > 0 ? Math.max(...allPrices) : 0;
 
       // Resolve primary image from product.images or variant images
       let imgUrl: string | null = p.images[0]?.image_url ?? null;
@@ -300,10 +386,14 @@ export const catalogRepository = {
         imgUrl = p.variants[0].product_variant_images[0]?.image_url ?? null;
       }
 
+      const primaryVariant =
+        p.variants.find((v) => v.is_default) ?? p.variants[0] ?? null;
+
       return {
         id: p.uuid || String(p.id),
         name: p.name,
-        description: p.shortDescription || p.description || null,
+        description:
+          primaryVariant?.short_description || primaryVariant?.description || null,
         brand: p.brand
           ? {
               id: p.brand.uuid || String(p.brand.id),
@@ -377,13 +467,11 @@ export const catalogRepository = {
         variants: {
           where: { isActive: true, deleted_at: null },
           include: {
-            product_units: {
-              select: { id: true, uuid: true, name: true, code: true, type: true },
-            },
             product_variant_images: {
               where: { is_active: true },
               orderBy: [{ is_primary: "desc" }, { sort_order: "asc" }],
             },
+            variant_unit_prices: unitPriceListArgs,
           },
           orderBy: { createdAt: "asc" },
         },
@@ -411,26 +499,19 @@ export const catalogRepository = {
       imgUrl = product.variants[0].product_variant_images[0]?.image_url ?? null;
     }
 
-    const variantsDto: CustomerVariantListItemDto[] = product.variants.map((v) => {
-      const primaryImg = v.product_variant_images[0]?.image_url ?? null;
-      return {
-        id: v.uuid || String(v.id),
-        productId: product.uuid || String(product.id),
-        productName: product.name,
-        variantName: v.variant_name || `${v.unit_value} ${v.product_units?.code || ""}`,
-        measurement: formatVariantMeasurement(v.product_units, v.unit_value),
-        sku: v.sku,
-        basePrice: Number(v.base_price),
-        salePrice: v.sale_price !== null && Number(v.sale_price) > 0 ? Number(v.sale_price) : Number(v.base_price),
-        primaryImage: primaryImg,
-        outOfStock: Boolean(v.out_of_stock),
-      };
-    });
+    const productUuid = product.uuid || String(product.id);
+    const variantsDto: CustomerVariantListItemDto[] = product.variants.map((v) =>
+      toVariantListItemDto(v, productUuid, product.name)
+    );
+
+    const primaryVariant =
+      product.variants.find((v) => v.is_default) ?? product.variants[0] ?? null;
 
     return {
-      id: product.uuid || String(product.id),
+      id: productUuid,
       name: product.name,
-      description: product.description || product.shortDescription || null,
+      description:
+        primaryVariant?.description || primaryVariant?.short_description || null,
       brand: product.brand
         ? {
             id: product.brand.uuid || String(product.brand.id),
@@ -473,7 +554,7 @@ export const catalogRepository = {
     if (params.search) {
       where.OR = [
         { variant_name: { contains: params.search } },
-        { sku: { contains: params.search } },
+        { variant_unit_prices: { some: { sku: { contains: params.search } } } },
       ];
     }
 
@@ -481,59 +562,53 @@ export const catalogRepository = {
       const minP = params.minPrice ?? 0;
       const maxP = params.maxPrice ?? Number.MAX_SAFE_INTEGER;
 
-      where.OR = [
-        {
-          sale_price: { gte: minP, lte: maxP },
-        },
-        {
+      where.variant_unit_prices = {
+        some: {
+          deleted_at: null,
+          isActive: true,
           base_price: { gte: minP, lte: maxP },
         },
-      ];
+      };
     }
 
+    // Price/sku sorting now lives on VariantUnitPrice (one-to-many), so we
+    // fetch by createdAt/variantName at the DB level and, when price sorting
+    // is requested, sort in-memory by each variant's default unit price.
     let orderBy: Prisma.ProductVariantOrderByWithRelationInput = { createdAt: "desc" };
     if (params.sortBy === "variantName") {
       orderBy = { variant_name: params.sortOrder ?? "asc" };
-    } else if (params.sortBy === "basePrice") {
-      orderBy = { base_price: params.sortOrder ?? "asc" };
-    } else if (params.sortBy === "salePrice") {
-      orderBy = { sale_price: params.sortOrder ?? "asc" };
     } else if (params.sortBy === "createdAt") {
       orderBy = { createdAt: params.sortOrder ?? "desc" };
     }
+
+    const isPriceSort = params.sortBy === "basePrice" || params.sortBy === "salePrice";
 
     const [variants, total] = await Promise.all([
       db.productVariant.findMany({
         where,
         orderBy,
-        skip: (page - 1) * pageSize,
-        take: pageSize,
+        ...(isPriceSort ? {} : { skip: (page - 1) * pageSize, take: pageSize }),
         include: {
-          product_units: {
-            select: { id: true, uuid: true, name: true, code: true, type: true },
-          },
           product_variant_images: {
             where: { is_active: true },
             orderBy: [{ is_primary: "desc" }, { sort_order: "asc" }],
             take: 1,
           },
+          variant_unit_prices: unitPriceListArgs,
         },
       }),
       db.productVariant.count({ where }),
     ]);
 
-    const data: CustomerVariantListItemDto[] = variants.map((v) => ({
-      id: v.uuid || String(v.id),
-      productId: product.uuid || String(product.id),
-      productName: product.name,
-      variantName: v.variant_name || `${v.unit_value} ${v.product_units?.code || ""}`,
-      measurement: formatVariantMeasurement(v.product_units, v.unit_value),
-      sku: v.sku,
-      basePrice: Number(v.base_price),
-      salePrice: v.sale_price !== null ? Number(v.sale_price) : Number(v.base_price),
-      primaryImage: v.product_variant_images[0]?.image_url ?? null,
-      outOfStock: Boolean(v.out_of_stock),
-    }));
+    let data: CustomerVariantListItemDto[] = variants.map((v) =>
+      toVariantListItemDto(v, product.uuid || String(product.id), product.name)
+    );
+
+    if (isPriceSort) {
+      const isAsc = params.sortOrder !== "desc";
+      data.sort((a, b) => (isAsc ? a.basePrice - b.basePrice : b.basePrice - a.basePrice));
+      data = data.slice((page - 1) * pageSize, page * pageSize);
+    }
 
     return {
       data,
@@ -566,13 +641,11 @@ export const catalogRepository = {
         product: {
           select: { id: true, uuid: true, name: true },
         },
-        product_units: {
-          select: { id: true, uuid: true, name: true, code: true, type: true },
-        },
         product_variant_images: {
           where: { is_active: true },
           orderBy: [{ is_primary: "desc" }, { sort_order: "asc" }],
         },
+        variant_unit_prices: unitPriceListArgs,
       },
     });
 
@@ -585,22 +658,14 @@ export const catalogRepository = {
       isPrimary: Boolean(img.is_primary),
     }));
 
-    const primaryImg =
-      variant.product_variant_images.find((img) => img.is_primary)?.image_url ||
-      variant.product_variant_images[0]?.image_url ||
-      null;
+    const listItem = toVariantListItemDto(
+      variant,
+      variant.product.uuid || String(variant.product.id),
+      variant.product.name
+    );
 
     return {
-      id: variant.uuid || String(variant.id),
-      productId: variant.product.uuid || String(variant.product.id),
-      productName: variant.product.name,
-      variantName: variant.variant_name || `${variant.unit_value} ${variant.product_units?.code || ""}`,
-      measurement: formatVariantMeasurement(variant.product_units, variant.unit_value),
-      sku: variant.sku,
-      basePrice: Number(variant.base_price),
-      salePrice: variant.sale_price !== null ? Number(variant.sale_price) : Number(variant.base_price),
-      primaryImage: primaryImg,
-      outOfStock: Boolean(variant.out_of_stock),
+      ...listItem,
       images,
     };
   },
@@ -658,7 +723,7 @@ export const catalogRepository = {
     if (params.search) {
       where.OR = [
         { variant_name: { contains: params.search } },
-        { sku: { contains: params.search } },
+        { variant_unit_prices: { some: { sku: { contains: params.search } } } },
         { product: { name: { contains: params.search } } },
       ];
     }
@@ -666,19 +731,20 @@ export const catalogRepository = {
     // Price range filter
     const minP = params.minPrice ?? undefined;
     const maxP = params.maxPrice ?? undefined;
-    if (minP !== undefined && minP !== null || maxP !== undefined && maxP !== null) {
+    if ((minP !== undefined && minP !== null) || (maxP !== undefined && maxP !== null)) {
       const minVal = minP ?? 0;
       const maxVal = maxP ?? Number.MAX_SAFE_INTEGER;
 
-      const priceConditions = [
-        { sale_price: { gte: minVal, lte: maxVal } },
-        { base_price: { gte: minVal, lte: maxVal } },
-      ];
+      const priceCondition: Prisma.ProductVariantWhereInput = {
+        variant_unit_prices: {
+          some: { deleted_at: null, isActive: true, base_price: { gte: minVal, lte: maxVal } },
+        },
+      };
 
       if (where.OR) {
-        where.AND = [{ OR: priceConditions }];
+        where.AND = [priceCondition];
       } else {
-        where.OR = priceConditions;
+        Object.assign(where, priceCondition);
       }
     }
 
@@ -686,51 +752,47 @@ export const catalogRepository = {
     let orderBy: Prisma.ProductVariantOrderByWithRelationInput = { createdAt: "desc" };
     if (params.sortBy === "variantName") {
       orderBy = { variant_name: params.sortOrder ?? "asc" };
-    } else if (params.sortBy === "basePrice") {
-      orderBy = { base_price: params.sortOrder ?? "asc" };
-    } else if (params.sortBy === "salePrice") {
-      orderBy = { sale_price: params.sortOrder ?? "asc" };
     } else if (params.sortBy === "productName") {
       orderBy = { product: { name: params.sortOrder ?? "asc" } };
     } else if (params.sortBy === "createdAt") {
       orderBy = { createdAt: params.sortOrder ?? "desc" };
     }
 
+    const isPriceSort = params.sortBy === "basePrice" || params.sortBy === "salePrice";
+
     const [variants, total] = await Promise.all([
       db.productVariant.findMany({
         where,
         orderBy,
-        skip: (page - 1) * pageSize,
-        take: pageSize,
+        ...(isPriceSort ? {} : { skip: (page - 1) * pageSize, take: pageSize }),
         include: {
           product: {
             select: { id: true, uuid: true, name: true },
-          },
-          product_units: {
-            select: { id: true, uuid: true, name: true, code: true, type: true },
           },
           product_variant_images: {
             where: { is_active: true },
             orderBy: [{ is_primary: "desc" }, { sort_order: "asc" }],
             take: 1,
           },
+          variant_unit_prices: unitPriceListArgs,
         },
       }),
       db.productVariant.count({ where }),
     ]);
 
-    const data: CustomerVariantListItemDto[] = variants.map((v) => ({
-      id: v.uuid || String(v.id),
-      productId: v.product ? v.product.uuid || String(v.product.id) : "",
-      productName: v.product ? v.product.name : "",
-      variantName: v.variant_name || `${v.unit_value} ${v.product_units?.code || ""}`,
-      measurement: formatVariantMeasurement(v.product_units, v.unit_value),
-      sku: v.sku,
-      basePrice: Number(v.base_price),
-      salePrice: v.sale_price !== null ? Number(v.sale_price) : Number(v.base_price),
-      primaryImage: v.product_variant_images[0]?.image_url ?? null,
-      outOfStock: Boolean(v.out_of_stock),
-    }));
+    let data: CustomerVariantListItemDto[] = variants.map((v) =>
+      toVariantListItemDto(
+        v,
+        v.product ? v.product.uuid || String(v.product.id) : "",
+        v.product ? v.product.name : ""
+      )
+    );
+
+    if (isPriceSort) {
+      const isAsc = params.sortOrder !== "desc";
+      data.sort((a, b) => (isAsc ? a.basePrice - b.basePrice : b.basePrice - a.basePrice));
+      data = data.slice((page - 1) * pageSize, page * pageSize);
+    }
 
     return {
       data,

@@ -13,7 +13,7 @@ import {
 import { DataTable } from "@/components/admin/data-table/DataTable";
 import { AdminPageHeader, AdminContent } from "@/components/admin/AdminPageHeader";
 import { AdminBreadcrumb } from "@/components/admin/AdminBreadcrumb";
-import { LoadingState } from "@/components/ui/loading-state";
+import { AdminTableSkeleton } from "@/components/admin/AdminTableSkeleton";
 import { ErrorState } from "@/components/ui/error-state";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -161,7 +161,7 @@ export default function AdminRolesPage() {
     },
   ];
 
-  if (rolesLoading) return <LoadingState text="Loading roles..." />;
+  if (rolesLoading) return <AdminTableSkeleton />;
   if (rolesError) return <ErrorState message="Failed to load roles" onRetry={() => refetch()} />;
 
   const isMutating = createMutation.isPending || updateMutation.isPending;

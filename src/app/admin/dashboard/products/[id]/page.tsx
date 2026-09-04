@@ -5,12 +5,12 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import {
   ChevronRight,
   Package,
   Layers,
   Tag,
-  FileText,
   Sparkles,
   Pencil,
   Trash2,
@@ -33,7 +33,7 @@ import {
   LayoutList,
   LayoutGrid,
 } from "lucide-react";
-import { useAdminProduct } from "@/features/products/hooks";
+import { useAdminProduct, useProductImages, useCreateProductImages, useDeleteProductImage } from "@/features/products/hooks";
 import {
   useVariants,
   useCreateVariant,
@@ -52,10 +52,12 @@ import {
   VariantImageUploader,
   VariantCard,
   VariantCustomerPreviewModal,
+  VariantUnitPriceList,
   type VariantFormValues,
   type UnitFormItem,
 } from "@/features/variants/components";
-import { LoadingState } from "@/components/ui/loading-state";
+import { AdminDetailSkeleton } from "@/components/admin/AdminDetailSkeleton";
+import { AdminTableSkeleton } from "@/components/admin/AdminTableSkeleton";
 import { ErrorState } from "@/components/ui/error-state";
 import { FormModal } from "@/components/common/FormModal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -167,7 +169,9 @@ export default function AdminProductDetailsPage() {
   // Reference queries for modal form dropdowns (lazy-loaded when modals open)
   const [isEditProductOpen, setIsEditProductOpen] = React.useState(false);
   const [isAddVariantOpen, setIsAddVariantOpen] = React.useState(false);
+  const [newlyCreatedVariant, setNewlyCreatedVariant] = React.useState<AdminVariantResponse | null>(null);
   const [editingVariant, setEditingVariant] = React.useState<AdminVariantResponse | null>(null);
+  const [editVariantTab, setEditVariantTab] = React.useState<"details" | "pricing">("details");
   const [editingPriceVariant, setEditingPriceVariant] = React.useState<AdminVariantResponse | null>(null);
   const [deletingVariant, setDeletingVariant] = React.useState<AdminVariantResponse | null>(null);
   const [variantToDeactivate, setVariantToDeactivate] = React.useState<AdminVariantResponse | null>(null);
@@ -216,8 +220,6 @@ export default function AdminProductDetailsPage() {
     { limit: 100 },
     { enabled: isEditProductOpen }
   );
-  console.log(brandsData,"brandName");
-  
   const { data: hsnData } = useHsnCodes(
     { pageSize: 100 },
     { enabled: isEditProductOpen }
@@ -231,6 +233,28 @@ export default function AdminProductDetailsPage() {
   const createVariantMutation = useCreateVariant();
   const updateVariantMutation = useUpdateVariant();
   const deleteVariantMutation = useDeleteVariant();
+  const createProductImagesMutation = useCreateProductImages();
+  const deleteProductImageMutation = useDeleteProductImage();
+
+  // Product Images Query (product carries at most one image)
+  const { data: productImages = [] } = useProductImages(productUuid || null);
+
+  const saveProductPrimaryImage = async (productUuid: string, imageUrl: string) => {
+    try {
+      // Remove any previous image(s) first — a product carries only one image
+      await Promise.all(
+        productImages.map((img) =>
+          deleteProductImageMutation.mutateAsync({ productUuid, imageId: img.id })
+        )
+      );
+      await createProductImagesMutation.mutateAsync({
+        productUuid,
+        images: [{ imageUrl, isPrimary: true }],
+      });
+    } catch (err) {
+      console.error("Failed to upload product image", err);
+    }
+  };
 
   // Selection State
   const [selectedVariants, setSelectedVariants] = React.useState<Record<string, boolean>>({});
@@ -306,12 +330,11 @@ export default function AdminProductDetailsPage() {
     }
 
     const headers = [
-      "Variant ID",
-      "Variant Name",
-      "SKU",
-      "Measurement",
-      "Base Price",
-      "Sale Price",
+      "Item ID",
+      "Item Name",
+      "Default SKU",
+      "Default Pack Size",
+      "Default Price",
       "Status",
       "Last Updated",
     ];
@@ -319,10 +342,9 @@ export default function AdminProductDetailsPage() {
     const rows = variants.map((v) => [
       `"${v.id}"`,
       `"${v.variantName.replace(/"/g, '""')}"`,
-      `"${v.sku}"`,
+      `"${v.sku ?? ""}"`,
       `"${formatMeasurement(v.measurement)}"`,
-      v.basePrice,
-      v.salePrice,
+      v.basePrice ?? "",
       v.isActive ? "Active" : "Inactive",
       v.updatedAt ? new Date(v.updatedAt).toISOString() : "",
     ]);
@@ -479,13 +501,13 @@ export default function AdminProductDetailsPage() {
 
   // Resolve product thumbnail
   const primaryProductImage =
-    product?.images?.[0]?.url ||
-    product?.image_url ||
+    productImages.find((img) => img.isPrimary)?.imageUrl ||
+    productImages[0]?.imageUrl ||
     variants.find((v) => v.primaryImage)?.primaryImage ||
     null;
 
   if (isLoadingProduct && !product) {
-    return <LoadingState text="Loading product details..." />;
+    return <AdminDetailSkeleton />;
   }
 
   if (isProductError || !product) {
@@ -501,7 +523,7 @@ export default function AdminProductDetailsPage() {
   }
 
   return (
-    <div className="w-full space-y-5 text-neutral-900">
+    <div className="w-full space-y-4 text-neutral-900">
       {/* Breadcrumb Navigation */}
       <div className="flex items-center gap-2 text-xs sm:text-sm font-medium text-neutral-400 pb-1">
         <Link
@@ -516,11 +538,12 @@ export default function AdminProductDetailsPage() {
         </span>
       </div>
 
-      {/* Section 1: Hero Overview Header Card */}
-        <section className="bg-white border border-cream-border rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col md:flex-row gap-5 items-start md:items-center justify-between">
-          <div className="flex gap-5 items-center min-w-0">
+      {/* Section 1: Hero Overview + Specifications Card */}
+        <section className="bg-white border border-cream-border rounded-lg overflow-hidden">
+          <div className="p-4 sm:p-5 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+          <div className="flex gap-4 items-center min-w-0">
             {/* Product Image Thumbnail */}
-            <div className="w-[92px] h-[92px] rounded-xl flex-none bg-cream-100 border border-cream-border relative overflow-hidden flex items-center justify-center">
+            <div className="w-[84px] h-[84px] rounded-lg flex-none bg-cream-100 border border-cream-border relative overflow-hidden flex items-center justify-center">
               {primaryProductImage ? (
                 <Image
                   src={primaryProductImage}
@@ -539,14 +562,14 @@ export default function AdminProductDetailsPage() {
             </div>
 
             {/* Title & Badges */}
-            <div className="min-w-0 flex flex-col gap-2">
+            <div className="min-w-0 flex flex-col gap-1.5">
               <div className="flex items-center gap-2.5 flex-wrap">
-                <h1 className="text-2xl sm:text-[25px] font-bold tracking-tight text-neutral-900">
+                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900">
                   {product.name}
                 </h1>
                 {/* Active/Inactive badge */}
                 <span
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
+                  className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-bold ${
                     product.isActive
                       ? "bg-success-50 text-success-700"
                       : "bg-cream-200 text-neutral-400"
@@ -560,25 +583,36 @@ export default function AdminProductDetailsPage() {
                   {product.isActive ? "Active" : "Inactive"}
                 </span>
 
-                {/* Featured badge */}
-                {product.isFeatured && (
-                  <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 text-xs font-bold">
-                    Featured
-                  </span>
-                )}
-
-                {/* Dietary badge */}
-                {renderDietaryBadge(product.vegType || product.veg_type)}
               </div>
 
-              {/* Category · Brand · Slug subline */}
-              <div className="flex items-center gap-3 flex-wrap text-xs sm:text-sm text-neutral-500">
+              {/* Category · Brand · Slug · HSN · Created subline */}
+              <div className="flex items-center gap-2.5 flex-wrap text-xs sm:text-sm text-neutral-500">
                 <span>{categoryName || "Not Assigned"}</span>
                 <span className="opacity-40">·</span>
                 <span>{brandName || "Not Assigned"}</span>
                 <span className="opacity-40">·</span>
-                <span className="font-mono text-xs text-neutral-700 bg-cream-200 px-2 py-0.5 rounded border border-cream-border">
+                <span className="font-mono text-xs text-neutral-700 bg-cream-100 px-1.5 py-0.5 rounded-sm border border-cream-border">
                   {product.slug || "NO_SLUG"}
+                </span>
+                <span className="opacity-40">·</span>
+                <span>
+                  <span className="text-neutral-400">HSN</span>{" "}
+                  <span className="font-semibold text-neutral-700">
+                    {hsnCodeInfo || "Not Assigned"}
+                  </span>
+                </span>
+                <span className="opacity-40">·</span>
+                <span>
+                  <span className="text-neutral-400">Created</span>{" "}
+                  <span className="font-semibold text-neutral-700">
+                    {product.createdAt
+                      ? new Date(product.createdAt).toLocaleDateString("en-IN", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })
+                      : "—"}
+                  </span>
                 </span>
               </div>
             </div>
@@ -589,11 +623,12 @@ export default function AdminProductDetailsPage() {
             <button
               type="button"
               onClick={() => setIsEditProductOpen(true)}
-              className="px-4 py-2 rounded-lg bg-secondary-600 hover:bg-secondary-700 text-cream-white text-xs sm:text-sm font-semibold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-1.5 rounded-md border border-secondary-700 bg-secondary-600 hover:bg-secondary-700 text-cream-white text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
             >
               <Pencil className="w-3.5 h-3.5" />
               <span>Edit</span>
             </button>
+          </div>
           </div>
         </section>
 
@@ -631,141 +666,10 @@ export default function AdminProductDetailsPage() {
           </div>
         </section> */}
 
-        {/* Section 3: Two-Column Specifications & Description Grid */}
-        <section className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-          {/* Specifications Card */}
-          <div className="lg:col-span-7 bg-white border border-cream-border rounded-2xl overflow-hidden shadow-xs">
-            <div className="px-5 py-4 border-b border-cream-border flex items-center justify-between">
-              <h2 className="text-[15px] font-bold text-neutral-900 tracking-tight">
-                Product specifications
-              </h2>
-            </div>
-            <div className="divide-y divide-cream-border-subtle">
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 px-5 py-3.5 items-center hover:bg-cream-50 transition-colors">
-                <div className="sm:col-span-5 text-xs text-neutral-400 font-medium">Category</div>
-                <div className="sm:col-span-7 text-xs sm:text-sm text-neutral-900 font-semibold truncate">
-                  {categoryName || "Not Assigned"}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 px-5 py-3.5 items-center hover:bg-cream-50 transition-colors">
-                <div className="sm:col-span-5 text-xs text-neutral-400 font-medium">Brand</div>
-                <div className="sm:col-span-7 text-xs sm:text-sm text-neutral-900 font-semibold truncate">
-                  {brandName || "Not Assigned"}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 px-5 py-3.5 items-center hover:bg-cream-50 transition-colors">
-                <div className="sm:col-span-5 text-xs text-neutral-400 font-medium">HSN Code</div>
-                <div className="sm:col-span-7 text-xs sm:text-sm text-neutral-900 font-semibold truncate">
-                  {hsnCodeInfo || "Not Assigned"}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 px-5 py-3.5 items-center hover:bg-cream-50 transition-colors">
-                <div className="sm:col-span-5 text-xs text-neutral-400 font-medium">Dietary Type</div>
-                <div className="sm:col-span-7 text-xs sm:text-sm">
-                  {renderDietaryBadge(product.vegType || product.veg_type)}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 px-5 py-3.5 items-center hover:bg-cream-50 transition-colors">
-                <div className="sm:col-span-5 text-xs text-neutral-400 font-medium">Slug</div>
-                <div className="sm:col-span-7 font-mono text-xs text-neutral-700 font-semibold truncate">
-                  {product.slug || "—"}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 px-5 py-3.5 items-center hover:bg-cream-50 transition-colors">
-                <div className="sm:col-span-5 text-xs text-neutral-400 font-medium">Created Date</div>
-                <div className="sm:col-span-7 text-xs sm:text-sm text-neutral-900 font-semibold">
-                  {product.createdAt
-                    ? new Date(product.createdAt).toLocaleDateString("en-IN", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })
-                    : "—"}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 px-5 py-3.5 items-center hover:bg-cream-50 transition-colors">
-                <div className="sm:col-span-5 text-xs text-neutral-400 font-medium">Last Updated</div>
-                <div className="sm:col-span-7 text-xs sm:text-sm text-neutral-900 font-semibold">
-                  {product.updatedAt
-                    ? new Date(product.updatedAt).toLocaleDateString("en-IN", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })
-                    : "—"}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Description Card */}
-          <div className="lg:col-span-5 bg-white border border-cream-border rounded-2xl overflow-hidden shadow-xs flex flex-col">
-            <div className="px-5 py-4 border-b border-cream-border flex items-center justify-between">
-              <h2 className="text-[15px] font-bold text-neutral-900 tracking-tight">
-                Description
-              </h2>
-            </div>
-            <div className="p-5 flex-1">
-              {product.shortDescription || product.description ? (
-                <div className="space-y-4">
-                  {product.shortDescription && (
-                    <div>
-                      <div className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1">
-                        Summary
-                      </div>
-                      <p className="text-xs sm:text-sm text-neutral-700 leading-relaxed">
-                        {product.shortDescription}
-                      </p>
-                    </div>
-                  )}
-
-                  {product.description && (
-                    <div>
-                      <div className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1">
-                        Full Description
-                      </div>
-                      <p className="text-xs sm:text-sm text-neutral-600 leading-relaxed whitespace-pre-line">
-                        {product.description}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="py-8 px-4 text-center flex flex-col items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-cream-200 border border-cream-border flex items-center justify-center text-neutral-400">
-                    <FileText className="w-5 h-5 opacity-60" />
-                  </div>
-                  <div className="text-xs sm:text-sm font-semibold text-neutral-700">
-                    No description yet
-                  </div>
-                  <p className="text-xs text-neutral-400 max-w-[280px] leading-relaxed">
-                    Product descriptions appear on the storefront and in exported catalogues.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setIsEditProductOpen(true)}
-                    className="mt-1 border border-cream-border-subtle bg-white text-secondary-600 hover:bg-secondary-50 hover:border-secondary-200 text-xs font-bold px-3.5 py-1.5 rounded-lg cursor-pointer transition-colors"
-                  >
-                    Add description
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
-
         {/* Section 4: Product Variants Section with FIXED ACTION COLUMN */}
-        <section className="bg-white border border-cream-border rounded-2xl overflow-hidden shadow-xs">
+        <section className="bg-white border border-cream-border rounded-lg overflow-hidden">
           {/* Header & Controls */}
-          <div className="p-4 sm:p-5 border-b border-cream-border flex flex-col md:flex-row md:items-center justify-between gap-3.5">
+          <div className="p-3.5 sm:p-4 border-b border-cream-border flex flex-col md:flex-row md:items-center justify-between gap-3">
             {/* Left: Title, Counter Badge & Segmented Filter Tabs */}
             <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
               <div className="flex items-center gap-2.5">
@@ -778,13 +682,13 @@ export default function AdminProductDetailsPage() {
               </div>
 
               {/* Filter Tabs with Count Pills */}
-              <div className="flex p-1 bg-cream-200 border border-cream-border rounded-xl gap-1">
+              <div className="flex p-1 bg-cream-200 border border-cream-border rounded-md gap-1">
                 <button
                   type="button"
                   onClick={() => setVariantFilter("active")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  className={`px-3 py-1.5 rounded-sm text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 ${
                     variantFilter === "active"
-                      ? "bg-secondary-600 text-cream-white shadow-xs"
+                      ? "bg-secondary-600 text-cream-white"
                       : "text-neutral-500 hover:text-neutral-900 hover:bg-white"
                   }`}
                 >
@@ -798,9 +702,9 @@ export default function AdminProductDetailsPage() {
                 <button
                   type="button"
                   onClick={() => setVariantFilter("inactive")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  className={`px-3 py-1.5 rounded-sm text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 ${
                     variantFilter === "inactive"
-                      ? "bg-secondary-600 text-cream-white shadow-xs"
+                      ? "bg-secondary-600 text-cream-white"
                       : "text-neutral-500 hover:text-neutral-900 hover:bg-white"
                   }`}
                 >
@@ -817,13 +721,13 @@ export default function AdminProductDetailsPage() {
             {/* Right: Actions (View Mode Switcher, Export, Edit prices, Add variant) */}
             <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap sm:flex-nowrap justify-end">
               {/* Table / Card View Mode Toggle */}
-              <div className="flex items-center bg-cream-200 border border-cream-border p-1 rounded-xl shadow-2xs">
+              <div className="flex items-center bg-cream-200 border border-cream-border p-1 rounded-md">
                 <button
                   type="button"
                   onClick={() => setVariantViewMode("table")}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs font-semibold transition-colors cursor-pointer ${
                     variantViewMode === "table"
-                      ? "bg-secondary-600 text-cream-white shadow-xs"
+                      ? "bg-secondary-600 text-cream-white"
                       : "text-neutral-500 hover:text-neutral-900 hover:bg-white"
                   }`}
                   title="Table View"
@@ -834,9 +738,9 @@ export default function AdminProductDetailsPage() {
                 <button
                   type="button"
                   onClick={() => setVariantViewMode("cards")}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs font-semibold transition-colors cursor-pointer ${
                     variantViewMode === "cards"
-                      ? "bg-secondary-600 text-cream-white shadow-xs"
+                      ? "bg-secondary-600 text-cream-white"
                       : "text-neutral-500 hover:text-neutral-900 hover:bg-white"
                   }`}
                   title="Customer Card View"
@@ -849,7 +753,7 @@ export default function AdminProductDetailsPage() {
               <button
                 type="button"
                 onClick={() => setIsPriceEditOpen(true)}
-                className="px-3.5 py-1.5 rounded-lg border border-secondary-200 bg-secondary-50 hover:bg-secondary-100 text-secondary-600 text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                className="px-3.5 py-1.5 rounded-md border border-secondary-200 bg-secondary-50 hover:bg-secondary-100 text-secondary-600 text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
                 title="Bulk edit prices"
               >
                 <IndianRupee className="w-3.5 h-3.5" />
@@ -859,7 +763,7 @@ export default function AdminProductDetailsPage() {
               <button
                 type="button"
                 onClick={() => setIsAddVariantOpen(true)}
-                className="px-3.5 py-1.5 rounded-lg bg-secondary-600 hover:bg-secondary-700 text-cream-white text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                className="px-3.5 py-1.5 rounded-md border border-secondary-700 bg-secondary-600 hover:bg-secondary-700 text-cream-white text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Add Item</span>
@@ -869,7 +773,7 @@ export default function AdminProductDetailsPage() {
 
           {/* Bulk Selection Action Bar */}
           {hasSelection && variantViewMode === "table" && (
-            <div className="px-5 py-2.5 bg-secondary-50 border-b border-secondary-200 flex items-center justify-between gap-3 text-xs">
+            <div className="px-4 py-2.5 bg-secondary-50 border-b border-secondary-200 flex items-center justify-between gap-3 text-xs">
               <span className="font-bold text-secondary-600">
                 {selectedIds.length} variant{selectedIds.length > 1 ? "s" : ""} selected
               </span>
@@ -901,9 +805,7 @@ export default function AdminProductDetailsPage() {
 
           {/* Variants Rendering: Table vs Cards */}
           {isLoadingVariants ? (
-            <div className="py-16 flex justify-center">
-              <LoadingState text="Loading Items..." />
-            </div>
+            <AdminTableSkeleton bare rows={4} columns={4} />
           ) : variants.length === 0 ? (
             <div className="text-center py-16 px-4">
               <Package className="mx-auto h-10 w-10 text-neutral-300" />
@@ -951,7 +853,7 @@ export default function AdminProductDetailsPage() {
                 <thead className="sticky top-0 z-30 bg-cream-50 text-[11px] font-bold tracking-wider text-neutral-400 uppercase shadow-[0_1px_0_var(--cream-border)]">
                   <tr>
                     {/* Checkbox */}
-                    <th className="px-3.5 py-3 w-[44px] min-w-[44px] text-center border-b border-cream-border">
+                    <th className="px-3.5 py-2.5 w-[44px] min-w-[44px] text-center border-b border-cream-border">
                       <input
                         type="checkbox"
                         checked={isAllSelected}
@@ -960,15 +862,15 @@ export default function AdminProductDetailsPage() {
                       />
                     </th>
 
-                    <th className="px-4 py-3 min-w-[200px] border-b border-cream-border">Item</th>
-                    <th className="px-4 py-3 min-w-[120px] border-b border-cream-border">SKU</th>
-                    <th className="px-4 py-3 min-w-[90px] border-b border-cream-border">Size</th>
-                    <th className="px-4 py-3 min-w-[90px] text-right border-b border-cream-border">Base</th>
-                    <th className="px-4 py-3 min-w-[110px] text-right border-b border-cream-border">Sale</th>
-                    <th className="px-3 py-3 min-w-[95px] text-center border-b border-cream-border">Status</th>
+                    <th className="px-4 py-2.5 min-w-[200px] border-b border-cream-border">Item</th>
+                    <th className="px-4 py-2.5 min-w-[120px] border-b border-cream-border">SKU</th>
+                    <th className="px-4 py-2.5 min-w-[150px] border-b border-cream-border">Pack Sizes</th>
+                    <th className="px-4 py-2.5 min-w-[140px] border-b border-cream-border">Type</th>
+                    <th className="px-4 py-2.5 min-w-[120px] text-right border-b border-cream-border">Price</th>
+                    <th className="px-3 py-2.5 min-w-[95px] text-center border-b border-cream-border">Status</th>
 
                     {/* FIXED ACTION COLUMN (Sticky top & right corner) */}
-                    <th className="sticky top-0 right-0 z-40 bg-cream-50 text-center px-2 py-3 w-[72px] min-w-[72px] border-b border-cream-border shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05),0_1px_0_var(--cream-border)]">
+                    <th className="sticky top-0 right-0 z-40 bg-cream-50 text-center px-2 py-2.5 w-[72px] min-w-[72px] border-b border-cream-border shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05),0_1px_0_var(--cream-border)]">
                       Actions
                     </th>
                   </tr>
@@ -977,10 +879,11 @@ export default function AdminProductDetailsPage() {
                 <tbody className="divide-y divide-cream-border-subtle bg-white">
                   {variants.map((variant) => {
                     const isPicked = !!selectedVariants[variant.id];
-                    const discount =
-                      variant.basePrice > 0 && variant.salePrice < variant.basePrice
-                        ? variant.basePrice - variant.salePrice
-                        : 0;
+                    const unitPrices = variant.unitPrices ?? [];
+                    const priceValues = unitPrices.map((p) => p.basePrice);
+                    const minPrice = priceValues.length ? Math.min(...priceValues) : 0;
+                    const maxPrice = priceValues.length ? Math.max(...priceValues) : 0;
+                    const extraSizes = unitPrices.length > 1 ? unitPrices.length - 1 : 0;
 
                     return (
                       <tr
@@ -990,7 +893,7 @@ export default function AdminProductDetailsPage() {
                         }`}
                       >
                         {/* Checkbox */}
-                        <td className="px-3.5 py-3 w-[44px] min-w-[44px] text-center">
+                        <td className="px-3.5 py-2.5 w-[44px] min-w-[44px] text-center">
                           <input
                             type="checkbox"
                             checked={isPicked}
@@ -1000,12 +903,12 @@ export default function AdminProductDetailsPage() {
                         </td>
 
                         {/* Variant Name & Image */}
-                        <td className="px-4 py-3 min-w-[200px]">
+                        <td className="px-4 py-2.5 min-w-[200px]">
                           <Link
                             href={`/admin/dashboard/variants/${encodeURIComponent(variant.id)}?productId=${encodeURIComponent(canonicalProductId)}`}
                             className="group/variant flex items-center gap-3 min-w-0 hover:opacity-95"
                           >
-                            <div className="w-[38px] h-[38px] rounded-[9px] flex-none bg-cream-100 border border-cream-border relative overflow-hidden flex items-center justify-center transition-transform group-hover/variant:scale-105">
+                            <div className="w-[36px] h-[36px] rounded-md flex-none bg-cream-100 border border-cream-border relative overflow-hidden flex items-center justify-center">
                               {variant.primaryImage ? (
                                 <Image
                                   src={variant.primaryImage}
@@ -1029,36 +932,58 @@ export default function AdminProductDetailsPage() {
                         </td>
 
                         {/* SKU */}
-                        <td className="px-4 py-3 min-w-[120px] font-mono text-[11.5px] text-neutral-600 truncate">
+                        <td className="px-4 py-2.5 min-w-[120px] font-mono text-[11.5px] text-neutral-600 truncate">
                           {variant.sku}
                         </td>
 
-                        {/* Size / Measurement */}
-                        <td className="px-4 py-3 min-w-[90px] text-xs font-medium text-neutral-700 whitespace-nowrap">
-                          {formatMeasurement(variant.measurement)}
-                        </td>
-
-                        {/* Base Price */}
-                        <td className="px-4 py-3 min-w-[90px] text-xs text-right font-medium text-neutral-400 whitespace-nowrap tabular-nums">
-                          ₹{variant.basePrice.toLocaleString("en-IN")}
-                        </td>
-
-                        {/* Sale Price */}
-                        <td className="px-4 py-3 min-w-[110px] text-right whitespace-nowrap tabular-nums">
-                          <div className="inline-flex items-center gap-1.5 justify-end">
-                            <span className="font-bold text-neutral-900 text-xs sm:text-sm">
-                              ₹{variant.salePrice.toLocaleString("en-IN")}
+                        {/* Pack Sizes */}
+                        <td className="px-4 py-2.5 min-w-[150px] text-xs font-medium text-neutral-700 whitespace-nowrap">
+                          {unitPrices.length === 0 ? (
+                            <span className="text-neutral-400 italic">No sizes added</span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5">
+                              <span>{formatMeasurement(variant.measurement)}</span>
+                              {extraSizes > 0 && (
+                                <span
+                                  className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-neutral-100 text-neutral-600 border border-neutral-200"
+                                  title={unitPrices
+                                    .map((p) => `${p.measurement.value} ${p.measurement.unit}`)
+                                    .join(", ")}
+                                >
+                                  +{extraSizes} more
+                                </span>
+                              )}
                             </span>
-                            {discount > 0 && (
-                              <span className="px-1.5 py-0.5 rounded bg-success-50 text-success-700 text-[10.5px] font-bold">
-                                −₹{discount.toLocaleString("en-IN")}
+                          )}
+                        </td>
+
+                        {/* Dietary Type & Featured */}
+                        <td className="px-4 py-2.5 min-w-[140px] whitespace-nowrap">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {renderDietaryBadge(variant.vegType)}
+                            {variant.isFeatured && (
+                              <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 text-[10.5px] font-bold border border-amber-200">
+                                Featured
                               </span>
                             )}
                           </div>
                         </td>
 
+                        {/* Price (range across pack sizes, if more than one) */}
+                        <td className="px-4 py-2.5 min-w-[120px] text-right whitespace-nowrap tabular-nums">
+                          {unitPrices.length === 0 ? (
+                            <span className="text-neutral-400 italic text-xs">—</span>
+                          ) : (
+                            <span className="font-bold text-neutral-900 text-xs sm:text-sm">
+                              {minPrice === maxPrice
+                                ? `₹${minPrice.toLocaleString("en-IN")}`
+                                : `₹${minPrice.toLocaleString("en-IN")} – ₹${maxPrice.toLocaleString("en-IN")}`}
+                            </span>
+                          )}
+                        </td>
+
                         {/* Status */}
-                        <td className="px-3 py-3 min-w-[95px] text-center whitespace-nowrap">
+                        <td className="px-3 py-2.5 min-w-[95px] text-center whitespace-nowrap">
                           <span
                             className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold ${
                               variant.isActive
@@ -1077,7 +1002,7 @@ export default function AdminProductDetailsPage() {
 
                         {/* FIXED ACTION COLUMN (Sticky right) */}
                         <td
-                          className={`sticky right-0 transition-colors px-2 py-3 text-center shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)] z-20 ${
+                          className={`sticky right-0 transition-colors px-2 py-2.5 text-center shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)] z-20 ${
                             isPicked
                               ? "bg-cream-50"
                               : "bg-white group-hover:bg-cream-50"
@@ -1097,9 +1022,9 @@ export default function AdminProductDetailsPage() {
                                     setActiveMenu({ variant, rect });
                                   }
                                 }}
-                                className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${
+                                className={`w-8 h-8 rounded-md border flex items-center justify-center transition-colors cursor-pointer ${
                                   activeMenu?.variant.id === variant.id
-                                    ? "bg-secondary-600 text-cream-white border-secondary-600 shadow-xs"
+                                    ? "bg-secondary-600 text-cream-white border-secondary-600"
                                     : "border-cream-border bg-white hover:bg-secondary-50 text-neutral-700 hover:text-secondary-600"
                                 }`}
                                 title="More actions"
@@ -1111,7 +1036,7 @@ export default function AdminProductDetailsPage() {
                               <button
                                 type="button"
                                 onClick={() => setVariantToActivate(variant)}
-                                className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-success-200 bg-success-50 hover:bg-success-100 text-success-700 transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
+                                className="px-2.5 py-1 text-xs font-semibold rounded-md border border-success-200 bg-success-50 hover:bg-success-100 text-success-700 transition-colors flex items-center gap-1 cursor-pointer"
                                 title="Make Active"
                               >
                                 <Power className="w-3.5 h-3.5" />
@@ -1129,7 +1054,7 @@ export default function AdminProductDetailsPage() {
           )}
 
           {/* Variants Table Footer */}
-          <div className="px-5 py-3.5 border-t border-cream-border bg-cream-50/50 flex items-center justify-between text-xs text-neutral-400 flex-wrap gap-2">
+          <div className="px-4 py-2.5 border-t border-cream-border bg-cream-50/50 flex items-center justify-between text-xs text-neutral-400 flex-wrap gap-2">
             <span>
               Showing <strong className="text-neutral-900">{variants.length}</strong> of{" "}
               <strong className="text-neutral-900">{currentTabCount}</strong>{" "}
@@ -1395,11 +1320,8 @@ export default function AdminProductDetailsPage() {
             categoryId: product.categoryId || "",
             brandId: product.brandId || "",
             hsnCodeId: product.hsnCodeId || "",
-            vegType: product.vegType || product.veg_type,
-            isFeatured: Boolean(product.isFeatured),
-            shortDescription: product.shortDescription || "",
-            description: product.description || "",
           }}
+          initialImageUrl={primaryProductImage}
           isEditing
           categories={categoryOptions}
           brands={brandOptions}
@@ -1413,6 +1335,13 @@ export default function AdminProductDetailsPage() {
                 data: formData as any,
               });
               setIsEditProductOpen(false);
+
+              if (
+                formData.productImage &&
+                formData.productImage !== primaryProductImage
+              ) {
+                await saveProductPrimaryImage(canonicalProductId, formData.productImage);
+              }
             } catch (err: any) {
               console.error("Failed to update product", err);
             }
@@ -1423,98 +1352,147 @@ export default function AdminProductDetailsPage() {
       {/* 5. Add Variant Modal */}
       <FormModal
         open={isAddVariantOpen}
-        onClose={() => setIsAddVariantOpen(false)}
-        title="Add Item"
-        description={`Create a new Item for ${product.name}`}
+        onClose={() => {
+          setIsAddVariantOpen(false);
+          setNewlyCreatedVariant(null);
+        }}
+        title={newlyCreatedVariant ? "Add Units & Pricing" : "Add Item"}
+        description={
+          newlyCreatedVariant
+            ? `Add at least one unit + price combination for ${newlyCreatedVariant.variantName}`
+            : `Create a new Item for ${product.name}`
+        }
         size="lg"
       >
-        <VariantForm
-          fixedProductId={canonicalProductId}
-          units={unitOptions}
-          isLoading={createVariantMutation.isPending}
-          submitLabel="Create Variant"
-          onSubmit={async (formData: VariantFormValues) => {
-            try {
-              await createVariantMutation.mutateAsync({
-                productUuid: canonicalProductId,
-                data: {
-                  variantName: formData.variantName,
-                  sku: formData.sku,
-                  slug: formData.slug,
-                  unitId: formData.unitId,
-                  unitValue: Number(formData.unitValue),
-                  basePrice: Number(formData.basePrice),
-                  salePrice: Number(formData.salePrice),
-                },
-              });
-              setIsAddVariantOpen(false);
-            } catch (err: any) {
-              console.error("Failed to create Item", err);
-            }
-          }}
-        />
+        {!newlyCreatedVariant ? (
+          <VariantForm
+            fixedProductId={canonicalProductId}
+            fixedProductSlug={product.slug}
+            isLoading={createVariantMutation.isPending}
+            submitLabel="Next: Units & Pricing"
+            onSubmit={async (formData: VariantFormValues) => {
+              try {
+                const res = await createVariantMutation.mutateAsync({
+                  productUuid: canonicalProductId,
+                  data: {
+                    variantName: formData.variantName,
+                    slug: formData.slug,
+                    shortDescription: formData.shortDescription || null,
+                    description: formData.description || null,
+                    vegType: formData.vegType,
+                    isFeatured: formData.isFeatured,
+                  },
+                });
+                if (res && (res as any).data) {
+                  setNewlyCreatedVariant((res as any).data);
+                }
+              } catch (err: any) {
+                console.error("Failed to create Item", err);
+              }
+            }}
+          />
+        ) : (
+          <div className="space-y-4">
+            <VariantUnitPriceList
+              productUuid={canonicalProductId}
+              variantUuid={newlyCreatedVariant.id}
+            />
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                onClick={() => {
+                  setIsAddVariantOpen(false);
+                  setNewlyCreatedVariant(null);
+                }}
+                className="h-10 rounded-xl bg-[var(--color-secondary-600)] px-5 text-sm font-semibold text-white hover:bg-[var(--color-secondary-700)]"
+              >
+                Done
+              </Button>
+            </div>
+          </div>
+        )}
       </FormModal>
 
       {/* 6. Edit Full Variant Details Modal */}
       <FormModal
         open={!!editingVariant}
-        onClose={() => setEditingVariant(null)}
-        title="Edit Item Details"
+        onClose={() => {
+          setEditingVariant(null);
+          setEditVariantTab("details");
+        }}
+        title="Edit Item"
         description={`Modify configuration for ${editingVariant?.variantName}`}
         size="lg"
       >
         {editingVariant && (
-          <VariantForm
-            initialData={{
-              variantName: editingVariant.variantName,
-              sku: editingVariant.sku,
-              slug: editingVariant.slug || "",
-              unitId:
-                editingVariant.unitId ||
-                unitOptions.find(
-                  (u) =>
-                    u.code?.toUpperCase() ===
-                      editingVariant.measurement?.unit?.toUpperCase() ||
-                    u.name?.toUpperCase() ===
-                      editingVariant.measurement?.unit?.toUpperCase()
-                )?.id ||
-                "",
-              unitValue:
-                typeof editingVariant.measurement?.value === "number"
-                  ? editingVariant.measurement.value
-                  : Number(editingVariant.measurement?.value) || 1,
-              basePrice: editingVariant.basePrice,
-              salePrice: editingVariant.salePrice,
-              inStock: !editingVariant.outOfStock,
-              outOfStock: editingVariant.outOfStock,
-            }}
-            isEditing
-            fixedProductId={canonicalProductId}
-            units={unitOptions}
-            isLoading={updateVariantMutation.isPending}
-            submitLabel="Update Item"
-            onSubmit={async (formData: VariantFormValues) => {
-              try {
-                await updateVariantMutation.mutateAsync({
-                  productUuid: canonicalProductId,
-                  variantUuid: editingVariant.id,
-                  data: {
-                    variantName: formData.variantName,
-                    sku: formData.sku,
-                    slug: formData.slug,
-                    unitId: formData.unitId,
-                    unitValue: Number(formData.unitValue),
-                    basePrice: Number(formData.basePrice),
-                    salePrice: Number(formData.salePrice),
-                    outOfStock: !formData.inStock,
-                  },
-                });
-                setEditingVariant(null);
-              } catch (err: any) {
-                console.error("Failed to update Item", err);
-              }
-            }}
-          />
+          <div>
+            <div className="flex border-b border-[var(--color-neutral-200)] mb-6">
+              <button
+                type="button"
+                onClick={() => setEditVariantTab("details")}
+                className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors cursor-pointer ${
+                  editVariantTab === "details"
+                    ? "border-[var(--color-secondary-600)] text-[var(--color-secondary-600)]"
+                    : "border-transparent text-[var(--color-neutral-500)] hover:text-[var(--color-neutral-800)]"
+                }`}
+              >
+                Item Details
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditVariantTab("pricing")}
+                className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors cursor-pointer ${
+                  editVariantTab === "pricing"
+                    ? "border-[var(--color-secondary-600)] text-[var(--color-secondary-600)]"
+                    : "border-transparent text-[var(--color-neutral-500)] hover:text-[var(--color-neutral-800)]"
+                }`}
+              >
+                Units & Pricing
+              </button>
+            </div>
+
+            {editVariantTab === "details" ? (
+              <VariantForm
+                initialData={{
+                  variantName: editingVariant.variantName,
+                  slug: editingVariant.slug || "",
+                  shortDescription: editingVariant.shortDescription || "",
+                  description: editingVariant.description || "",
+                  vegType: editingVariant.vegType || "na",
+                  isFeatured: editingVariant.isFeatured ?? false,
+                }}
+                isEditing
+                fixedProductId={canonicalProductId}
+                fixedProductSlug={product.slug}
+                isLoading={updateVariantMutation.isPending}
+                submitLabel="Update Item"
+                onSubmit={async (formData: VariantFormValues) => {
+                  try {
+                    await updateVariantMutation.mutateAsync({
+                      productUuid: canonicalProductId,
+                      variantUuid: editingVariant.id,
+                      data: {
+                        variantName: formData.variantName,
+                        slug: formData.slug,
+                        shortDescription: formData.shortDescription || null,
+                        description: formData.description || null,
+                        vegType: formData.vegType,
+                        isFeatured: formData.isFeatured,
+                      },
+                    });
+                    setEditingVariant(null);
+                  } catch (err: any) {
+                    console.error("Failed to update Item", err);
+                  }
+                }}
+              />
+            ) : (
+              <VariantUnitPriceList
+                productUuid={canonicalProductId}
+                variantUuid={editingVariant.id}
+              />
+            )}
+          </div>
         )}
       </FormModal>
 

@@ -10,7 +10,7 @@ import {
 } from "@/components/admin/AdminPageHeader";
 import { OrderStatsCards } from "@/features/orders/components/OrderStatsCards";
 import { OrderStatusTabs } from "@/features/orders/components/OrderStatusTabs";
-import { LoadingState } from "@/components/ui/loading-state";
+import { AdminTableSkeleton } from "@/components/admin/AdminTableSkeleton";
 
 export default function OrdersLayout({
   children,
@@ -28,11 +28,7 @@ export default function OrdersLayout({
   }, [status, isStaff, router]);
 
   if (status === "loading" || (status === "authenticated" && isStaff)) {
-    return (
-      <div className="flex flex-1 items-center justify-center min-h-[300px]">
-        <LoadingState text={isStaff ? "Redirecting to delivery module..." : "Loading orders..."} />
-      </div>
-    );
+    return <AdminTableSkeleton showStats />;
   }
 
   return (
