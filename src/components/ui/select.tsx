@@ -174,7 +174,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
           name={name}
           id={id}
           value={internalValue}
-          onChange={onChange}
+          onChange={onChange || (() => {})}
           disabled={disabled}
           tabIndex={-1}
           aria-hidden="true"
