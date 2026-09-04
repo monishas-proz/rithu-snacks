@@ -435,7 +435,7 @@ export default function AdminCustomersPage() {
           <div className="flex flex-1 flex-col sm:flex-row sm:items-center gap-3 flex-wrap">
             <SearchInput
               placeholder="Search by name, email, phone, or customer ID..."
-              defaultValue={search}
+              value={search}
               onSearch={(val) => {
                 setSearch(val);
                 setPage(1);

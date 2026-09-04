@@ -596,9 +596,13 @@ export const adminCustomerRepository = {
         items: {
           where: {
             is_active: true,
-            variant: {
+            variant_unit_price: {
               isActive: true,
               deleted_at: null,
+              variant: {
+                isActive: true,
+                deleted_at: null,
+              },
             },
             product: {
               isActive: true,
@@ -619,14 +623,12 @@ export const adminCustomerRepository = {
                 },
               },
             },
-            variant: {
+            variant_unit_price: {
               select: {
                 id: true,
                 uuid: true,
-                variant_name: true,
                 sku: true,
                 base_price: true,
-                sale_price: true,
                 unit_value: true,
                 product_units: {
                   select: {
@@ -637,11 +639,18 @@ export const adminCustomerRepository = {
                     type: true,
                   },
                 },
-                product_variant_images: {
-                  where: { is_active: true },
-                  orderBy: [{ is_primary: "desc" }, { sort_order: "asc" }],
-                  take: 1,
-                  select: { image_url: true },
+                variant: {
+                  select: {
+                    id: true,
+                    uuid: true,
+                    variant_name: true,
+                    product_variant_images: {
+                      where: { is_active: true },
+                      orderBy: [{ is_primary: "desc" }, { sort_order: "asc" }],
+                      take: 1,
+                      select: { image_url: true },
+                    },
+                  },
                 },
               },
             },
@@ -659,43 +668,41 @@ export const adminCustomerRepository = {
     const items: AdminCustomerCartItemDto[] = [];
 
     for (const item of cart.items) {
-      if (!item.variant || !item.product || !item.is_active) continue;
+      const unitPrice = item.variant_unit_price;
+      const variant = unitPrice?.variant;
+      if (!unitPrice || !variant || !item.product || !item.is_active) continue;
 
-      const salePrice =
-        item.variant.sale_price !== null && item.variant.sale_price !== undefined
-          ? Number(item.variant.sale_price)
-          : 0;
       const basePrice =
-        item.variant.base_price !== null && item.variant.base_price !== undefined
-          ? Number(item.variant.base_price)
+        unitPrice.base_price !== null && unitPrice.base_price !== undefined
+          ? Number(unitPrice.base_price)
           : 0;
-      const unitPrice = salePrice > 0 ? salePrice : basePrice;
-      const totalPrice = item.quantity * unitPrice;
+      const displayUnitPrice = basePrice;
+      const totalPrice = item.quantity * displayUnitPrice;
 
       subtotal += totalPrice;
       totalItems += item.quantity;
 
       const primaryImage =
-        item.variant.product_variant_images?.[0]?.image_url ||
+        variant.product_variant_images?.[0]?.image_url ||
         item.product.images?.[0]?.image_url ||
         null;
 
       const measurement = formatVariantMeasurement(
-        item.variant.product_units,
-        item.variant.unit_value
+        unitPrice.product_units,
+        unitPrice.unit_value ?? 0
       );
 
       items.push({
         id: item.uuid || String(item.id),
         productId: item.product.uuid || String(item.product.id),
         productName: item.product.name,
-        variantId: item.variant.uuid || String(item.variant.id),
-        variantName: item.variant.variant_name,
-        sku: item.variant.sku,
+        variantId: variant.uuid || String(variant.id),
+        variantName: variant.variant_name,
+        sku: unitPrice.sku ?? "",
         measurement,
         primaryImage,
         quantity: item.quantity,
-        unitPrice,
+        unitPrice: displayUnitPrice,
         totalPrice,
       });
     }

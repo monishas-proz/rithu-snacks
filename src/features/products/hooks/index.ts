@@ -1,4 +1,12 @@
-export { useProducts, useProduct, useProductImages, useAdminProducts, useAdminProduct } from "./use-products";
+export {
+  useProducts,
+  useProduct,
+  useProductImages,
+  useAdminProducts,
+  useAdminProduct,
+  useCustomerProducts,
+  useCustomerProduct,
+} from "./use-products";
 export {
   useCreateProduct,
   useUpdateProduct,

@@ -25,6 +25,7 @@ import { Select } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FormModal } from "@/components/common/FormModal";
 import { SearchInput } from "@/components/ui/search-input";
+import { ClearFiltersButton } from "@/components/common/clear-filters-button";
 import Link from "next/link";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -99,6 +100,14 @@ export default function AdminProductsPage() {
       console.error("Failed to save product image", err);
     }
   };
+
+  const handleClearFilters = () => {
+    setSearch("");
+    setSelectedCategoryFilter("");
+    setPage(1);
+  };
+
+  const hasActiveFilters = search.trim() !== "" || selectedCategoryFilter !== "";
 
   const products = data?.data ?? [];
   const categories = categoriesData?.data ?? [];
@@ -241,7 +250,7 @@ export default function AdminProductsPage() {
             <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
               <SearchInput
                 placeholder="Search products..."
-                defaultValue={search}
+                value={search}
                 onSearch={(val) => {
                   setSearch(val);
                   setPage(1);
@@ -261,6 +270,8 @@ export default function AdminProductsPage() {
                   className="h-11 rounded-xl"
                 />
               </div>
+
+              {hasActiveFilters && <ClearFiltersButton onClick={handleClearFilters} />}
             </div>
 
             <Button

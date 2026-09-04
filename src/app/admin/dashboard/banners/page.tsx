@@ -17,6 +17,7 @@ import {
 } from "@/components/admin/AdminPageHeader";
 import { FormModal } from "@/components/common/FormModal";
 import { SearchInput } from "@/components/ui/search-input";
+import { ClearFiltersButton } from "@/components/common/clear-filters-button";
 import {
   useBanners,
   useBannerPositions,
@@ -59,6 +60,14 @@ export default function AdminBannersPage() {
   const createMutation = useCreateBanner();
   const updateMutation = useUpdateBanner();
   const deleteMutation = useDeleteBanner();
+
+  const handleClearFilters = () => {
+    setSearch("");
+    setSelectedPositionFilter("");
+    setPage(1);
+  };
+
+  const hasActiveFilters = search.trim() !== "" || selectedPositionFilter !== "";
 
   const banners = data?.data ?? [];
   const positions = positionsData?.data ?? [];
@@ -267,7 +276,7 @@ export default function AdminBannersPage() {
             <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
               <SearchInput
                 placeholder="Search banners by title..."
-                defaultValue={search}
+                value={search}
                 onSearch={(val) => {
                   setSearch(val);
                   setPage(1);
@@ -287,6 +296,8 @@ export default function AdminBannersPage() {
                   className="h-11 rounded-xl"
                 />
               </div>
+
+              {hasActiveFilters && <ClearFiltersButton onClick={handleClearFilters} />}
             </div>
 
             <Button

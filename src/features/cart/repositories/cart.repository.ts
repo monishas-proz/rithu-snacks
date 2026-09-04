@@ -17,15 +17,14 @@ export const cartItemInclude = Prisma.validator<Prisma.CartItemInclude>()({
       },
     },
   },
-  variant: {
+  variant_unit_price: {
     select: {
       id: true,
       uuid: true,
-      variant_name: true,
       sku: true,
       base_price: true,
-      sale_price: true,
       unit_value: true,
+      is_default: true,
       isActive: true,
       deleted_at: true,
       product_units: {
@@ -37,10 +36,19 @@ export const cartItemInclude = Prisma.validator<Prisma.CartItemInclude>()({
           type: true,
         },
       },
-      product_variant_images: {
-        where: { is_active: true },
-        orderBy: [{ is_primary: "desc" }, { sort_order: "asc" }],
-        take: 1,
+      variant: {
+        select: {
+          id: true,
+          uuid: true,
+          variant_name: true,
+          isActive: true,
+          deleted_at: true,
+          product_variant_images: {
+            where: { is_active: true },
+            orderBy: [{ is_primary: "desc" }, { sort_order: "asc" }],
+            take: 1,
+          },
+        },
       },
     },
   },
@@ -50,9 +58,13 @@ export const cartInclude = Prisma.validator<Prisma.CartInclude>()({
   items: {
     where: {
       is_active: true,
-      variant: {
+      variant_unit_price: {
         isActive: true,
         deleted_at: null,
+        variant: {
+          isActive: true,
+          deleted_at: null,
+        },
       },
       product: {
         isActive: true,
@@ -111,7 +123,7 @@ export const cartRepository = {
   async addItemToCart(params: {
     userId: bigint;
     productId: bigint;
-    variantId: bigint;
+    variantUnitPriceId: bigint;
     quantity: number;
     currentPrice: number;
     adminOrUserId?: bigint;
@@ -128,7 +140,7 @@ export const cartRepository = {
       const existingItem = await tx.cartItem.findFirst({
         where: {
           cartId: cart.id,
-          variantId: params.variantId,
+          variantUnitPriceId: params.variantUnitPriceId,
         },
       });
 
@@ -155,7 +167,7 @@ export const cartRepository = {
             uuid: crypto.randomUUID(),
             cartId: cart.id,
             productId: params.productId,
-            variantId: params.variantId,
+            variantUnitPriceId: params.variantUnitPriceId,
             quantity: params.quantity,
             price_at_add: params.currentPrice,
             is_active: true,
@@ -185,7 +197,7 @@ export const cartRepository = {
 
   async updateItemQuantity(params: {
     userId: bigint;
-    variantUuid: string;
+    variantUnitPriceUuid: string;
     quantity: number;
     currentPrice: number;
     adminOrUserId?: bigint;
@@ -205,8 +217,8 @@ export const cartRepository = {
         where: {
           cartId: cart.id,
           is_active: true,
-          variant: {
-            uuid: params.variantUuid,
+          variant_unit_price: {
+            uuid: params.variantUnitPriceUuid,
             isActive: true,
             deleted_at: null,
           },
@@ -243,7 +255,7 @@ export const cartRepository = {
 
   async removeCartItem(params: {
     userId: bigint;
-    variantUuid: string;
+    variantUnitPriceUuid: string;
     adminOrUserId?: bigint;
   }) {
     return db.$transaction(async (tx) => {
@@ -261,8 +273,8 @@ export const cartRepository = {
         where: {
           cartId: cart.id,
           is_active: true,
-          variant: {
-            uuid: params.variantUuid,
+          variant_unit_price: {
+            uuid: params.variantUnitPriceUuid,
           },
         },
       });
@@ -352,9 +364,13 @@ export const cartRepository = {
       where: {
         cartId: cart.id,
         is_active: true,
-        variant: {
+        variant_unit_price: {
           isActive: true,
           deleted_at: null,
+          variant: {
+            isActive: true,
+            deleted_at: null,
+          },
         },
         product: {
           isActive: true,

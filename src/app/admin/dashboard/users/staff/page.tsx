@@ -231,7 +231,7 @@ export default function AdminStaffPage() {
         <div className="flex flex-1 flex-col sm:flex-row sm:items-center gap-3">
           <SearchInput
             placeholder="Search staff by name, email, or phone..."
-            defaultValue={search}
+            value={search}
             onSearch={(val) => {
               setSearch(val);
               setPage(1);

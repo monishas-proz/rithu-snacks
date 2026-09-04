@@ -11,6 +11,7 @@ import {
   AdminContent,
 } from "@/components/admin/AdminPageHeader";
 import { DataTable } from "@/components/admin/data-table/DataTable";
+import { ClearFiltersButton } from "@/components/common/clear-filters-button";
 import { useInventoryTransactions } from "@/features/inventory/hooks";
 import { formatDate } from "@/lib/utils";
 import type { InventoryTransactionItem } from "@/features/inventory/types";
@@ -73,8 +74,15 @@ export default function InventoryHistoryPage() {
     params
   );
 
+  const hasActiveFilters = inventoryId.trim() !== "" || !!params.type;
+
+  const handleClearFilters = () => {
+    setInventoryId("");
+    setParams({ page: 1, limit: 20 });
+  };
+
   if (isLoading) return <AdminTableSkeleton />;
-  if (error) return <ErrorState message={error.message} />;
+  if (error) return <ErrorState message={error.message} onRetry={handleClearFilters} />;
 
   const transactionData = data?.data?.data ?? [];
 
@@ -111,6 +119,7 @@ export default function InventoryHistoryPage() {
                 setParams((prev) => ({
                   ...prev,
                   type: e.target.value || undefined,
+                  page: 1,
                 }))
               }
             >
@@ -123,6 +132,8 @@ export default function InventoryHistoryPage() {
               <option value="TRANSFER">Transfer</option>
             </select>
           </div>
+
+          {hasActiveFilters && <ClearFiltersButton onClick={handleClearFilters} />}
         </div>
 
         <div className="flex-1 min-h-0 overflow-hidden flex flex-col">

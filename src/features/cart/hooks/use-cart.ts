@@ -7,13 +7,24 @@ import {
   addToCart,
   updateCartItem,
   removeCartItem,
+  clearCart,
+  getCartCount,
 } from "../api/get-cart";
-import type { AddToCartInput, UpdateCartItemInput } from "../types";
+import type { AddCartItemInput, UpdateCartItemInput } from "../validations/cart.schema";
 
-export function useCart() {
+export function useCart(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: cartKeys.all,
     queryFn: getCart,
+    enabled: options?.enabled,
+  });
+}
+
+export function useCartCount(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: [...cartKeys.all, "count"],
+    queryFn: getCartCount,
+    enabled: options?.enabled,
   });
 }
 
@@ -21,7 +32,7 @@ export function useAddToCart() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: AddToCartInput) => addToCart(input),
+    mutationFn: (input: AddCartItemInput) => addToCart(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: cartKeys.all });
     },
@@ -32,8 +43,11 @@ export function useUpdateCart() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ itemId, ...data }: UpdateCartItemInput & { itemId: number }) =>
-      updateCartItem(itemId, { quantity: data.quantity }),
+    mutationFn: ({
+      variantUnitPriceId,
+      quantity,
+    }: UpdateCartItemInput & { variantUnitPriceId: string }) =>
+      updateCartItem(variantUnitPriceId, { quantity }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: cartKeys.all });
     },
@@ -44,7 +58,18 @@ export function useRemoveCartItem() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (itemId: number) => removeCartItem(itemId),
+    mutationFn: (variantUnitPriceId: string) => removeCartItem(variantUnitPriceId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: cartKeys.all });
+    },
+  });
+}
+
+export function useClearCart() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => clearCart(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: cartKeys.all });
     },

@@ -1,19 +1,18 @@
 "use client";
 
 import React, { useMemo, useEffect, useState, useRef } from "react";
-import { FormProvider, useForm, useWatch } from "react-hook-form";
+import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Info, CheckCircle2, XCircle } from "lucide-react";
-import { getMeasurementFieldConfig } from "../utils/measurement.util";
+import { Info } from "lucide-react";
 import type { UnitOption } from "../types";
 import { vegTypeEnum } from "@/features/products/validations/admin-product.schema";
 import { FormInput } from "@/components/forms/form-input";
 import { FormTextarea } from "@/components/forms/form-textarea";
+import { FormRichText } from "@/components/forms/form-rich-text";
 import { FormSelect } from "@/components/forms/form-select";
 import { FormCheckbox } from "@/components/forms/form-checkbox";
 import { FormSubmitButton } from "@/components/forms/form-submit-button";
-import { cn } from "@/lib/utils";
 
 const vegTypeOptions = [
   { label: "Vegetarian (Veg)", value: "veg" },
@@ -22,6 +21,9 @@ const vegTypeOptions = [
   { label: "Not Applicable (N/A)", value: "na" },
 ];
 
+// Item-level fields only. Unit + price combinations (sku, unit, base price)
+// are managed separately per (unit) via VariantUnitPriceList, since one item
+// can now be sold in multiple pack sizes at different prices.
 const variantFormSchema = z.object({
   productId: z
     .string()
@@ -32,11 +34,6 @@ const variantFormSchema = z.object({
     .trim()
     .min(1, "Item name cannot be empty")
     .max(100, "Item name cannot exceed 100 characters"),
-  sku: z
-    .string({ message: "SKU is required" })
-    .trim()
-    .min(1, "SKU cannot be empty")
-    .max(100, "SKU cannot exceed 100 characters"),
   slug: z
     .string({ message: "Item code is required" })
     .trim()
@@ -50,21 +47,6 @@ const variantFormSchema = z.object({
   description: z.string().trim().optional(),
   vegType: vegTypeEnum,
   isFeatured: z.boolean(),
-  unitId: z
-    .string({ message: "Please select a unit" })
-    .uuid("Invalid Unit UUID format")
-    .min(1, "Unit is required"),
-  unitValue: z
-    .number({ message: "Measurement value is required" })
-    .gt(0, "Measurement value must be greater than 0"),
-  basePrice: z
-    .number({ message: "Base price is required" })
-    .min(0, "Base price cannot be negative"),
-  salePrice: z
-    .number({ message: "Sale price is required" })
-    .min(0, "Sale price cannot be negative"),
-  inStock: z.boolean(),
-  outOfStock: z.boolean().optional(),
 });
 
 export type VariantFormValues = z.infer<typeof variantFormSchema>;
@@ -89,7 +71,6 @@ interface VariantFormProps {
   fixedProductId?: string;
   fixedProductSlug?: string;
   products?: SelectOption[];
-  units?: UnitFormItem[];
   onSubmit: (data: VariantFormValues) => Promise<void>;
   isLoading?: boolean;
   submitLabel?: string;
@@ -101,18 +82,10 @@ function VariantForm({
   fixedProductId,
   fixedProductSlug,
   products = [],
-  units = [],
   onSubmit,
   isLoading = false,
   submitLabel = "Save Item",
 }: VariantFormProps) {
-  const initialInStock =
-    initialData?.inStock !== undefined
-      ? initialData.inStock
-      : initialData?.outOfStock !== undefined
-      ? !initialData.outOfStock
-      : true;
-
   // Helper to compute prefix from Product Code / Slug
   const computePrefix = (prodId?: string): string => {
     if (fixedProductSlug) {
@@ -140,6 +113,10 @@ function VariantForm({
   const [extraSlug, setExtraSlug] = useState<string>(() =>
     extractInitialExtraSlug(initialData?.slug, initialPrefix)
   );
+  // Once the admin edits the code by hand, stop auto-filling it from the Item
+  // Name so we never silently overwrite a deliberate choice. Editing an
+  // existing item (which already has a slug) counts as "already set".
+  const [codeTouched, setCodeTouched] = useState<boolean>(() => Boolean(initialData?.slug));
   const [extraSlugError, setExtraSlugError] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState<boolean>(false);
   const infoRef = useRef<HTMLDivElement>(null);
@@ -162,22 +139,16 @@ function VariantForm({
     defaultValues: {
       productId: fixedProductId || initialData?.productId || "",
       variantName: initialData?.variantName || "",
-      sku: initialData?.sku || "",
       slug: initialData?.slug || "",
       shortDescription: initialData?.shortDescription || "",
       description: initialData?.description || "",
       vegType: initialData?.vegType || "na",
       isFeatured: initialData?.isFeatured ?? false,
-      unitId: initialData?.unitId || "",
-      unitValue: initialData?.unitValue,
-      basePrice: initialData?.basePrice,
-      salePrice: initialData?.salePrice,
-      inStock: initialInStock,
-      outOfStock: !initialInStock,
     },
   });
 
   const selectedProductId = methods.watch("productId");
+  const watchedVariantName = methods.watch("variantName");
 
   // Dynamic non-editable prefix based on currently selected Product
   const slugPrefix = useMemo(
@@ -193,74 +164,39 @@ function VariantForm({
     });
   }, [slugPrefix, extraSlug, methods]);
 
+  // Fill in the Item Code from the Item Name automatically, so most admins
+  // never have to think about it. Stops as soon as they edit the code by hand.
+  useEffect(() => {
+    if (codeTouched) return;
+    const auto = (watchedVariantName || "")
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+    setExtraSlug(auto);
+  }, [watchedVariantName, codeTouched]);
+
   useEffect(() => {
     if (initialData) {
-      const isStock =
-        initialData.inStock !== undefined
-          ? initialData.inStock
-          : initialData.outOfStock !== undefined
-          ? !initialData.outOfStock
-          : true;
-
       methods.reset({
         productId: fixedProductId || initialData.productId || "",
         variantName: initialData.variantName || "",
-        sku: initialData.sku || "",
         slug: initialData.slug || "",
         shortDescription: initialData.shortDescription || "",
         description: initialData.description || "",
         vegType: initialData.vegType || "na",
         isFeatured: initialData.isFeatured ?? false,
-        unitId: initialData.unitId || "",
-        unitValue: initialData.unitValue,
-        basePrice: initialData.basePrice,
-        salePrice: initialData.salePrice,
-        inStock: isStock,
-        outOfStock: !isStock,
       });
 
       setExtraSlug(extractInitialExtraSlug(initialData.slug, initialPrefix));
+      setCodeTouched(Boolean(initialData.slug));
     }
   }, [initialData, fixedProductId, initialPrefix, methods]);
-
-  const selectedUnitId = useWatch({
-    control: methods.control,
-    name: "unitId",
-  });
-
-  // Find the selected unit object to extract its type, code, name, and conversionFactor
-  const selectedUnit = useMemo(() => {
-    if (!selectedUnitId) return null;
-    return (
-      units.find(
-        (u) =>
-          ("id" in u && u.id === selectedUnitId) ||
-          ("value" in u && u.value === selectedUnitId)
-      ) || null
-    );
-  }, [units, selectedUnitId]);
-
-  // Derive dynamic configuration (label, placeholder, helper, badge)
-  const measurementConfig = useMemo(() => {
-    return getMeasurementFieldConfig(selectedUnit);
-  }, [selectedUnit]);
 
   const productOptions = useMemo(
     () => products,
     [products]
   );
-
-  const unitOptions = useMemo(() => {
-    return units.map((u) => {
-      if ("value" in u && "label" in u) {
-        return { value: u.value, label: u.label };
-      }
-      return {
-        value: u.id,
-        label: `${u.name} (${u.code})`,
-      };
-    });
-  }, [units]);
 
   const handleExtraSlugChange = (raw: string) => {
     // Format variant code: uppercase, convert spaces to underscore, allow special characters
@@ -268,6 +204,7 @@ function VariantForm({
       .toUpperCase()
       .replace(/\s+/g, "_");
     setExtraSlug(formatted);
+    setCodeTouched(true);
     if (extraSlugError) setExtraSlugError(null);
     methods.clearErrors("slug");
   };
@@ -288,23 +225,15 @@ function VariantForm({
       return;
     }
 
-    const inStockVal = methods.getValues("inStock") ?? true;
     const finalSlug = `${slugPrefix}${extraSlug.trim()}`;
 
     const submissionPayload: VariantFormValues = {
       ...data,
       slug: finalSlug,
-      unitValue: Number(data.unitValue),
-      basePrice: Number(data.basePrice),
-      salePrice: Number(data.salePrice),
-      inStock: Boolean(inStockVal),
-      outOfStock: !inStockVal,
     };
 
     await onSubmit(submissionPayload);
   };
-
-  const currentInStock = methods.watch("inStock") ?? true;
 
   return (
     <FormProvider {...methods}>
@@ -312,7 +241,7 @@ function VariantForm({
         onSubmit={methods.handleSubmit(handleFormSubmit)}
         className="space-y-6"
       >
-        {/* Row 1: Product & Variant Name (or Variant Name & SKU if product is fixed) */}
+        {/* Row 1: Product & Item Name (or just Item Name if product is fixed) */}
         {!fixedProductId ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormSelect
@@ -326,7 +255,7 @@ function VariantForm({
             <FormInput
               name="variantName"
               label="Item Name"
-              placeholder="e.g. 500 Grams Pack, 1 Litre Bottle"
+              placeholder="e.g. Classic Mixture, Butter Cookies"
               required
             />
           </div>
@@ -335,24 +264,25 @@ function VariantForm({
             <FormInput
               name="variantName"
               label="Item Name"
-              placeholder="e.g. 500 Grams Pack, 1 Litre Bottle"
+              placeholder="e.g. Classic Mixture, Butter Cookies"
               required
             />
 
-            <FormInput
-              name="sku"
-              label="SKU"
-              placeholder="e.g. BANANA-500G, OIL-1L"
+            <FormSelect
+              name="vegType"
+              label="Dietary Type"
+              placeholder="Select dietary type"
+              options={vegTypeOptions}
               required
             />
           </div>
         )}
 
-        {/* Row 2: Variant Code (Full Width) with Category + Product Code Prefix & Floating Info Pop-Up */}
+        {/* Row 2: Item Code (Full Width) with Category + Product Code Prefix & Floating Info Pop-Up */}
         <div className="pt-0 mb-3">
           <div className="flex items-center gap-1.5 mb-1.5">
             <label className="block text-xs font-semibold text-[var(--color-neutral-800)]">
-              Item Code <span className="text-red-500">*</span>
+              Item Code (fills in automatically) <span className="text-red-500">*</span>
             </label>
             <div className="relative inline-flex items-center" ref={infoRef}>
               <button
@@ -371,7 +301,9 @@ function VariantForm({
                     <div className="flex items-start gap-2">
                       <Info className="h-4 w-4 text-[var(--color-secondary-600)] shrink-0 mt-0.5" />
                       <p className="leading-relaxed text-[var(--color-neutral-800)]">
-                        Enter Item code (special characters allowed, e.g. 500G or PACK_OF_2). Category & Product code prefix is automatically applied.
+                        This is a short internal code used to identify the item — it fills in
+                        by itself from the Item Name, with the product's code added in front.
+                        You only need to change it if you want a shorter or different code.
                       </p>
                     </div>
                     <button
@@ -419,7 +351,7 @@ function VariantForm({
               type="text"
               value={extraSlug}
               onChange={(e) => handleExtraSlugChange(e.target.value)}
-              placeholder="e.g. 500G"
+              placeholder="e.g. CLASSIC_MIX"
               className="flex-1 min-w-0 px-3 py-2 text-sm text-neutral-900 bg-transparent outline-none font-mono placeholder:text-neutral-400 placeholder:font-sans uppercase"
             />
           </div>
@@ -450,197 +382,30 @@ function VariantForm({
           </div>
         </div>
 
-        {/* Row 3: SKU & Unit (when not fixed) OR Unit & Measurement Value (when fixed) */}
+        {/* Dietary Type & Featured Item (Dietary Type already shown above when product is fixed) */}
         {!fixedProductId ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <FormInput
-              name="sku"
-              label="SKU"
-              placeholder="e.g. BANANA-500G, OIL-1L"
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+            <FormSelect
+              name="vegType"
+              label="Dietary Type"
+              placeholder="Select dietary type"
+              options={vegTypeOptions}
               required
             />
 
-            <FormSelect
-              name="unitId"
-              label="Unit"
-              placeholder="Select unit"
-              options={unitOptions}
-              required
+            <FormCheckbox
+              name="isFeatured"
+              label="Featured Item"
+              description="Display this item prominently in featured sections"
             />
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-            <FormSelect
-              name="unitId"
-              label="Unit"
-              placeholder="Select unit"
-              options={unitOptions}
-              required
-            />
-
-            <FormInput
-              name="unitValue"
-              label={measurementConfig.label}
-              placeholder={measurementConfig.placeholder}
-              description={measurementConfig.helperText}
-              type="number"
-              step="any"
-              min="0"
-              required
-              rightIcon={
-                measurementConfig.unitBadge ? (
-                  <span className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase tracking-wider">
-                    {measurementConfig.unitBadge}
-                  </span>
-                ) : undefined
-              }
-            />
-          </div>
-        )}
-
-        {/* Row 4: Measurement Value & Base Price (when not fixed) OR Base Price & Sale Price (when fixed) */}
-        {!fixedProductId ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-            <FormInput
-              name="unitValue"
-              label={measurementConfig.label}
-              placeholder={measurementConfig.placeholder}
-              description={measurementConfig.helperText}
-              type="number"
-              step="any"
-              min="0"
-              required
-              rightIcon={
-                measurementConfig.unitBadge ? (
-                  <span className="text-xs font-semibold text-[var(--color-neutral-500)] uppercase tracking-wider">
-                    {measurementConfig.unitBadge}
-                  </span>
-                ) : undefined
-              }
-            />
-
-            <FormInput
-              name="basePrice"
-              label="Base Price (MRP ₹)"
-              type="number"
-              step="any"
-              min="0"
-              placeholder="e.g. 260"
-              required
-            />
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <FormInput
-              name="basePrice"
-              label="Base Price (MRP ₹)"
-              type="number"
-              step="any"
-              min="0"
-              placeholder="e.g. 260"
-              required
-            />
-
-            <FormInput
-              name="salePrice"
-              label="Sale Price (₹)"
-              type="number"
-              step="any"
-              min="0"
-              placeholder="e.g. 230"
-              required
-            />
-          </div>
-        )}
-
-        {/* Row 5: Sale Price (only when not fixed product, since it has an extra product field on row 1) */}
-        {!fixedProductId && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <FormInput
-              name="salePrice"
-              label="Sale Price (₹)"
-              type="number"
-              step="any"
-              min="0"
-              placeholder="e.g. 230"
-              required
-            />
-          </div>
-        )}
-
-        {/* Stock Availability Toggle Card */}
-        <div className="p-4 rounded-2xl border border-cream-border bg-cream-50/70 flex items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-neutral-900">Stock Availability</span>
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border shadow-2xs",
-                  currentInStock
-                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                    : "bg-rose-50 text-rose-700 border-rose-200"
-                )}
-              >
-                {currentInStock ? (
-                  <>
-                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                    <span>In Stock</span>
-                  </>
-                ) : (
-                  <>
-                    <XCircle className="w-3 h-3 text-rose-600" />
-                    <span>Out of Stock</span>
-                  </>
-                )}
-              </span>
-            </div>
-            <p className="text-[11px] text-neutral-500">
-              {currentInStock
-                ? "This Item is in stock and available for customers to order on the store."
-                : "This Item is marked as out of stock. Customers will see 'Out of Stock'."}
-            </p>
-          </div>
-
-          <button
-            type="button"
-            role="switch"
-            aria-checked={Boolean(currentInStock)}
-            onClick={() =>
-              methods.setValue("inStock", !currentInStock, {
-                shouldDirty: true,
-              })
-            }
-            className={cn(
-              "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
-              currentInStock ? "bg-emerald-600" : "bg-neutral-300"
-            )}
-            title={currentInStock ? "Click to set Out of Stock" : "Click to set In Stock"}
-          >
-            <span
-              className={cn(
-                "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out",
-                currentInStock ? "translate-x-5" : "translate-x-0"
-              )}
-            />
-          </button>
-        </div>
-
-        {/* Dietary Type & Featured Item */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-          <FormSelect
-            name="vegType"
-            label="Dietary Type"
-            placeholder="Select dietary type"
-            options={vegTypeOptions}
-            required
-          />
-
           <FormCheckbox
             name="isFeatured"
             label="Featured Item"
             description="Display this item prominently in featured sections"
           />
-        </div>
+        )}
 
         {/* Short Description */}
         <FormTextarea
@@ -651,11 +416,10 @@ function VariantForm({
         />
 
         {/* Description */}
-        <FormTextarea
+        <FormRichText
           name="description"
           label="Description"
           placeholder="Detailed item information and description"
-          rows={4}
         />
 
         <div className="flex justify-end pt-2">

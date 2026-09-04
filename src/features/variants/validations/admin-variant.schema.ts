@@ -10,11 +10,6 @@ export const createAdminVariantSchema = z
       .trim()
       .min(1, "Variant name cannot be empty")
       .max(100, "Variant name cannot exceed 100 characters"),
-    sku: z
-      .string({ message: "SKU is required" })
-      .trim()
-      .min(1, "SKU cannot be empty")
-      .max(100, "SKU cannot exceed 100 characters"),
     slug: z
       .string({ message: "Slug is required" })
       .trim()
@@ -33,39 +28,10 @@ export const createAdminVariantSchema = z
       .nullable(),
     vegType: vegTypeEnum.optional(),
     isFeatured: z.boolean().optional().default(false),
-    unitValue: z
-      .number({ message: "Unit value is required" })
-      .gt(0, "Unit value must be greater than 0"),
-    unitId: z
-      .string({ message: "Unit ID is required" })
-      .uuid("Invalid Unit UUID format"),
-    basePrice: z
-      .number({ message: "Base price is required" })
-      .min(0, "Base price cannot be negative")
-      .optional(),
-    price: z
-      .number({ message: "Price must be non-negative" })
-      .min(0, "Price cannot be negative")
-      .optional(),
-    salePrice: z
-      .number({ message: "Sale price is required" })
-      .min(0, "Sale price cannot be negative"),
-    stock: z
-      .number()
-      .int("Stock must be an integer")
-      .min(0, "Stock cannot be negative")
-      .optional(),
     isActive: z.boolean().optional().default(true),
     outOfStock: z.boolean().optional().default(false),
   })
-  .strict()
-  .refine(
-    (data) => data.basePrice !== undefined || data.price !== undefined,
-    {
-      message: "Base price or price is required",
-      path: ["basePrice"],
-    }
-  );
+  .strict();
 
 export type CreateAdminVariantInput = z.infer<typeof createAdminVariantSchema>;
 
@@ -76,12 +42,6 @@ export const updateAdminVariantSchema = z
       .trim()
       .min(1, "Variant name cannot be empty")
       .max(100, "Variant name cannot exceed 100 characters")
-      .optional(),
-    sku: z
-      .string()
-      .trim()
-      .min(1, "SKU cannot be empty")
-      .max(100, "SKU cannot exceed 100 characters")
       .optional(),
     slug: z
       .string()
@@ -102,31 +62,6 @@ export const updateAdminVariantSchema = z
       .nullable(),
     vegType: vegTypeEnum.optional(),
     isFeatured: z.boolean().optional(),
-    unitValue: z
-      .number()
-      .gt(0, "Unit value must be greater than 0")
-      .optional(),
-    unitId: z
-      .string()
-      .uuid("Invalid Unit UUID format")
-      .optional(),
-    basePrice: z
-      .number()
-      .min(0, "Base price cannot be negative")
-      .optional(),
-    price: z
-      .number()
-      .min(0, "Price cannot be negative")
-      .optional(),
-    salePrice: z
-      .number()
-      .min(0, "Sale price cannot be negative")
-      .optional(),
-    stock: z
-      .number()
-      .int("Stock must be an integer")
-      .min(0, "Stock cannot be negative")
-      .optional(),
     isActive: z.boolean().optional(),
     outOfStock: z.boolean().optional(),
   })
@@ -137,9 +72,9 @@ export type UpdateAdminVariantInput = z.infer<typeof updateAdminVariantSchema>;
 export const bulkEditVariantItemSchema = z
   .object({
     id: z
-      .string({ message: "Variant id is required" })
+      .string({ message: "Variant unit price id is required" })
       .trim()
-      .uuid("Invalid Variant UUID format"),
+      .uuid("Invalid Variant Unit Price UUID format"),
     price: z
       .number()
       .min(0, "Price cannot be negative")
@@ -148,17 +83,12 @@ export const bulkEditVariantItemSchema = z
       .number()
       .min(0, "Base price cannot be negative")
       .optional(),
-    salePrice: z
-      .number()
-      .min(0, "Sale price cannot be negative")
-      .optional(),
     stock: z
       .number()
       .int("Stock must be an integer")
       .min(0, "Stock cannot be negative")
       .optional(),
     isActive: z.boolean().optional(),
-    outOfStock: z.boolean().optional(),
   })
   .strict();
 

@@ -20,6 +20,7 @@ import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
+import { ClearFiltersButton } from "@/components/common/clear-filters-button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { formatDateTime } from "@/lib/utils";
 import { ReviewRatingStars } from "./ReviewRatingStars";
@@ -83,6 +84,16 @@ export function AdminReviewListTable({
 
   const handleTabChange = (tabId: "all" | "approved" | "unapproved") => {
     setStatusFilter(tabId);
+    setPage(1);
+  };
+
+  const hasActiveFilters =
+    search.trim() !== "" || ratingFilter !== undefined || statusFilter !== "all";
+
+  const handleClearFilters = () => {
+    setSearch("");
+    setRatingFilter(undefined);
+    setStatusFilter("all");
     setPage(1);
   };
 
@@ -368,6 +379,8 @@ export function AdminReviewListTable({
               className={`w-3.5 h-3.5 ${isFetching ? "animate-spin text-secondary-600" : ""}`}
             />
           </Button>
+
+          {hasActiveFilters && <ClearFiltersButton onClick={handleClearFilters} className="h-9.5" />}
         </div>
 
         {/* Right Side: Status Tabs (Segmented) */}
@@ -402,20 +415,15 @@ export function AdminReviewListTable({
                 No reviews found
               </h3>
               <p className="mt-1 text-xs text-neutral-500 max-w-sm mx-auto">
-                {search || ratingFilter || statusFilter !== "all"
+                {hasActiveFilters
                   ? "No reviews match your current search or filter criteria."
                   : "No customer reviews have been submitted yet."}
               </p>
-              {(search || ratingFilter || statusFilter !== "all") && (
+              {hasActiveFilters && (
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => {
-                    setSearch("");
-                    setRatingFilter(undefined);
-                    setStatusFilter("all");
-                    setPage(1);
-                  }}
+                  onClick={handleClearFilters}
                   className="mt-4 text-xs font-semibold"
                 >
                   Clear all filters

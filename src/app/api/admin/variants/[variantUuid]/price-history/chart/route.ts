@@ -1,21 +1,22 @@
 import { createApiHandler } from "@/lib/api/api-handler";
 import { apiSuccess } from "@/lib/api/api-response";
 import { ApiError } from "@/lib/api/api-error";
-import { variantService } from "@/features/variants/services/variant.service";
+import { variantUnitPriceService } from "@/features/variants/services/variant-unit-price.service";
 
+// NOTE: `variantUuid` here is the VariantUnitPrice UUID - see price-history/route.ts.
 export const GET = createApiHandler(
   {
     GET: async (_request, context) => {
-      const variantUuid = context.params?.variantUuid;
-      if (!variantUuid || typeof variantUuid !== "string") {
-        throw ApiError.badRequest("Invalid variant UUID");
+      const unitPriceUuid = context.params?.variantUuid;
+      if (!unitPriceUuid || typeof unitPriceUuid !== "string") {
+        throw ApiError.badRequest("Invalid variant unit price UUID");
       }
 
       const query = (context.query || {}) as Record<string, any>;
       const period = query.period || "1y";
 
-      const chartData = await variantService.getVariantPriceHistoryChart(
-        variantUuid,
+      const chartData = await variantUnitPriceService.getPriceHistoryChart(
+        unitPriceUuid,
         period
       );
 

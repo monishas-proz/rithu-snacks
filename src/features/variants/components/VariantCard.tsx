@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   Package,
+  PackageX,
   Pencil,
   Trash2,
   Eye,
@@ -26,6 +27,7 @@ export interface VariantCardProps {
   onManageImages?: (variant: AdminVariantResponse) => void;
   onDelete?: (variant: AdminVariantResponse) => void;
   onToggleStatus?: (variant: AdminVariantResponse, nextActive: boolean) => void;
+  onToggleStock?: (variant: AdminVariantResponse, nextOutOfStock: boolean) => void;
   onPreview?: (variant: AdminVariantResponse) => void;
   showAdminActions?: boolean;
 }
@@ -50,6 +52,7 @@ export function VariantCard({
   onManageImages,
   onDelete,
   onToggleStatus,
+  onToggleStock,
   onPreview,
   showAdminActions = true,
 }: VariantCardProps) {
@@ -57,9 +60,12 @@ export function VariantCard({
 
   const effectiveProductUuid = productUuid || variant.productId;
 
+  const basePrice = variant.basePrice ?? 0;
+  const salePrice = variant.salePrice ?? basePrice;
+
   const discountPercent =
-    variant.basePrice > variant.salePrice && variant.basePrice > 0
-      ? Math.round(((variant.basePrice - variant.salePrice) / variant.basePrice) * 100)
+    basePrice > salePrice && basePrice > 0
+      ? Math.round(((basePrice - salePrice) / basePrice) * 100)
       : 0;
 
   const measurementStr =
@@ -118,9 +124,20 @@ export function VariantCard({
             </span>
           )}
           {variant.outOfStock && (
-            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold shadow-xs bg-rose-600 text-white backdrop-blur-md">
-              Out of Stock
-            </span>
+            onToggleStock ? (
+              <button
+                type="button"
+                onClick={() => onToggleStock(variant, false)}
+                className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold shadow-xs bg-rose-600 text-white backdrop-blur-md hover:bg-rose-700 transition-colors cursor-pointer"
+                title="Click to mark In Stock"
+              >
+                Out of Stock
+              </button>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold shadow-xs bg-rose-600 text-white backdrop-blur-md">
+                Out of Stock
+              </span>
+            )
           )}
           <span
             className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold shadow-xs backdrop-blur-md ${
@@ -209,6 +226,26 @@ export function VariantCard({
               </Button>
             )}
 
+            {onToggleStock && (
+              <Button
+                variant="secondary"
+                size="icon"
+                className={`h-8 w-8 rounded-lg shadow-xs ${
+                  variant.outOfStock
+                    ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
+                    : "bg-rose-100 text-rose-800 hover:bg-rose-200"
+                }`}
+                onClick={() => onToggleStock(variant, !variant.outOfStock)}
+                title={variant.outOfStock ? "Mark In Stock" : "Mark Out of Stock"}
+              >
+                {variant.outOfStock ? (
+                  <Package className="h-4 w-4" />
+                ) : (
+                  <PackageX className="h-4 w-4" />
+                )}
+              </Button>
+            )}
+
             {onDelete && (
               <Button
                 variant="secondary"
@@ -284,11 +321,11 @@ export function VariantCard({
             </div>
             <div className="flex items-baseline gap-1.5 flex-wrap">
               <span className="text-base sm:text-lg font-bold text-[var(--brown-900)]">
-                ₹{Number(variant.salePrice).toLocaleString("en-IN")}.00
+                ₹{salePrice.toLocaleString("en-IN")}.00
               </span>
-              {variant.basePrice > variant.salePrice && (
+              {basePrice > salePrice && (
                 <span className="text-xs text-[var(--color-neutral-400)] line-through">
-                  ₹{Number(variant.basePrice).toLocaleString("en-IN")}.00
+                  ₹{basePrice.toLocaleString("en-IN")}.00
                 </span>
               )}
             </div>

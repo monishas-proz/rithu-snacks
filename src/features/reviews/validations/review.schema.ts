@@ -2,9 +2,9 @@ import { z } from "zod";
 
 export const createReviewSchema = z
   .object({
-    variantId: z
-      .string({ message: "Variant ID is required" })
-      .uuid("Invalid variant UUID"),
+    variantUnitPriceId: z
+      .string({ message: "Variant unit price ID is required" })
+      .uuid("Invalid variant unit price UUID"),
     orderItemId: z
       .string({ message: "Order item ID is required" })
       .uuid("Invalid order item UUID"),
@@ -96,7 +96,10 @@ export const adminReviewListSchema = z
     isApproved: z.boolean().optional(),
     rating: z.number().int().min(1).max(5).optional(),
     productId: z.string().uuid("Invalid product UUID format").optional(),
+    // Item-level variant: matches reviews across all of its pack sizes.
     variantId: z.string().uuid("Invalid variant UUID format").optional(),
+    // Exact pack size only.
+    variantUnitPriceId: z.string().uuid("Invalid variant unit price UUID format").optional(),
     sortBy: z.enum(["createdAt", "updatedAt", "rating"]).default("createdAt"),
     sortOrder: z.enum(["asc", "desc"]).default("desc"),
   })

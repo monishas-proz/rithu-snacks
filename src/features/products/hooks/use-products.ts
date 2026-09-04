@@ -2,8 +2,44 @@
 
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { productKeys } from "@/lib/api/query-keys";
-import { getAdminProducts, getAdminProduct } from "../api/get-products";
-import type { AdminProductListParams, GetAdminProductsParams } from "../types";
+import {
+  getAdminProducts,
+  getAdminProduct,
+  getCustomerProducts,
+  getCustomerProduct,
+} from "../api/get-products";
+import type {
+  AdminProductListParams,
+  GetAdminProductsParams,
+  CustomerProductListParams,
+} from "../types";
+
+export function useCustomerProducts(params?: CustomerProductListParams) {
+  const queryParams: Record<string, string | number | boolean | undefined> = {
+    page: params?.page ?? 1,
+    pageSize: params?.pageSize ?? 20,
+    search: params?.search,
+    categoryIds: params?.categoryIds?.length ? params.categoryIds.join(",") : undefined,
+    brandIds: params?.brandIds?.length ? params.brandIds.join(",") : undefined,
+    sortBy: params?.sortBy ?? "createdAt",
+    sortOrder: params?.sortOrder ?? "desc",
+  };
+
+  return useQuery({
+    queryKey: productKeys.list({ ...queryParams, type: "customer" }),
+    queryFn: () => getCustomerProducts(params),
+    placeholderData: keepPreviousData,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useCustomerProduct(uuid: string | null) {
+  return useQuery({
+    queryKey: productKeys.detail(uuid ? `customer-${uuid}` : ""),
+    queryFn: () => getCustomerProduct(uuid!),
+    enabled: !!uuid,
+  });
+}
 
 export function useProducts(
   params?: AdminProductListParams | GetAdminProductsParams,

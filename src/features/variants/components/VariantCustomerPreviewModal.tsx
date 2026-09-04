@@ -113,11 +113,12 @@ export function VariantCustomerPreviewModal({
     imageList[0] ||
     resolveFallbackImage(variant.productName || variant.variantName);
 
+  const basePrice = variant.basePrice ?? 0;
+  const salePrice = variant.salePrice ?? basePrice;
+
   const discountPercent =
-    variant.basePrice > variant.salePrice && variant.basePrice > 0
-      ? Math.round(
-          ((variant.basePrice - variant.salePrice) / variant.basePrice) * 100
-        )
+    basePrice > salePrice && basePrice > 0
+      ? Math.round(((basePrice - salePrice) / basePrice) * 100)
       : 0;
 
   const measurementStr =
@@ -334,12 +335,12 @@ export function VariantCustomerPreviewModal({
                     {/* Pricing */}
                     <div className="flex gap-1.5 mt-2 items-center">
                       <p className="font-bold text-xs sm:text-sm text-[var(--brown-900)]">
-                        ₹{Number(variant.salePrice).toLocaleString("en-IN")}.00
+                        ₹{salePrice.toLocaleString("en-IN")}.00
                       </p>
 
-                      {variant.basePrice > variant.salePrice && (
+                      {basePrice > salePrice && (
                         <p className="text-gray-400 line-through text-[10px] sm:text-xs">
-                          ₹{Number(variant.basePrice).toLocaleString("en-IN")}.00
+                          ₹{basePrice.toLocaleString("en-IN")}.00
                         </p>
                       )}
                     </div>

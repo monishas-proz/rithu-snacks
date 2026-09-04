@@ -1,7 +1,7 @@
 "use client";
 
 import { use } from "react";
-import { useProduct } from "@/features/products/hooks/use-products";
+import { useCustomerProduct } from "@/features/products/hooks/use-products";
 import { ProductDetails } from "@/features/products/components/ProductDetails";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
@@ -14,7 +14,7 @@ interface ProductDetailPageProps {
 
 export default function ProductDetailPage({ params }: ProductDetailPageProps) {
   const { slug } = use(params);
-  const { data, isLoading, error, refetch } = useProduct(slug);
+  const { data: product, isLoading, error, refetch } = useCustomerProduct(slug);
 
   if (isLoading) {
     return (
@@ -35,8 +35,6 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
     );
   }
 
-  const product = data?.success && data.data ? data.data : null;
-
   if (!product) {
     return (
       <PageContainer>
@@ -52,7 +50,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
           { label: "Home", href: "/" },
           { label: "Products", href: "/products" },
           ...(product.category
-            ? [{ label: product.category.name, href: `/categories/${product.category.slug}` }]
+            ? [{ label: product.category.name, href: `/categories/${product.category.id}` }]
             : []),
           { label: product.name },
         ]}

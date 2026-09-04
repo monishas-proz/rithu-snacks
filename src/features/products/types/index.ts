@@ -151,4 +151,25 @@ export interface AdminProductImageResponse {
   updatedAt: Date;
 }
 
+// Customer-facing product/variant DTOs (real schema-backed shapes, used by the
+// storefront - see src/features/customers/types/catalog.types.ts for the
+// source of truth).
+export type {
+  CustomerProductListItemDto,
+  CustomerProductDetailDto,
+  CustomerVariantListItemDto,
+  CustomerVariantUnitPriceDto,
+} from "@/features/customers/types";
+
+export interface CustomerProductListParams {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  brandIds?: string[];
+  categoryIds?: string[];
+  minPrice?: number | null;
+  maxPrice?: number | null;
+  sortBy?: "name" | "price" | "createdAt";
+  sortOrder?: "asc" | "desc";
+}
 

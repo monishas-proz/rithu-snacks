@@ -29,6 +29,22 @@ export interface CustomerProductListItemDto {
   maxPrice: number;
 }
 
+/**
+ * A single sellable pack size ("250g", "500g", "1kg", ...) for a variant/item.
+ * Selling price is NOT stored - it is basePrice minus any active offer/discount,
+ * computed at read time (see computeSellingPrice in the catalog repository). No
+ * offer engine is wired up for the storefront yet, so sellingPrice currently
+ * mirrors basePrice.
+ */
+export interface CustomerVariantUnitPriceDto {
+  id: string; // VariantUnitPrice UUID - this is what cart/wishlist APIs key off
+  sku: string;
+  measurement: VariantMeasurement;
+  basePrice: number;
+  sellingPrice: number;
+  isDefault: boolean;
+}
+
 export interface CustomerVariantListItemDto {
   id: string; // Variant UUID
   productId: string; // Product UUID
@@ -40,6 +56,11 @@ export interface CustomerVariantListItemDto {
   salePrice: number;
   primaryImage: string | null;
   outOfStock?: boolean;
+  // Full list of sellable pack sizes for this item - an item can have any
+  // number of pack sizes, each independently priced. `sku`/`basePrice`/
+  // `salePrice`/`measurement` above mirror the default (or first) entry here
+  // for backward compatibility with callers that expect a single price/sku.
+  unitPrices: CustomerVariantUnitPriceDto[];
 }
 
 export interface CustomerVariantImageDto {

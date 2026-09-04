@@ -19,7 +19,12 @@ function formatReviewResponse(review: any): ReviewResponse {
   return {
     id: review.uuid || String(review.id),
     productId: review.product?.uuid || String(review.productId),
-    variantId: review.product_variant?.uuid || (review.variant_id ? String(review.variant_id) : null),
+    variantId:
+      review.variant_unit_price?.variant?.uuid ||
+      (review.variant_unit_price_id ? String(review.variant_unit_price_id) : null),
+    variantUnitPriceId:
+      review.variant_unit_price?.uuid ||
+      (review.variant_unit_price_id ? String(review.variant_unit_price_id) : null),
     orderItemId: review.order_items?.uuid || (review.order_item_id ? String(review.order_item_id) : null),
     rating: review.rating,
     title: review.title,
@@ -33,12 +38,12 @@ function formatReviewResponse(review: any): ReviewResponse {
           slug: review.product.slug,
         }
       : undefined,
-    variant: review.product_variant
+    variant: review.variant_unit_price
       ? {
-          id: review.product_variant.uuid || String(review.product_variant.id),
-          name: review.product_variant.variant_name || review.product_variant.sku,
-          sku: review.product_variant.sku,
-          slug: review.product_variant.slug,
+          id: review.variant_unit_price.variant?.uuid || String(review.variant_unit_price.variant?.id),
+          name: review.variant_unit_price.variant?.variant_name || review.variant_unit_price.sku,
+          sku: review.variant_unit_price.sku,
+          slug: review.variant_unit_price.variant?.slug,
         }
       : undefined,
     orderItem: review.order_items
@@ -101,10 +106,10 @@ export const reviewService = {
       );
     }
 
-    // 4. Verify Submitted Variant Matches Order Item's Actual Variant
-    if (orderItem.variant.uuid !== input.variantId) {
+    // 4. Verify Submitted Variant Unit Price Matches Order Item's Actual Pack Size
+    if (orderItem.variant_unit_price.uuid !== input.variantUnitPriceId) {
       throw ApiError.badRequest(
-        "The selected variant does not match the variant purchased in the order item"
+        "The selected pack size does not match the one purchased in the order item"
       );
     }
 
@@ -122,7 +127,7 @@ export const reviewService = {
     // 6. Create Review Transaction with derived parent product and variant
     const created = await reviewRepository.createReviewTransaction({
       productId: orderItem.productId,
-      variantId: orderItem.variantId,
+      variantUnitPriceId: orderItem.variantUnitPriceId,
       userId: customerId,
       orderItemId: orderItem.id,
       rating: input.rating,
@@ -243,6 +248,7 @@ export const reviewService = {
     identifier: string,
     params: PublicReviewQueryInput
   ) {
+    // Public variant page shows reviews aggregated across all pack sizes.
     const variant = await reviewRepository.findVariantByIdentifier(identifier);
     if (!variant) {
       throw ApiError.notFound("Product variant not found");
@@ -261,22 +267,24 @@ export const reviewService = {
       images: (r.images || []).map((img: any) => img.image_url),
       customerName: r.user.name,
       customerAvatar: r.user.avatar ?? null,
-      variant: r.product_variant
+      variant: r.variant_unit_price
         ? {
-            id: r.product_variant.uuid || String(r.product_variant.id),
-            name: r.product_variant.variant_name || r.product_variant.sku,
-            sku: r.product_variant.sku,
-            slug: r.product_variant.slug,
+            id: r.variant_unit_price.variant?.uuid || String(r.variant_unit_price.variant?.id),
+            name: r.variant_unit_price.variant?.variant_name || r.variant_unit_price.sku,
+            sku: r.variant_unit_price.sku,
+            slug: r.variant_unit_price.variant?.slug,
           }
         : undefined,
       createdAt: r.createdAt,
     }));
 
+    const defaultSku = variant.variant_unit_prices?.[0]?.sku;
+
     return {
       variant: {
         id: variant.uuid || String(variant.id),
-        name: variant.variant_name || variant.sku,
-        sku: variant.sku,
+        name: variant.variant_name || defaultSku,
+        sku: defaultSku,
         slug: variant.slug,
         product: {
           id: variant.product.uuid || String(variant.product.id),
@@ -318,12 +326,12 @@ export const reviewService = {
       images: (r.images || []).map((img: any) => img.image_url),
       customerName: r.user.name,
       customerAvatar: r.user.avatar ?? null,
-      variant: r.product_variant
+      variant: r.variant_unit_price
         ? {
-            id: r.product_variant.uuid || String(r.product_variant.id),
-            name: r.product_variant.variant_name || r.product_variant.sku,
-            sku: r.product_variant.sku,
-            slug: r.product_variant.slug,
+            id: r.variant_unit_price.variant?.uuid || String(r.variant_unit_price.variant?.id),
+            name: r.variant_unit_price.variant?.variant_name || r.variant_unit_price.sku,
+            sku: r.variant_unit_price.sku,
+            slug: r.variant_unit_price.variant?.slug,
           }
         : undefined,
       createdAt: r.createdAt,
@@ -345,6 +353,7 @@ export const reviewService = {
   async getAdminReviews(params: AdminReviewListInput) {
     let resolvedProductId: bigint | undefined;
     let resolvedVariantId: bigint | undefined;
+    let resolvedVariantUnitPriceId: bigint | undefined;
 
     if (params.productId) {
       const product = await reviewRepository.findProductByIdentifier(params.productId);
@@ -360,10 +369,20 @@ export const reviewService = {
       }
     }
 
+    if (params.variantUnitPriceId) {
+      const unitPrice = await reviewRepository.findVariantUnitPriceByIdentifier(
+        params.variantUnitPriceId
+      );
+      if (unitPrice) {
+        resolvedVariantUnitPriceId = unitPrice.id;
+      }
+    }
+
     const result = await reviewRepository.findAdminReviews(
       params,
       resolvedProductId,
-      resolvedVariantId
+      resolvedVariantId,
+      resolvedVariantUnitPriceId
     );
     const data = result.reviews.map(formatReviewResponse);
 

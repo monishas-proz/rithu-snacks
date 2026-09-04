@@ -11,6 +11,9 @@ import type {
   GetVariantPriceHistoryParams,
   PriceHistoryChartItem,
   BulkEditVariantsInput,
+  VariantUnitPriceResponse,
+  CreateVariantUnitPriceInput,
+  UpdateVariantUnitPriceInput,
 } from "../types";
 
 export async function getCustomerVariants(
@@ -313,6 +316,50 @@ export async function bulkEditVariants(
     data
   );
   return response.data ?? [];
+}
+
+// Variant Unit Prices API (unit + price combinations for an item)
+export async function getVariantUnitPrices(
+  productUuid: string,
+  variantUuid: string
+): Promise<VariantUnitPriceResponse[]> {
+  const response = await apiClient.get<VariantUnitPriceResponse[]>(
+    `/api/admin/products/${productUuid}/variants/${variantUuid}/unit-prices`
+  );
+  return response.data ?? [];
+}
+
+export async function createVariantUnitPrice(
+  productUuid: string,
+  variantUuid: string,
+  data: CreateVariantUnitPriceInput
+) {
+  return apiClient.post<VariantUnitPriceResponse>(
+    `/api/admin/products/${productUuid}/variants/${variantUuid}/unit-prices`,
+    data
+  );
+}
+
+export async function updateVariantUnitPrice(
+  productUuid: string,
+  variantUuid: string,
+  unitPriceUuid: string,
+  data: UpdateVariantUnitPriceInput
+) {
+  return apiClient.put<VariantUnitPriceResponse>(
+    `/api/admin/products/${productUuid}/variants/${variantUuid}/unit-prices/${unitPriceUuid}`,
+    data
+  );
+}
+
+export async function deleteVariantUnitPrice(
+  productUuid: string,
+  variantUuid: string,
+  unitPriceUuid: string
+) {
+  return apiClient.delete(
+    `/api/admin/products/${productUuid}/variants/${variantUuid}/unit-prices/${unitPriceUuid}`
+  );
 }
 
 // Aliases

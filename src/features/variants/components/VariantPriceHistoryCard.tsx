@@ -2,25 +2,19 @@
 
 import React, { useState, useMemo } from "react";
 import {
-  TrendingDown,
-  TrendingUp,
   History,
   BarChart3,
   List,
-  Clock,
   User,
   IndianRupee,
-  Calendar,
-  Layers,
   ArrowDownRight,
   ArrowUpRight,
-  CheckCircle2,
 } from "lucide-react";
 import {
   useVariantPriceHistory,
   useVariantPriceHistoryChart,
 } from "../hooks";
-import type { AdminVariantResponse, PriceHistoryChartItem, VariantPriceHistoryResponse } from "../types";
+import type { AdminVariantResponse, VariantPriceHistoryResponse } from "../types";
 
 export interface VariantPriceHistoryCardProps {
   variant: AdminVariantResponse;
@@ -29,10 +23,27 @@ export interface VariantPriceHistoryCardProps {
 
 type RangeOption = "30D" | "6M" | "1Y";
 
+/**
+ * Price + price-history are now tracked per (unit, price) combination rather
+ * than per item, since one item can be sold in multiple pack sizes. When the
+ * item has more than one unit price, a selector lets the admin switch which
+ * pack size's history to view.
+ */
 export function VariantPriceHistoryCard({
   variant,
   gstPercent = 18,
 }: VariantPriceHistoryCardProps) {
+  const unitPrices = variant.unitPrices ?? [];
+  const [selectedUnitPriceId, setSelectedUnitPriceId] = useState<string | null>(null);
+
+  // Fall back to the default (or first) unit price whenever no explicit
+  // selection has been made yet, without needing an effect + extra render.
+  const selectedUnitPrice =
+    unitPrices.find((up) => up.id === selectedUnitPriceId) ??
+    unitPrices.find((up) => up.isDefault) ??
+    unitPrices[0] ??
+    null;
+
   const [activeTab, setActiveTab] = useState<"graph" | "list">("graph");
   const [range, setRange] = useState<RangeOption>("30D");
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
@@ -43,34 +54,27 @@ export function VariantPriceHistoryCard({
     return "1y";
   }, [range]);
 
-  // Fetch Chart Data from Backend API
-  const { data: chartApiData = [], isLoading: isLoadingChart } =
-    useVariantPriceHistoryChart(variant.id, periodApiVal);
+  const { data: chartApiData = [] } = useVariantPriceHistoryChart(
+    selectedUnitPrice?.id ?? null,
+    periodApiVal
+  );
 
-  // Fetch Timeline/List History from Backend API
   const { data: historyApiResponse, isLoading: isLoadingHistory } =
-    useVariantPriceHistory(variant.id, { pageSize: 50, sortOrder: "desc" });
+    useVariantPriceHistory(selectedUnitPrice?.id ?? null, {
+      pageSize: 50,
+      sortOrder: "desc",
+    });
 
   const rawHistoryList: VariantPriceHistoryResponse[] = useMemo(() => {
     return (historyApiResponse?.data as VariantPriceHistoryResponse[]) ?? [];
   }, [historyApiResponse]);
 
-  // Calculated Pricing Breakdown
-  const basePrice = Number(variant.basePrice) || 0;
-  const salePrice = Number(variant.salePrice) || 0;
-  const discountAmount = Math.max(0, basePrice - salePrice);
-  const discountPercent =
-    basePrice > 0 && discountAmount > 0
-      ? Math.round((discountAmount / basePrice) * 100)
-      : 0;
+  const basePrice = Number(selectedUnitPrice?.basePrice) || 0;
+  const gstAmount = Math.round((basePrice * gstPercent) / (100 + gstPercent));
+  const taxableValue = basePrice - gstAmount;
 
-  const gstAmount = Math.round((salePrice * gstPercent) / (100 + gstPercent));
-  const taxableValue = salePrice - gstAmount;
-
-  // Synthesize or format chart series based on chartApiData + variant current price
   const chartSeries = useMemo(() => {
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const now = new Date();
 
     if (chartApiData && chartApiData.length > 0) {
       return chartApiData.map((item) => {
@@ -80,90 +84,51 @@ export function VariantPriceHistoryCard({
         return {
           date: monthLabel,
           fullDate: `${monthLabel} ${yearStr}`,
-          value: item.salePrice > 0 ? item.salePrice : item.price,
-          baseValue: item.price,
+          value: item.price,
         };
       });
     }
 
-    // Default 30D / 6M / 1Y simulated historical series anchored to actual base & sale prices
-    if (range === "30D") {
-      return [
-        {
-          date: "4 wks ago",
-          fullDate: "4 weeks ago",
-          value: basePrice,
-          baseValue: basePrice,
-        },
-        {
-          date: "3 wks ago",
-          fullDate: "3 weeks ago",
-          value: basePrice,
-          baseValue: basePrice,
-        },
-        {
-          date: "2 wks ago",
-          fullDate: "2 weeks ago",
-          value: Math.round((basePrice + salePrice) / 2),
-          baseValue: basePrice,
-        },
-        {
-          date: "1 wk ago",
-          fullDate: "1 week ago",
-          value: Math.round((basePrice + salePrice) / 2),
-          baseValue: basePrice,
-        },
-        {
-          date: "Current",
-          fullDate: "Latest updated price",
-          value: salePrice,
-          baseValue: basePrice,
-        },
-      ];
-    }
+    return [
+      { date: "Current", fullDate: "Latest updated price", value: basePrice },
+    ];
+  }, [chartApiData, basePrice]);
 
-    if (range === "6M") {
-      const pts = [];
-      for (let i = 5; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const mName = months[d.getMonth()];
-        const isLatest = i === 0;
-        const val = isLatest ? salePrice : i > 2 ? basePrice : Math.round((basePrice + salePrice) / 2);
-        pts.push({
-          date: mName,
-          fullDate: `${mName} ${d.getFullYear()}`,
-          value: val,
-          baseValue: basePrice,
-        });
-      }
-      return pts;
-    }
-
-    // 1Y
-    const pts = [];
-    for (let i = 11; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const mName = months[d.getMonth()];
-      const isLatest = i === 0;
-      const val = isLatest ? salePrice : i > 6 ? basePrice : Math.round((basePrice + salePrice) / 2);
-      pts.push({
-        date: mName,
-        fullDate: `${mName} ${d.getFullYear()}`,
-        value: val,
-        baseValue: basePrice,
-      });
-    }
-    return pts;
-  }, [chartApiData, range, basePrice, salePrice]);
-
-  // Determine chart bounds
   const values = chartSeries.map((s) => s.value);
-  const maxVal = Math.max(...values, basePrice, salePrice, 1);
-  const minVal = Math.min(...values, basePrice, salePrice);
+  const maxVal = Math.max(...values, basePrice, 1);
+  const minVal = Math.min(...values, basePrice);
   const span = Math.max(1, maxVal - minVal);
+
+  if (unitPrices.length === 0) {
+    return (
+      <div className="bg-white border border-cream-border rounded-2xl overflow-hidden shadow-xs p-6 text-center text-xs text-neutral-500">
+        No unit / price combinations have been added for this item yet.
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
+      {/* Unit / pack-size selector when there is more than one */}
+      {unitPrices.length > 1 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          {unitPrices.map((up) => (
+            <button
+              key={up.id}
+              type="button"
+              onClick={() => setSelectedUnitPriceId(up.id)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
+                selectedUnitPrice?.id === up.id
+                  ? "bg-secondary-600 text-white border-secondary-600"
+                  : "bg-white text-neutral-600 border-cream-border hover:bg-cream-50"
+              }`}
+            >
+              {up.measurement?.value} {up.unitCode || up.measurement?.unit}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* 1. PRICING & GST BREAKDOWN CARD */}
       <div className="bg-white border border-cream-border rounded-2xl overflow-hidden shadow-xs">
         <div className="px-6 py-4 border-b border-cream-border flex items-center justify-between">
@@ -178,58 +143,32 @@ export function VariantPriceHistoryCard({
           </span>
         </div>
 
-        {/* 3 Metric Stat Cards in a row */}
-        <div className="p-5 grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+        <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           {/* Base Price */}
-          <div className="border border-cream-border rounded-xl p-4 bg-cream-50/40 flex flex-col justify-between gap-1">
-            <span className="text-[11px] font-bold tracking-wider text-neutral-400 uppercase">
-              Base Price (MRP)
-            </span>
-            <div className="text-xl sm:text-2xl font-bold text-neutral-400 line-through font-mono">
-              ₹{basePrice.toLocaleString("en-IN")}.00
-            </div>
-            <span className="text-[11px] text-neutral-400">
-              Maximum Retail Price
-            </span>
-          </div>
-
-          {/* Sale Price */}
           <div className="border-2 border-secondary-200 bg-secondary-50/40 rounded-xl p-4 flex flex-col justify-between gap-1 shadow-2xs">
             <span className="text-[11px] font-bold tracking-wider text-secondary-800 uppercase">
-              Sale Price (Selling)
+              Base Price
             </span>
-            <div className="flex items-baseline gap-2 flex-wrap">
-              <span className="text-xl sm:text-2xl font-bold text-secondary-900 font-mono">
-                ₹{salePrice.toLocaleString("en-IN")}.00
-              </span>
-              {discountAmount > 0 && (
-                <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-xs font-bold">
-                  −₹{discountAmount.toLocaleString("en-IN")}
-                </span>
-              )}
-            </div>
+            <span className="text-xl sm:text-2xl font-bold text-secondary-900 font-mono">
+              ₹{basePrice.toLocaleString("en-IN")}.00
+            </span>
             <span className="text-[11px] text-secondary-700 font-medium">
-              Effective customer checkout price
+              Selling price on the storefront is computed from this minus any
+              active offer/discount
             </span>
           </div>
 
-          {/* Discount / Margin */}
+          {/* SKU */}
           <div className="border border-cream-border rounded-xl p-4 bg-cream-50/40 flex flex-col justify-between gap-1">
             <span className="text-[11px] font-bold tracking-wider text-neutral-400 uppercase">
-              Store Discount
+              SKU
             </span>
-            <div className="text-xl sm:text-2xl font-bold text-neutral-900 font-mono">
-              {discountPercent}%
-            </div>
-            <span className="text-[11px] text-neutral-500">
-              {discountAmount > 0
-                ? `Customer saves ₹${discountAmount.toLocaleString("en-IN")} per unit`
-                : "No active discount applied"}
+            <span className="text-lg font-bold text-neutral-900 font-mono">
+              {selectedUnitPrice?.sku}
             </span>
           </div>
         </div>
 
-        {/* Breakdown Summary Rows */}
         <div className="px-5 pb-5">
           <div className="border border-cream-border-subtle rounded-xl divide-y divide-cream-border-subtle bg-cream-50/30 text-xs sm:text-sm">
             <div className="flex items-center justify-between px-4 py-2.5">
@@ -247,26 +186,17 @@ export function VariantPriceHistoryCard({
               </span>
             </div>
             <div className="flex items-center justify-between px-4 py-2.5 bg-secondary-50/60 font-semibold text-secondary-900">
-              <span className="font-bold">Customer Final Payable Amount</span>
+              <span className="font-bold">Base Price (Inclusive of GST)</span>
               <span className="font-bold text-base font-mono">
-                ₹{salePrice.toLocaleString("en-IN")}.00
+                ₹{basePrice.toLocaleString("en-IN")}.00
               </span>
             </div>
-            {discountAmount > 0 && (
-              <div className="flex items-center justify-between px-4 py-2.5 text-emerald-700 font-medium">
-                <span>Customer Savings vs MRP</span>
-                <span className="font-bold font-mono">
-                  −₹{discountAmount.toLocaleString("en-IN")}.00 ({discountPercent}%)
-                </span>
-              </div>
-            )}
           </div>
         </div>
       </div>
 
       {/* 2. PRICE HISTORY CARD (GRAPH & TIMELINE LIST) */}
       <div className="bg-white border border-cream-border rounded-2xl overflow-hidden shadow-xs">
-        {/* Card Header with View Toggle (Graph vs List) */}
         <div className="px-6 py-4.5 border-b border-cream-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <History className="w-4 h-4 text-secondary-600" />
@@ -303,37 +233,24 @@ export function VariantPriceHistoryCard({
           </div>
         </div>
 
-        {/* TAB 1: GRAPH VISUALIZATION */}
         {activeTab === "graph" && (
           <div className="p-6">
-            {/* Top Stat and Range Filter */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
               <div className="space-y-1">
                 <div className="flex items-baseline gap-2.5 flex-wrap">
                   <span className="text-2xl sm:text-3xl font-bold text-neutral-900 font-mono">
-                    ₹{salePrice.toLocaleString("en-IN")}.00
+                    ₹{basePrice.toLocaleString("en-IN")}.00
                   </span>
-                  {discountAmount > 0 ? (
-                    <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                      <TrendingDown className="w-3.5 h-3.5" />
-                      −₹{discountAmount} ({discountPercent}%)
-                    </span>
-                  ) : (
-                    <span className="text-xs font-bold text-neutral-400">
-                      Standard MRP
-                    </span>
-                  )}
                 </div>
                 <p className="text-xs text-neutral-400">
                   {range === "30D"
-                    ? "Sale price trend · last 30 days"
+                    ? "Base price trend · last 30 days"
                     : range === "6M"
-                    ? "Sale price trend · monthly average, last 6 months"
-                    : "Sale price trend · monthly average, last 12 months"}
+                    ? "Base price trend · monthly average, last 6 months"
+                    : "Base price trend · monthly average, last 12 months"}
                 </p>
               </div>
 
-              {/* Range Pills: 30D | 6M | 1Y */}
               <div className="flex items-center gap-1.5 bg-cream-100 p-1 rounded-lg border border-cream-border shadow-2xs self-start sm:self-auto">
                 {(["1Y"] as RangeOption[]).map((r) => (
                   <button
@@ -352,7 +269,6 @@ export function VariantPriceHistoryCard({
               </div>
             </div>
 
-            {/* Interactive Bar/Column Chart Container */}
             <div className="rounded-2xl bg-cream-50/50 border border-cream-border p-5">
               <div className="flex items-end gap-3 sm:gap-6 h-40 pt-4 pb-2 border-b border-cream-border relative">
                 {chartSeries.map((pt, idx) => {
@@ -373,7 +289,6 @@ export function VariantPriceHistoryCard({
                       onMouseLeave={() => setHoveredIndex(null)}
                       className="flex-1 relative flex flex-col items-center justify-end h-full group cursor-pointer"
                     >
-                      {/* Tooltip on Hover */}
                       {isHot && (
                         <div
                           style={{ bottom: `${heightPercent}%` }}
@@ -383,17 +298,11 @@ export function VariantPriceHistoryCard({
                             {pt.fullDate}
                           </div>
                           <div className="text-xs font-bold font-mono text-emerald-400">
-                            Sale: ₹{pt.value.toLocaleString("en-IN")}.00
+                            ₹{pt.value.toLocaleString("en-IN")}.00
                           </div>
-                          {pt.baseValue && pt.baseValue > pt.value && (
-                            <div className="text-[10px] text-neutral-400 line-through">
-                              Base: ₹{pt.baseValue.toLocaleString("en-IN")}.00
-                            </div>
-                          )}
                         </div>
                       )}
 
-                      {/* Bar Value Label */}
                       <span
                         className={`text-[10.5px] font-bold font-mono mb-1.5 transition-colors ${
                           isHot || isLatest
@@ -404,7 +313,6 @@ export function VariantPriceHistoryCard({
                         ₹{pt.value}
                       </span>
 
-                      {/* Column Bar */}
                       <div
                         style={{ height: `${heightPercent}%` }}
                         className={`w-full max-w-[48px] rounded-t-lg transition-all duration-200 ${
@@ -420,7 +328,6 @@ export function VariantPriceHistoryCard({
                 })}
               </div>
 
-              {/* X-Axis Date Labels */}
               <div className="flex gap-3 sm:gap-6 mt-2.5">
                 {chartSeries.map((pt, idx) => (
                   <div
@@ -435,7 +342,6 @@ export function VariantPriceHistoryCard({
           </div>
         )}
 
-        {/* TAB 2: TIMELINE LIST OF PRICE REVISIONS */}
         {activeTab === "list" && (
           <div className="p-6">
             {isLoadingHistory ? (
@@ -449,7 +355,9 @@ export function VariantPriceHistoryCard({
                   Initial Price Recorded
                 </p>
                 <p className="text-xs text-neutral-400 max-w-sm">
-                  This variant is currently active at ₹{salePrice.toLocaleString("en-IN")} (Base MRP ₹{basePrice.toLocaleString("en-IN")}). Historical revisions will appear here when prices are modified.
+                  This unit price is currently ₹{basePrice.toLocaleString("en-IN")}.
+                  Historical revisions will appear here when the base price is
+                  modified.
                 </p>
               </div>
             ) : (
@@ -466,19 +374,16 @@ export function VariantPriceHistoryCard({
                       })
                     : "—";
 
-                  const oldSale = item.oldSalePrice ?? null;
-                  const newSale = item.newSalePrice ?? null;
                   const oldBase = item.oldPrice ?? item.oldBasePrice ?? null;
                   const newBase = item.newPrice ?? item.newBasePrice ?? null;
 
                   const isPriceReduced =
-                    oldSale !== null && newSale !== null && newSale < oldSale;
+                    oldBase !== null && newBase !== null && newBase < oldBase;
                   const isPriceIncreased =
-                    oldSale !== null && newSale !== null && newSale > oldSale;
+                    oldBase !== null && newBase !== null && newBase > oldBase;
 
                   return (
                     <div key={item.id || idx} className="relative group">
-                      {/* Timeline Node Icon/Dot */}
                       <span
                         className={`absolute -left-6 top-1 w-5 h-5 rounded-full border-2 border-white flex items-center justify-center shadow-xs ${
                           idx === 0
@@ -489,15 +394,12 @@ export function VariantPriceHistoryCard({
                         <span className="w-1.5 h-1.5 rounded-full bg-current" />
                       </span>
 
-                      {/* Timeline Item Content */}
                       <div className="rounded-xl border border-cream-border p-4 bg-white hover:bg-cream-50/50 transition-colors shadow-2xs">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-1.5">
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-bold text-neutral-900">
-                              {newSale !== null && oldSale !== null
-                                ? `Sale Price: ₹${oldSale} → ₹${newSale}`
-                                : newSale !== null
-                                ? `Sale Price set to ₹${newSale}`
+                              {newBase !== null && oldBase !== null
+                                ? `Base Price: ₹${oldBase} → ₹${newBase}`
                                 : newBase !== null
                                 ? `Base Price set to ₹${newBase}`
                                 : "Price Revised"}
@@ -522,13 +424,6 @@ export function VariantPriceHistoryCard({
                             {changedDateStr}
                           </span>
                         </div>
-
-                        {/* Additional Base Price Detail if changed */}
-                        {oldBase !== null && newBase !== null && oldBase !== newBase && (
-                          <p className="text-xs text-neutral-500 mb-1">
-                            Base MRP: <span className="line-through">₹{oldBase}</span> → <span className="font-semibold text-neutral-800">₹{newBase}</span>
-                          </p>
-                        )}
 
                         <div className="flex items-center gap-1.5 text-xs text-neutral-400">
                           <User className="w-3.5 h-3.5 opacity-60" />

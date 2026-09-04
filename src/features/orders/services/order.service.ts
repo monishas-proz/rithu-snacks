@@ -49,9 +49,9 @@ export const orderService = {
           },
           include: {
             product: true,
-            variant: {
+            variant_unit_price: {
               include: {
-                product_units: true,
+                variant: true,
               },
             },
           },
@@ -63,10 +63,10 @@ export const orderService = {
       throw ApiError.badRequest("Cart is empty or no active cart found");
     }
 
-    // 2. Validate every cart item's product and variant
+    // 2. Validate every cart item's product and variant unit price
     const orderItemsData: Array<{
       productId: bigint;
-      variantId: bigint;
+      variantUnitPriceId: bigint;
       productName: string;
       variantName: string;
       sku: string;
@@ -79,33 +79,40 @@ export const orderService = {
     let subtotal = 0;
 
     for (const item of cart.items) {
+      const unitPriceRow = item.variant_unit_price;
+      const variant = unitPriceRow?.variant;
+
       if (
         !item.product ||
         !item.product.isActive ||
         item.product.deleted_at !== null ||
-        !item.variant ||
-        !item.variant.isActive ||
-        item.variant.deleted_at !== null
+        !unitPriceRow ||
+        !unitPriceRow.isActive ||
+        unitPriceRow.deleted_at !== null ||
+        !variant ||
+        !variant.isActive ||
+        variant.deleted_at !== null
       ) {
         throw ApiError.badRequest(
-          `Product variant "${item.variant?.variant_name || item.product?.name || "item"}" is no longer available`
+          `Product variant "${variant?.variant_name || item.product?.name || "item"}" is no longer available`
         );
       }
 
-      const unitPrice =
-        item.variant.sale_price !== null && Number(item.variant.sale_price) > 0
-          ? Number(item.variant.sale_price)
-          : Number(item.variant.base_price);
+      // Selling price = base_price minus any active offer/discount. Offer
+      // application is intentionally not duplicated here; this uses the
+      // stored base_price as-is (matching pre-existing behavior when no
+      // sale_price override was set).
+      const unitPrice = Number(unitPriceRow.base_price);
 
       const totalPrice = unitPrice * item.quantity;
       subtotal += totalPrice;
 
       orderItemsData.push({
         productId: item.productId,
-        variantId: item.variantId,
+        variantUnitPriceId: item.variantUnitPriceId,
         productName: item.product.name,
-        variantName: item.variant.variant_name,
-        sku: item.variant.sku,
+        variantName: variant.variant_name,
+        sku: unitPriceRow.sku,
         quantity: item.quantity,
         unitPrice,
         taxAmount: 0,

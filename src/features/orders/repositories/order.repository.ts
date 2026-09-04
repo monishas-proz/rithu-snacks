@@ -32,13 +32,14 @@ export const orderItemInclude = Prisma.validator<Prisma.OrderItemInclude>()({
       },
     },
   },
-  variant: {
+  variant_unit_price: {
     select: {
       id: true,
       uuid: true,
-      variant_name: true,
       sku: true,
       unit_value: true,
+      // Live sku/unit fallback for display; the authoritative values for an
+      // already-placed order are the *_snapshot fields on OrderItem itself.
       product_units: {
         select: {
           id: true,
@@ -48,10 +49,17 @@ export const orderItemInclude = Prisma.validator<Prisma.OrderItemInclude>()({
           type: true,
         },
       },
-      product_variant_images: {
-        where: { is_active: true },
-        orderBy: [{ is_primary: "desc" }, { sort_order: "asc" }],
-        take: 1,
+      variant: {
+        select: {
+          id: true,
+          uuid: true,
+          variant_name: true,
+          product_variant_images: {
+            where: { is_active: true },
+            orderBy: [{ is_primary: "desc" }, { sort_order: "asc" }],
+            take: 1,
+          },
+        },
       },
     },
   },
@@ -123,20 +131,23 @@ export function formatOrderAddress(
 export function formatOrderItem(
   item: Prisma.OrderItemGetPayload<{ include: typeof orderItemInclude }>
 ): OrderItemResponse {
+  const unitPrice = item.variant_unit_price;
+  const variant = unitPrice?.variant;
   const measurement = formatVariantMeasurement(
-    item.variant?.product_units,
-    item.variant?.unit_value
+    unitPrice?.product_units,
+    unitPrice?.unit_value ?? 0
   );
 
   const primaryImage =
-    item.variant?.product_variant_images?.[0]?.image_url ||
+    variant?.product_variant_images?.[0]?.image_url ||
     item.product?.images?.[0]?.image_url ||
     null;
 
   return {
     id: item.uuid || String(item.id),
     productId: item.product?.uuid || String(item.productId),
-    variantId: item.variant?.uuid || String(item.variantId),
+    variantId: variant?.uuid || String(variant?.id ?? ""),
+    variantUnitPriceId: unitPrice?.uuid || String(item.variantUnitPriceId),
     productName: item.product_name_snapshot,
     variantName: item.variant_snapshot,
     sku: item.sku_snapshot,
@@ -368,7 +379,7 @@ export const orderRepository = {
     };
     items: Array<{
       productId: bigint;
-      variantId: bigint;
+      variantUnitPriceId: bigint;
       productName: string;
       variantName: string;
       sku: string;
@@ -454,7 +465,7 @@ export const orderRepository = {
           uuid: crypto.randomUUID(),
           orderId: createdOrder.id,
           productId: item.productId,
-          variantId: item.variantId,
+          variantUnitPriceId: item.variantUnitPriceId,
           product_name_snapshot: item.productName,
           variant_snapshot: item.variantName,
           sku_snapshot: item.sku,

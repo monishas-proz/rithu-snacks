@@ -2,9 +2,9 @@ import { z } from "zod";
 
 export const addCartItemSchema = z
   .object({
-    variantId: z
-      .string({ message: "variantId is required" })
-      .uuid("Invalid variantId UUID format"),
+    variantUnitPriceId: z
+      .string({ message: "variantUnitPriceId is required" })
+      .uuid("Invalid variantUnitPriceId UUID format"),
     quantity: z
       .number({ message: "quantity is required" })
       .int("Quantity must be an integer")

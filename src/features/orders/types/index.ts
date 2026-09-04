@@ -16,7 +16,8 @@ export interface OrderCustomerDto {
 export interface OrderItemResponse {
   id: string; // item.uuid
   productId: string; // product.uuid
-  variantId: string; // variant.uuid
+  variantId: string; // variant.uuid (item-level)
+  variantUnitPriceId: string; // variant_unit_price.uuid (pack size)
   productName: string; // snapshot
   variantName: string; // snapshot
   sku: string; // snapshot

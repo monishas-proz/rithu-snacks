@@ -332,81 +332,33 @@ export const mobileBottomIcons = [
   { id: 4, icon: ICONS.cart, text: "Cart", path: "/cart" },
 ];
 
-export interface StorefrontProduct {
-  productId: number | string;
-  productName: string;
-  image: string;
-  discount: number;
-  price50g: number;
-  price100g: number;
-  activeWeight?: string;
-  price?: number;
-  originalPrice?: number;
+/**
+ * A single sellable pack size for a storefront item, e.g. "250 g" @ Rs.99.
+ * `sellingPrice` is what should be shown/charged; it already accounts for
+ * any active offer/discount (currently identical to basePrice since no
+ * offer engine is wired up for the storefront - see computeSellingPrice in
+ * the customer catalog repository). `id` is the VariantUnitPrice UUID and
+ * is what the cart/wishlist APIs actually key off.
+ */
+export interface StorefrontUnitPrice {
+  id: string;
+  label: string;
+  sku: string;
+  basePrice: number;
+  sellingPrice: number;
+  isDefault: boolean;
 }
 
-export const sampleStorefrontProducts: StorefrontProduct[] = [
-  {
-    productId: 1,
-    productName: "Special Butter Murukku",
-    image: SNACKSLOGOS.special_butter_murukku,
-    discount: 10,
-    price50g: 55,
-    price100g: 100,
-  },
-  {
-    productId: 2,
-    productName: "Kai Murukku",
-    image: SNACKSLOGOS.kai_murukku,
-    discount: 15,
-    price50g: 60,
-    price100g: 110,
-  },
-  {
-    productId: 3,
-    productName: "Special Spicy Chips",
-    image: SNACKSLOGOS.special_spicy_chips,
-    discount: 12,
-    price50g: 50,
-    price100g: 95,
-  },
-  {
-    productId: 4,
-    productName: "Thenkuzhal Murukku",
-    image: SNACKSLOGOS.thenkuzhal_murukku,
-    discount: 10,
-    price50g: 50,
-    price100g: 95,
-  },
-  {
-    productId: 5,
-    productName: "Traditional Mixture",
-    image: SNACKSLOGOS.mixture,
-    discount: 10,
-    price50g: 55,
-    price100g: 100,
-  },
-  {
-    productId: 6,
-    productName: "Pure Ghee Laddu",
-    image: SNACKSLOGOS.laddu,
-    discount: 18,
-    price50g: 70,
-    price100g: 130,
-  },
-  {
-    productId: 7,
-    productName: "Crispy Jalebi",
-    image: SNACKSLOGOS.jalebi,
-    discount: 15,
-    price50g: 65,
-    price100g: 120,
-  },
-  {
-    productId: 8,
-    productName: "Traditional Palkova",
-    image: SNACKSLOGOS.palkova,
-    discount: 20,
-    price50g: 80,
-    price100g: 150,
-  },
-];
+/**
+ * A single storefront item card. This corresponds to one ProductVariant
+ * (e.g. "Mango Mysore Pak"), which can have any number of independently
+ * priced pack sizes (unitPrices) - not a fixed 50g/100g pair.
+ */
+export interface StorefrontProduct {
+  id: string; // ProductVariant UUID (item-level)
+  productId: string; // Parent Product UUID (e.g. "Mysore Paks")
+  name: string;
+  image: string;
+  outOfStock?: boolean;
+  unitPrices: StorefrontUnitPrice[];
+}

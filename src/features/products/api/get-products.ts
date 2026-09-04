@@ -5,7 +5,53 @@ import type {
   AdminProductListParams,
   GetAdminProductsParams,
   AdminProductImageResponse,
+  CustomerProductListItemDto,
+  CustomerProductDetailDto,
+  CustomerProductListParams,
 } from "../types";
+
+// Customer-facing product catalog (real schema, powers the storefront).
+export async function getCustomerProducts(params?: CustomerProductListParams) {
+  const body: Record<string, unknown> = {
+    page: params?.page ?? 1,
+    pageSize: params?.pageSize ?? 20,
+    sortBy: params?.sortBy ?? "createdAt",
+    sortOrder: params?.sortOrder ?? "desc",
+  };
+
+  if (params?.search && params.search.trim()) {
+    body.search = params.search.trim();
+  }
+  if (params?.brandIds && params.brandIds.length > 0) {
+    body.brandIds = params.brandIds;
+  }
+  if (params?.categoryIds && params.categoryIds.length > 0) {
+    body.categoryIds = params.categoryIds;
+  }
+  if (params?.minPrice !== undefined && params?.minPrice !== null) {
+    body.minPrice = params.minPrice;
+  }
+  if (params?.maxPrice !== undefined && params?.maxPrice !== null) {
+    body.maxPrice = params.maxPrice;
+  }
+
+  const response = await apiClient.post<CustomerProductListItemDto[]>(
+    "/api/customer/products",
+    body
+  );
+
+  return {
+    data: response.data ?? [],
+    meta: response.meta,
+  };
+}
+
+export async function getCustomerProduct(uuid: string): Promise<CustomerProductDetailDto> {
+  const response = await apiClient.get<CustomerProductDetailDto>(
+    `/api/customer/products/${uuid}`
+  );
+  return response.data!;
+}
 
 export async function getAdminProducts(
   params?: AdminProductListParams | GetAdminProductsParams

@@ -2,97 +2,184 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Heart, ShoppingCart, Package, Truck, Shield, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { ProductGallery } from "./ProductGallery";
 import { ProductPrice } from "./ProductPrice";
-import { ProductRating } from "./ProductRating";
 import { ProductVariantSelector } from "./ProductVariantSelector";
-import { formatPrice } from "@/lib/utils";
-import type { ProductDetail } from "../types";
+import { getImageUrl } from "@/lib/utils";
+import { sanitizeRichText } from "@/lib/sanitize-html";
+import { formatMeasurementLabel } from "@/features/variants/utils/measurement.util";
+import { useAddToCart } from "@/features/cart/hooks/use-cart";
+import {
+  useWishlist,
+  useAddToWishlist,
+  useRemoveFromWishlist,
+} from "@/features/wishlist/hooks/use-wishlist";
+import type { CustomerProductDetailDto, CustomerVariantListItemDto } from "../types";
 
 interface ProductDetailsProps {
-  product: ProductDetail;
+  product: CustomerProductDetailDto;
 }
 
 function ProductDetails({ product }: ProductDetailsProps) {
-  const [selectedVariantId, setSelectedVariantId] = useState<number | null>(null);
+  const router = useRouter();
+  const { data: session } = useSession();
+
+  const variants = product.variants ?? [];
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(
+    variants[0]?.id ?? null
+  );
+  const selectedVariant: CustomerVariantListItemDto | null =
+    variants.find((v) => v.id === selectedVariantId) ?? variants[0] ?? null;
+
+  const unitPrices = selectedVariant?.unitPrices ?? [];
+  const [selectedUnitPriceId, setSelectedUnitPriceId] = useState<string | null>(
+    unitPrices.find((u) => u.isDefault)?.id ?? unitPrices[0]?.id ?? null
+  );
+  const selectedUnitPrice =
+    unitPrices.find((u) => u.id === selectedUnitPriceId) ?? unitPrices[0] ?? null;
+
   const [quantity, setQuantity] = useState(1);
 
-  const selectedVariant = selectedVariantId
-    ? product.variants?.find((v) => v.id === selectedVariantId)
-    : null;
+  const addToCart = useAddToCart();
+  const { data: wishlist } = useWishlist({ enabled: !!session });
+  const addToWishlist = useAddToWishlist();
+  const removeFromWishlist = useRemoveFromWishlist();
 
-  const currentPrice = selectedVariant ? Number(selectedVariant.price) : Number(product.price);
-  const stockQuantity = selectedVariant ? selectedVariant.stockQuantity : undefined;
-  const isInStock = stockQuantity === undefined || stockQuantity > 0;
+  const handleSelectVariant = (variantId: string) => {
+    setSelectedVariantId(variantId);
+    const next = variants.find((v) => v.id === variantId);
+    const nextUnitPrices = next?.unitPrices ?? [];
+    setSelectedUnitPriceId(
+      nextUnitPrices.find((u) => u.isDefault)?.id ?? nextUnitPrices[0]?.id ?? null
+    );
+    setQuantity(1);
+  };
 
-  const averageRating =
-    product.reviews && product.reviews.length > 0
-      ? product.reviews.reduce((sum, r) => sum + r.rating, 0) / product.reviews.length
-      : 0;
+  const isInStock = !selectedVariant?.outOfStock;
+  const sellingPrice = selectedUnitPrice?.sellingPrice ?? 0;
+  const basePrice = selectedUnitPrice?.basePrice ?? 0;
+  const hasDiscount = sellingPrice < basePrice;
+  const discountPercent =
+    hasDiscount && basePrice > 0 ? Math.round(((basePrice - sellingPrice) / basePrice) * 100) : 0;
+
+  const isInWishlist =
+    !!selectedUnitPrice &&
+    !!wishlist?.items.some((i) => i.variantUnitPriceId === selectedUnitPrice.id);
+
+  const galleryImages = selectedVariant?.primaryImage
+    ? [
+        {
+          id: selectedVariant.id,
+          url: getImageUrl(selectedVariant.primaryImage),
+          altText: selectedVariant.variantName || product.name,
+        },
+      ]
+    : product.image
+      ? [{ id: product.id, url: getImageUrl(product.image), altText: product.name }]
+      : [];
+
+  const handleAddToCart = () => {
+    if (!session) {
+      router.push(`/login?callbackUrl=/products/${product.id}`);
+      return;
+    }
+    if (!selectedUnitPrice) return;
+    addToCart.mutate({ variantUnitPriceId: selectedUnitPrice.id, quantity });
+  };
+
+  const handleWishlistToggle = () => {
+    if (!session) {
+      router.push(`/login?callbackUrl=/products/${product.id}`);
+      return;
+    }
+    if (!selectedUnitPrice) return;
+    if (isInWishlist) {
+      removeFromWishlist.mutate(selectedUnitPrice.id);
+    } else {
+      addToWishlist.mutate(selectedUnitPrice.id);
+    }
+  };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-      <ProductGallery
-        images={product.images || []}
-        productName={product.name}
-      />
+      <ProductGallery images={galleryImages} productName={selectedVariant?.variantName || product.name} />
 
       <div className="space-y-6">
         <div>
           <div className="flex items-center gap-2 mb-2">
             {product.category && (
               <Link
-                href={`/categories/${product.category.slug}`}
+                href={`/categories/${product.category.id}`}
                 className="text-sm text-primary hover:underline"
               >
                 {product.category.name}
               </Link>
             )}
             {product.brand && (
-              <span className="text-sm text-muted-foreground">
-                / {product.brand.name}
-              </span>
+              <span className="text-sm text-muted-foreground">/ {product.brand.name}</span>
             )}
           </div>
           <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
+          {selectedVariant && (
+            <p className="text-lg text-muted-foreground mt-1">{selectedVariant.variantName}</p>
+          )}
 
-          <div className="flex items-center gap-4 mt-3">
-            <ProductRating
-              rating={averageRating}
-              reviewCount={product._count?.reviews || 0}
-              size="md"
-            />
-            <span className="text-sm text-muted-foreground">
-              SKU: {product.sku}
-            </span>
-          </div>
+          {selectedUnitPrice && (
+            <span className="text-sm text-muted-foreground">SKU: {selectedUnitPrice.sku}</span>
+          )}
         </div>
 
-        <ProductPrice
-          price={currentPrice}
-          comparePrice={product.comparePrice ? Number(product.comparePrice) : null}
-          discountPercent={Number(product.discountPercent)}
-          size="lg"
-        />
-
-        {product.shortDescription && (
-          <p className="text-muted-foreground">{product.shortDescription}</p>
+        {selectedUnitPrice ? (
+          <ProductPrice
+            price={sellingPrice}
+            comparePrice={hasDiscount ? basePrice : null}
+            discountPercent={discountPercent}
+            size="lg"
+          />
+        ) : (
+          <p className="text-sm text-muted-foreground italic">
+            Pricing for this item is coming soon.
+          </p>
         )}
 
         {product.description && (
-          <div className="prose prose-sm max-w-none text-muted-foreground">
-            <p>{product.description}</p>
-          </div>
+          <div
+            className="rich-text-content text-sm text-muted-foreground"
+            dangerouslySetInnerHTML={{ __html: sanitizeRichText(product.description) }}
+          />
         )}
 
         <ProductVariantSelector
-          variants={product.variants || []}
+          variants={variants}
           selectedVariantId={selectedVariantId}
-          onSelect={setSelectedVariantId}
+          onSelect={handleSelectVariant}
         />
+
+        {unitPrices.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-gray-900">Pack Size</p>
+            <div className="flex flex-wrap gap-2">
+              {unitPrices.map((unitPrice) => (
+                <button
+                  key={unitPrice.id}
+                  type="button"
+                  onClick={() => setSelectedUnitPriceId(unitPrice.id)}
+                  className={`inline-flex items-center rounded-lg border px-4 py-2 text-sm transition-colors ${
+                    selectedUnitPriceId === unitPrice.id
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  {formatMeasurementLabel(unitPrice.measurement)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="flex items-center gap-4">
           <div className="flex items-center border rounded-lg">
@@ -113,23 +200,43 @@ function ProductDetails({ product }: ProductDetailsProps) {
             </button>
           </div>
 
-          <Button size="lg" className="flex-1" disabled={!isInStock}>
+          <Button
+            size="lg"
+            className="flex-1"
+            disabled={!isInStock || !selectedUnitPrice || addToCart.isPending}
+            onClick={handleAddToCart}
+          >
             <ShoppingCart className="mr-2 h-5 w-5" />
-            {isInStock ? "Add to Cart" : "Out of Stock"}
+            {!selectedUnitPrice
+              ? "Coming Soon"
+              : !isInStock
+                ? "Out of Stock"
+                : addToCart.isPending
+                  ? "Adding..."
+                  : "Add to Cart"}
           </Button>
 
-          <Button size="lg" variant="outline">
-            <Heart className="h-5 w-5" />
+          <Button
+            size="lg"
+            variant="outline"
+            onClick={handleWishlistToggle}
+            disabled={addToWishlist.isPending || removeFromWishlist.isPending}
+          >
+            <Heart className={`h-5 w-5 ${isInWishlist ? "fill-current text-red-500" : ""}`} />
           </Button>
         </div>
 
-        {stockQuantity !== undefined && (
-          <p className={`text-sm ${isInStock ? "text-green-600" : "text-red-500"}`}>
-            {isInStock
-              ? `In Stock (${stockQuantity} available)`
-              : "Out of Stock"}
-          </p>
-        )}
+        <p
+          className={`text-sm ${
+            !selectedUnitPrice
+              ? "text-muted-foreground"
+              : isInStock
+                ? "text-green-600"
+                : "text-red-500"
+          }`}
+        >
+          {!selectedUnitPrice ? "Coming Soon" : isInStock ? "In Stock" : "Out of Stock"}
+        </p>
 
         <hr className="border-gray-200" />
 
