@@ -12,6 +12,7 @@
     "db:sync": "node scripts/db-sync.cjs",
     "db:migrate": "prisma migrate dev",
     "db:seed": "node --experimental-strip-types prisma/seed.ts",
+    "db:seed:orders": "node --experimental-strip-types scripts/seed-test-orders.ts",
     "db:studio": "prisma studio"
   },
   "dependencies": {

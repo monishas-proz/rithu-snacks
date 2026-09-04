@@ -10,8 +10,8 @@ import { WishlistTab } from "./WishlistTab";
 import { WalletTab } from "./WalletTab";
 import { SettingsTab } from "./SettingsTab";
 import { useCustomerProfile } from "../../hooks/use-customer-profile";
-import { useOrders } from "@/features/orders/hooks";
-import { useWishlist } from "@/features/wishlist/hooks/use-wishlist";
+import { useCustomerOrders } from "../../hooks/use-customer-orders";
+import { useCustomerWishlist } from "../../hooks/use-customer-wishlist";
 
 interface AccountShellProps {
   activeTab: string;
@@ -20,11 +20,16 @@ interface AccountShellProps {
 
 export function AccountShell({ activeTab, onTabChange }: AccountShellProps) {
   const { data: profile, isLoading: profileLoading } = useCustomerProfile();
-  const { data: ordersData, isLoading: ordersLoading, error: ordersError, refetch: refetchOrders } = useOrders({ page: 1, limit: 20 });
-  const { data: wishlistData } = useWishlist();
+  const {
+    data: ordersResponse,
+    isLoading: ordersLoading,
+    error: ordersError,
+    refetch: refetchOrders,
+  } = useCustomerOrders({ page: 1, limit: 20 });
+  const { data: wishlistData } = useCustomerWishlist();
 
-  const orders = ordersData?.orders ?? [];
-  const wishlistCount = wishlistData?.items?.length ?? 0;
+  const orders = ordersResponse?.data ?? [];
+  const wishlistCount = wishlistData?.items?.length ?? wishlistData?.totalItems ?? 0;
 
   const userName = profile?.name || "Customer";
   const userPhone = profile?.phone || "";
@@ -77,19 +82,31 @@ export function AccountShell({ activeTab, onTabChange }: AccountShellProps) {
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 md:px-8 py-5 sm:py-7 flex flex-col md:grid md:grid-cols-[260px_1fr] lg:grid-cols-[280px_1fr] gap-5 lg:gap-7 items-start">
         {/* Mobile User Summary Card */}
         <div className="md:hidden w-full bg-theme-surface border border-theme-border rounded-2xl p-4 flex items-center gap-3.5 shadow-2xs">
-          <div className="w-11 h-11 rounded-full bg-theme-primary flex items-center justify-center font-bold text-sm text-theme-secondary-light flex-shrink-0">
-            {userInitials}
-          </div>
-          <div className="min-w-0">
-            <div className="font-semibold text-sm text-theme-text-primary truncate">
-              {userName}
-            </div>
-            {userPhone && (
-              <div className="text-xs text-theme-text-muted mt-0.5">
-                {userPhone} · Member
+          {profileLoading ? (
+            <>
+              <div className="w-11 h-11 rounded-full bg-theme-border animate-pulse flex-shrink-0" />
+              <div className="min-w-0 space-y-1.5 flex-1">
+                <div className="h-4 w-28 bg-theme-border rounded animate-pulse" />
+                <div className="h-3 w-20 bg-theme-border-subtle rounded animate-pulse" />
               </div>
-            )}
-          </div>
+            </>
+          ) : (
+            <>
+              <div className="w-11 h-11 rounded-full bg-theme-primary flex items-center justify-center font-bold text-sm text-theme-secondary-light flex-shrink-0">
+                {userInitials}
+              </div>
+              <div className="min-w-0">
+                <div className="font-semibold text-sm text-theme-text-primary truncate">
+                  {userName}
+                </div>
+                {userPhone && (
+                  <div className="text-xs text-theme-text-muted mt-0.5">
+                    {userPhone} · Member
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
 
         {/* Mobile Horizontal Swipeable Pill Navigation */}
@@ -126,23 +143,35 @@ export function AccountShell({ activeTab, onTabChange }: AccountShellProps) {
         <aside className="hidden md:flex flex-col w-full bg-theme-surface border border-theme-border rounded-2xl overflow-hidden sticky top-24 shadow-2xs">
           {/* User Card in Sidebar */}
           <div className="p-5 bg-gradient-to-b from-[#FFF7E8] to-theme-surface border-b border-theme-border-subtle flex items-center gap-3.5">
-            <div className="w-13 h-13 rounded-full bg-theme-primary flex items-center justify-center font-bold text-base text-theme-secondary-light flex-shrink-0">
-              {userInitials}
-            </div>
-            <div className="min-w-0">
-              <div className="font-semibold text-sm text-theme-text-primary truncate">
-                {userName}
-              </div>
-              {userPhone ? (
-                <div className="text-xs text-theme-text-muted mt-0.5 truncate">
-                  {userPhone}
+            {profileLoading ? (
+              <>
+                <div className="w-13 h-13 rounded-full bg-theme-border animate-pulse flex-shrink-0" />
+                <div className="min-w-0 space-y-2 flex-1">
+                  <div className="h-4 w-32 bg-theme-border rounded animate-pulse" />
+                  <div className="h-3 w-20 bg-theme-border-subtle rounded animate-pulse" />
                 </div>
-              ) : (
-                <div className="text-xs text-theme-text-muted mt-0.5">
-                  Member
+              </>
+            ) : (
+              <>
+                <div className="w-13 h-13 rounded-full bg-theme-primary flex items-center justify-center font-bold text-base text-theme-secondary-light flex-shrink-0">
+                  {userInitials}
                 </div>
-              )}
-            </div>
+                <div className="min-w-0">
+                  <div className="font-semibold text-sm text-theme-text-primary truncate">
+                    {userName}
+                  </div>
+                  {userPhone ? (
+                    <div className="text-xs text-theme-text-muted mt-0.5 truncate">
+                      {userPhone}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-theme-text-muted mt-0.5">
+                      Member
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
 
           {/* Desktop Nav Items */}
@@ -160,7 +189,7 @@ export function AccountShell({ activeTab, onTabChange }: AccountShellProps) {
                     isActive
                       ? "bg-theme-primary text-theme-primary-fg font-semibold"
                       : isLogout
-                      ? "text-[#A9564F] hover:bg-red-50 font-medium"
+                      ? "text-theme-status-can-fg hover:bg-theme-status-can-bg font-medium"
                       : "text-theme-text-subtle hover:bg-theme-surface-alt font-medium"
                   }`}
                 >
@@ -173,7 +202,7 @@ export function AccountShell({ activeTab, onTabChange }: AccountShellProps) {
                   <span className="flex-1 text-xs sm:text-sm">{item.label}</span>
                   {item.badge && (
                     <span
-                      className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                      className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
                         isActive ? "text-theme-secondary" : "text-theme-text-muted"
                       }`}
                     >
@@ -193,6 +222,7 @@ export function AccountShell({ activeTab, onTabChange }: AccountShellProps) {
               profile={profile}
               orders={orders}
               wishlistCount={wishlistCount}
+              isLoading={profileLoading || ordersLoading}
               onNavigateTab={onTabChange}
             />
           )}
@@ -218,7 +248,11 @@ export function AccountShell({ activeTab, onTabChange }: AccountShellProps) {
           {activeTab === "wishlist" && <WishlistTab />}
 
           {activeTab === "wallet" && (
-            <WalletTab profile={profile} orders={orders} />
+            <WalletTab
+              profile={profile}
+              orders={orders}
+              isLoading={profileLoading || ordersLoading}
+            />
           )}
 
           {activeTab === "settings" && <SettingsTab />}

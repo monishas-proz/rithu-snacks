@@ -5,6 +5,7 @@ import type { CustomerProfileResponse } from "../../types";
 import { useUpdateCustomerProfile } from "../../hooks/use-customer-profile";
 
 import { updateCustomerProfileSchema } from "../../validations/customer-profile.schema";
+import { CustomDropdown } from "./CustomDropdown";
 
 interface ProfileDetailsTabProps {
   profile?: CustomerProfileResponse | null;
@@ -104,17 +105,29 @@ export function ProfileDetailsTab({
 
   if (isLoading) {
     return (
-      <div className="bg-theme-surface border border-theme-border rounded-2xl p-8 animate-pulse space-y-4">
-        <div className="h-6 bg-theme-border rounded-md w-1/4" />
-        <div className="h-10 bg-theme-border-subtle rounded-md w-full" />
-        <div className="h-10 bg-theme-border-subtle rounded-md w-full" />
+      <div className="bg-theme-surface border border-theme-border rounded-2xl p-6 sm:p-8 animate-pulse space-y-6">
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-theme-border flex-shrink-0" />
+          <div className="space-y-2 flex-1">
+            <div className="h-4 w-36 bg-theme-border rounded" />
+            <div className="h-3 w-48 bg-theme-border-subtle rounded" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="space-y-2">
+              <div className="h-3 w-20 bg-theme-border-subtle rounded" />
+              <div className="h-11 w-full bg-theme-border rounded-xl" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-theme-surface border border-theme-border rounded-2xl overflow-hidden shadow-2xs min-w-0">
-      <div className="px-5 py-4 border-b border-theme-border-subtle bg-theme-surface-alt">
+    <div className="bg-theme-surface border border-theme-border rounded-2xl shadow-2xs min-w-0">
+      <div className="px-5 py-4 border-b border-theme-border-subtle bg-theme-surface-alt rounded-t-2xl">
         <h2 className="text-sm sm:text-base font-semibold uppercase tracking-wider text-theme-text-secondary">
           Profile Details
         </h2>
@@ -212,21 +225,26 @@ export function ProfileDetailsTab({
             )}
           </label>
 
-          <label className="flex flex-col gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-theme-text-muted">
-              Gender
-            </span>
-            <select
-              value={gender}
-              onChange={(e) => handleFieldChange(setGender, "gender", e.target.value as "male" | "female" | "other" | "")}
-              className="border border-theme-border-input rounded-lg px-3.5 py-3 text-xs sm:text-sm text-theme-text-primary bg-theme-surface-warm focus:border-theme-primary transition-colors min-h-[44px]"
-            >
-              <option value="">Select Gender</option>
-              <option value="female">Female</option>
-              <option value="male">Male</option>
-              <option value="other">Other</option>
-            </select>
-          </label>
+          <CustomDropdown
+            label="Gender"
+            placeholder="Select Gender"
+            options={[
+              { value: "female", label: "Female" },
+              { value: "male", label: "Male" },
+              { value: "other", label: "Other" },
+            ]}
+            value={gender}
+            onChange={(val) =>
+              handleFieldChange(
+                setGender,
+                "gender",
+                val as "male" | "female" | "other" | ""
+              )
+            }
+            disabled={updateMutation.isPending}
+            error={fieldErrors.gender}
+            triggerClassName="min-h-[44px] py-3 text-xs sm:text-sm"
+          />
 
           <div className="flex flex-col gap-2 justify-center">
             <label className="flex items-center gap-2.5 cursor-pointer mt-4">

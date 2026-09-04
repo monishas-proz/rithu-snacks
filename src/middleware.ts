@@ -41,55 +41,12 @@ export default auth(async (req) => {
 
   // Check HttpOnly access_token cookie
   const accessTokenCookie = req.cookies.get("access_token")?.value;
-  let validAccessToken = parseJwtPayload(accessTokenCookie, true);
-  let rawAccessToken = parseJwtPayload(accessTokenCookie, false);
+  const validAccessToken = parseJwtPayload(accessTokenCookie, true);
+  const rawAccessToken = parseJwtPayload(accessTokenCookie, false);
 
   // Check HttpOnly refresh_token cookie
   const refreshTokenCookie = req.cookies.get("refresh_token")?.value;
   const validRefreshToken = parseJwtPayload(refreshTokenCookie, true);
-
-  let newSetCookieHeaders: string[] = [];
-
-  // If access token is expired or missing, but refresh token is valid, perform silent refresh at Edge
-  if (!validAccessToken && validRefreshToken) {
-    try {
-      const refreshUrl = new URL("/api/auth/refresh", req.url);
-      const refreshRes = await fetch(refreshUrl, {
-        method: "POST",
-        headers: {
-          cookie: req.headers.get("cookie") || "",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({}),
-      });
-
-      if (refreshRes.ok) {
-        // Collect Set-Cookie headers from refresh response
-        const getSetCookie = (
-          refreshRes.headers as unknown as { getSetCookie?: () => string[] }
-        ).getSetCookie;
-        if (typeof getSetCookie === "function") {
-          newSetCookieHeaders = getSetCookie.call(refreshRes.headers);
-        } else {
-          const sc = refreshRes.headers.get("set-cookie");
-          if (sc) newSetCookieHeaders = [sc];
-        }
-
-        // Extract and decode new access_token from Set-Cookie
-        for (const cookieStr of newSetCookieHeaders) {
-          const match = cookieStr.match(/access_token=([^;]+)/);
-          if (match) {
-            const tokenVal = decodeURIComponent(match[1]);
-            validAccessToken = parseJwtPayload(tokenVal, true);
-            rawAccessToken = parseJwtPayload(tokenVal, false);
-            break;
-          }
-        }
-      }
-    } catch {
-      // Ignore refresh network error; will fall through to auth check
-    }
-  }
 
   // User is authenticated if valid access_token, valid refresh_token, OR NextAuth session exists
   const isAuthenticated =
@@ -100,34 +57,32 @@ export default auth(async (req) => {
     rawAccessToken?.role ||
     (nextAuthUser as { role?: string })?.role;
 
-  const applyCookies = (res: NextResponse) => {
-    if (newSetCookieHeaders.length > 0) {
-      newSetCookieHeaders.forEach((c) => {
-        res.headers.append("set-cookie", c);
-      });
-    }
-    return res;
-  };
-
   if (pathname.startsWith("/admin")) {
     if (pathname === "/admin/login") {
       if (isAuthenticated && (userRole === "ADMIN" || userRole === "STAFF")) {
-        return applyCookies(
-          NextResponse.redirect(new URL("/admin/dashboard", req.url))
-        );
+        const url = req.nextUrl.clone();
+        url.pathname = "/admin/dashboard";
+        url.search = "";
+        return NextResponse.redirect(url);
       }
-      return applyCookies(NextResponse.next());
+      return NextResponse.next();
     }
 
     if (!isAuthenticated) {
-      return NextResponse.redirect(new URL("/admin/login", req.url));
+      const url = req.nextUrl.clone();
+      url.pathname = "/admin/login";
+      url.search = "";
+      return NextResponse.redirect(url);
     }
 
     if (userRole !== "ADMIN" && userRole !== "STAFF") {
-      return NextResponse.redirect(new URL("/unauthorized", req.url));
+      const url = req.nextUrl.clone();
+      url.pathname = "/unauthorized";
+      url.search = "";
+      return NextResponse.redirect(url);
     }
 
-    return applyCookies(NextResponse.next());
+    return NextResponse.next();
   }
 
   const protectedCustomerRoutes = [
@@ -138,26 +93,28 @@ export default auth(async (req) => {
     "/wishlist",
   ];
   const isProtectedCustomer = protectedCustomerRoutes.some((route) =>
-    pathname.startsWith(route)
+    pathname === route || pathname.startsWith(`${route}/`)
   );
 
   if (isProtectedCustomer && !isAuthenticated) {
-    const callbackUrl = encodeURIComponent(pathname);
-    return NextResponse.redirect(
-      new URL(`/login?callbackUrl=${callbackUrl}`, req.url)
-    );
+    const url = req.nextUrl.clone();
+    url.pathname = "/login";
+    url.search = `?callbackUrl=${encodeURIComponent(pathname)}`;
+    return NextResponse.redirect(url);
   }
 
   if ((pathname === "/login" || pathname === "/register") && isAuthenticated) {
+    const url = req.nextUrl.clone();
+    url.search = "";
     if (userRole === "ADMIN" || userRole === "STAFF") {
-      return applyCookies(
-        NextResponse.redirect(new URL("/admin/dashboard", req.url))
-      );
+      url.pathname = "/admin/dashboard";
+    } else {
+      url.pathname = "/";
     }
-    return applyCookies(NextResponse.redirect(new URL("/", req.url)));
+    return NextResponse.redirect(url);
   }
 
-  return applyCookies(NextResponse.next());
+  return NextResponse.next();
 });
 
 export const config = {
@@ -166,6 +123,7 @@ export const config = {
     "/cart",
     "/checkout/:path*",
     "/orders/:path*",
+    "/profile",
     "/profile/:path*",
     "/wishlist",
     "/login",

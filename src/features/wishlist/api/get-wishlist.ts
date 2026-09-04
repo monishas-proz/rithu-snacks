@@ -1,33 +1,40 @@
-import { apiClient } from "@/lib/api/api-client";
-import type { GetWishlistResult, WishlistItemWithProduct, WishlistStatusResult } from "../types";
+import { customerWishlistApi } from "@/features/customers/api/customer-wishlist.api";
+import type { CustomerWishlistResponse } from "../types/wishlist.types";
 
-export async function getWishlist(): Promise<GetWishlistResult> {
-  const response = await apiClient.get<GetWishlistResult>("/api/wishlist");
-  return response.data!;
+export async function getWishlist(): Promise<CustomerWishlistResponse> {
+  try {
+    return await customerWishlistApi.getWishlist();
+  } catch {
+    return { items: [], totalItems: 0 };
+  }
 }
 
 export async function addToWishlist(data: {
-  productId: number;
-}): Promise<WishlistItemWithProduct> {
-  const response = await apiClient.post<WishlistItemWithProduct>(
-    "/api/wishlist",
-    data
-  );
-  return response.data!;
+  productId?: number;
+  variantId?: string;
+}): Promise<any> {
+  try {
+    if (data.variantId) {
+      return await customerWishlistApi.addToWishlist(data.variantId);
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 export async function removeFromWishlist(
-  productId: number
+  id: number | string
 ): Promise<void> {
-  await apiClient.delete(`/api/wishlist/${productId}`);
+  try {
+    await customerWishlistApi.removeFromWishlist(String(id));
+  } catch {
+    // Graceful error handling
+  }
 }
 
 export async function checkWishlistStatus(
-  productId: number
-): Promise<WishlistStatusResult> {
-  const response = await apiClient.get<WishlistStatusResult>(
-    `/api/wishlist/status`,
-    { params: { productId: String(productId) } }
-  );
-  return response.data!;
+  _productId: number | string
+): Promise<{ isInWishlist: boolean }> {
+  return { isInWishlist: false };
 }

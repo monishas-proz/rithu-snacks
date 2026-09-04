@@ -13,10 +13,9 @@ import { ProductPrice } from "./ProductPrice";
 import { ProductRating } from "./ProductRating";
 import { useAddToCart } from "@/features/cart/hooks/use-cart";
 import {
-  useWishlistStatus,
-  useAddToWishlist,
-  useRemoveFromWishlist,
-} from "@/features/wishlist/hooks/use-wishlist";
+  useCustomerWishlist,
+  useRemoveCustomerWishlist,
+} from "@/features/customers/hooks/use-customer-wishlist";
 import type { ProductListItem } from "../types";
 
 interface ProductCardProps {
@@ -25,11 +24,21 @@ interface ProductCardProps {
 
 function ProductCard({ product }: ProductCardProps) {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+  const isAuthenticated = status === "authenticated";
   const addToCart = useAddToCart();
-  const addToWishlist = useAddToWishlist();
-  const removeFromWishlist = useRemoveFromWishlist();
-  const { data: wishlistStatus } = useWishlistStatus(product.id);
+  const removeWishlist = useRemoveCustomerWishlist();
+
+  const { data: customerWishlist } = useCustomerWishlist({
+    enabled: isAuthenticated,
+  });
+
+  const wishlistItem = customerWishlist?.items?.find(
+    (item) =>
+      item.product.slug === product.slug ||
+      item.product.id === String(product.id)
+  );
+  const isInWishlist = Boolean(wishlistItem);
 
   const hasDiscount =
     Number(product.discountPercent) > 0 ||
@@ -40,16 +49,9 @@ function ProductCard({ product }: ProductCardProps) {
   const handleAddToCart = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
-      if (!session) {
-        router.push("/login?callbackUrl=/products");
-        return;
-      }
-      addToCart.mutate({
-        productId: product.id,
-        quantity: 1,
-      });
+      router.push(`/products/${product.slug}`);
     },
-    [session, router, addToCart, product.id]
+    [router, product.slug]
   );
 
   const handleWishlistToggle = useCallback(
@@ -59,16 +61,14 @@ function ProductCard({ product }: ProductCardProps) {
         router.push("/login?callbackUrl=/products");
         return;
       }
-      if (wishlistStatus?.isInWishlist) {
-        removeFromWishlist.mutate(product.id);
+      if (wishlistItem) {
+        removeWishlist.mutate(wishlistItem.variantId);
       } else {
-        addToWishlist.mutate({ productId: product.id });
+        router.push(`/products/${product.slug}`);
       }
     },
-    [session, router, wishlistStatus, addToWishlist, removeFromWishlist, product.id]
+    [session, router, wishlistItem, removeWishlist, product.slug]
   );
-
-  const isInWishlist = wishlistStatus?.isInWishlist ?? false;
 
   return (
     <Card className="group overflow-hidden">
@@ -141,7 +141,7 @@ function ProductCard({ product }: ProductCardProps) {
             size="sm"
             variant={isInWishlist ? "default" : "outline"}
             onClick={handleWishlistToggle}
-            disabled={addToWishlist.isPending || removeFromWishlist.isPending}
+            disabled={removeWishlist.isPending}
           >
             <Heart
               className={`h-4 w-4 ${isInWishlist ? "fill-current" : ""}`}

@@ -350,7 +350,7 @@ export function VariantCustomerPreviewModal({
                 <div className="w-full flex justify-end mt-3.5">
                   <button
                     type="button"
-                    className="w-full sm:w-[75%] py-2 px-3 rounded-md bg-[#d28b18] hover:bg-[#b87612] text-white text-xs font-bold uppercase tracking-wider text-center shadow-xs transition-all cursor-pointer active:scale-95"
+                    className="w-full sm:w-[75%] py-2 px-3 rounded-md bg-theme-secondary hover:bg-theme-secondary-hover text-theme-secondary-fg text-xs font-bold uppercase tracking-wider text-center shadow-xs transition-all cursor-pointer active:scale-95"
                   >
                     Add To Cart
                   </button>

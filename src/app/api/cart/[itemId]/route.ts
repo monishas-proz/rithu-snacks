@@ -7,14 +7,14 @@ export const PUT = createApiHandler(
   {
     PUT: async (_request, context) => {
       try {
-        const userId = parseInt((context.session?.user as { id?: string })?.id ?? "0");
+        const userId = context.session?.user?.id;
         if (!userId) return apiFromError(new Error("Unauthorized"));
-        const itemId = parseInt(context.params?.itemId ?? "0");
+        const itemId = context.params?.itemId ?? "";
         const body = context.body as { quantity: number };
-        const cart = await cartService.updateCartItem(
+        const cart = await cartService.updateItemQuantity(
           userId,
-          { quantity: body.quantity },
-          itemId
+          itemId,
+          { quantity: body.quantity }
         );
         return apiSuccess(cart, "Cart updated successfully");
       } catch (error) {
@@ -29,10 +29,10 @@ export const DELETE = createApiHandler(
   {
     DELETE: async (_request, context) => {
       try {
-        const userId = parseInt((context.session?.user as { id?: string })?.id ?? "0");
+        const userId = context.session?.user?.id;
         if (!userId) return apiFromError(new Error("Unauthorized"));
-        const itemId = parseInt(context.params?.itemId ?? "0");
-        const cart = await cartService.removeCartItem(userId, itemId);
+        const itemId = context.params?.itemId ?? "";
+        const cart = await cartService.removeItem(userId, itemId);
         return apiSuccess(cart, "Item removed from cart");
       } catch (error) {
         return apiFromError(error);

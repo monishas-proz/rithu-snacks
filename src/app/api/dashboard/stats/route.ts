@@ -21,8 +21,8 @@ async function getStats() {
     db.user.count({ where: { role: { name: "CUSTOMER" } } }),
     db.order.count(),
     db.order.aggregate({ _sum: { totalAmount: true } }),
-    db.order.count({ where: { status: "PENDING" } }),
-    db.$queryRaw<[{ count: bigint }]>`SELECT COUNT(*) as count FROM inventories WHERE quantity <= reorder_level`.then(
+    db.order.count({ where: { order_status: "pending" } }),
+    db.$queryRaw<[{ count: bigint }]>`SELECT COUNT(*) as count FROM inventories WHERE quantity_available <= reorder_level`.then(
       (rows) => Number(rows[0]?.count ?? 0)
     ),
     db.order.count({ where: { createdAt: { gte: todayStart } } }),

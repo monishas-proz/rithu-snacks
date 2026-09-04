@@ -3,29 +3,28 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { formatPrice } from "@/lib/utils";
-import { useWishlist, useRemoveFromWishlist } from "@/features/wishlist/hooks/use-wishlist";
-import { useAddToCart } from "@/features/cart/hooks/use-cart";
-import type { WishlistItem } from "@/features/wishlist/types";
+import {
+  useCustomerWishlist,
+  useRemoveCustomerWishlist,
+  useMoveCustomerWishlistToCart,
+} from "../../hooks/use-customer-wishlist";
+import type { CustomerWishlistItemDto } from "@/features/wishlist/types/wishlist.types";
 
 export function WishlistTab() {
-  const { data: wishlist, isLoading, error, refetch } = useWishlist();
-  const removeFromWishlist = useRemoveFromWishlist();
-  const addToCart = useAddToCart();
-  const [movingId, setMovingId] = useState<number | null>(null);
+  const { data: wishlist, isLoading, error, refetch } = useCustomerWishlist();
+  const removeMutation = useRemoveCustomerWishlist();
+  const moveMutation = useMoveCustomerWishlistToCart();
+  const [movingId, setMovingId] = useState<string | null>(null);
 
-  const items: WishlistItem[] = wishlist?.items ?? [];
+  const items: CustomerWishlistItemDto[] = wishlist?.items ?? [];
 
-  const handleMoveToCart = (productId: number) => {
-    setMovingId(productId);
-    addToCart.mutate(
-      { productId, quantity: 1 },
-      {
-        onSettled: () => {
-          setMovingId(null);
-          removeFromWishlist.mutate(productId);
-        },
-      }
-    );
+  const handleMoveToCart = (variantUuid: string) => {
+    setMovingId(variantUuid);
+    moveMutation.mutate(variantUuid, {
+      onSettled: () => {
+        setMovingId(null);
+      },
+    });
   };
 
   if (isLoading) {
@@ -97,22 +96,27 @@ export function WishlistTab() {
             >
               <div className="h-32 sm:h-36 bg-[repeating-linear-gradient(45deg,#F6ECDC,#F6ECDC_8px,#EFE2CD_8px,#EFE2CD_16px)] flex items-center justify-center">
                 <span className="text-[10px] font-mono text-theme-text-muted uppercase tracking-wider">
-                  {item.name ? item.name.slice(0, 16) : "SNACK"}
+                  {item.product?.name ? item.product.name.slice(0, 16) : item.variantName ? item.variantName.slice(0, 16) : "SNACK"}
                 </span>
               </div>
 
               <div className="p-3.5 sm:p-4 flex flex-col justify-between flex-1 gap-3">
                 <div>
                   <div className="text-xs font-semibold uppercase text-theme-text-primary line-clamp-2 min-h-[32px]">
-                    {item.name}
+                    {item.product?.name || item.variantName || "Snack Item"}
                   </div>
+                  {item.variantName && (
+                    <div className="text-[11px] text-theme-text-muted mt-0.5">
+                      {item.variantName}
+                    </div>
+                  )}
                   <div className="flex items-baseline gap-2 mt-2">
                     <span className="text-xs sm:text-sm font-semibold text-theme-primary">
-                      {formatPrice(item.price)}
+                      {formatPrice(item.salePrice ?? item.price ?? item.basePrice ?? 0)}
                     </span>
-                    {item.mrp && item.mrp > item.price && (
+                    {item.basePrice && (item.salePrice ? item.basePrice > item.salePrice : item.basePrice > item.price) && (
                       <span className="text-[11px] text-theme-text-muted line-through">
-                        {formatPrice(item.mrp)}
+                        {formatPrice(item.basePrice)}
                       </span>
                     )}
                   </div>
@@ -121,16 +125,16 @@ export function WishlistTab() {
                 <div className="flex flex-col gap-1.5">
                   <button
                     type="button"
-                    onClick={() => handleMoveToCart(item.productId)}
-                    disabled={movingId === item.productId}
+                    onClick={() => handleMoveToCart(item.variantId || item.id)}
+                    disabled={movingId === (item.variantId || item.id)}
                     className="w-full bg-theme-secondary hover:bg-theme-secondary-hover text-theme-secondary-fg text-xs font-semibold uppercase tracking-wider py-2.5 rounded-md transition-colors cursor-pointer min-h-[40px] disabled:opacity-50"
                   >
-                    {movingId === item.productId ? "Adding..." : "Add to Cart"}
+                    {movingId === (item.variantId || item.id) ? "Moving to Cart..." : "Move to Cart"}
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => removeFromWishlist.mutate(item.productId)}
+                    onClick={() => removeMutation.mutate(item.variantId || item.id)}
                     className="text-[11px] font-medium text-theme-text-muted hover:text-red-700 text-center py-1 transition-colors cursor-pointer"
                   >
                     Remove

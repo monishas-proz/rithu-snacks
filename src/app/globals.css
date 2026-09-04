@@ -415,9 +415,89 @@ textarea:focus-visible {
 .header-font {
   font-family: var(--font-inter), sans-serif;
 }
-.feedback-font {
-  font-family: var(--font-hanken), var(--font-inter), sans-serif;
-}
 .text-hover-primary:hover {
   color: var(--brown-700);
 }
+
+/* ================================================================== */
+/* Global Shimmer & Skeleton Loading Animations                       */
+/* ================================================================== */
+@keyframes shimmerWave {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes skeletonPulse {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Linear gradient shimmer skeleton */
+.shimmer {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--cream-200);
+}
+
+.shimmer::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.55) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: shimmerWave 1.6s infinite ease-in-out;
+  content: "";
+}
+
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    90deg,
+    #f3ede6 0%,
+    #faf6f0 35%,
+    #ffffff 50%,
+    #faf6f0 65%,
+    #f3ede6 100%
+  );
+  background-size: 200% 100%;
+  animation: skeletonPulse 1.8s ease-in-out infinite;
+}
+
+.skeleton-box {
+  border-radius: 0.75rem;
+  background-color: #f1ebd8;
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-box::after {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.6) 50%,
+    transparent 100%
+  );
+  animation: shimmerWave 1.6s infinite ease-in-out;
+  content: "";
+}

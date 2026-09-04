@@ -76,9 +76,29 @@ export async function deleteAdminProduct(uuid: string) {
   return apiClient.delete(`/api/admin/products/${uuid}`);
 }
 
+export async function getStoreProducts(
+  params?: Record<string, unknown>
+) {
+  const query = new URLSearchParams();
+  if (params) {
+    Object.entries(params).forEach(([key, val]) => {
+      if (val !== undefined && val !== null && val !== "") {
+        query.set(key, String(val));
+      }
+    });
+  }
+  const queryString = query.toString();
+  const url = queryString ? `/api/products?${queryString}` : "/api/products";
+  return apiClient.get<any>(url);
+}
+
+export async function getStoreProduct(idOrSlug: string) {
+  return apiClient.get<any>(`/api/products/${encodeURIComponent(idOrSlug)}`);
+}
+
 // Aliases for compatibility
-export const getProducts = getAdminProducts;
-export const getProduct = getAdminProduct;
+export const getProducts = getStoreProducts;
+export const getProduct = getStoreProduct;
 export const createProduct = createAdminProduct;
 export const updateProduct = (
   idOrUuid: string | number,

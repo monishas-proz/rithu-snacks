@@ -1,17 +1,17 @@
 "use client";
 
 import { WishlistCard } from "./WishlistCard";
-import type { WishlistItemWithProduct } from "../types";
+import type { CustomerWishlistItemDto } from "../types/wishlist.types";
 
 interface WishlistGridProps {
-  items: WishlistItemWithProduct[];
-  onRemove: (productId: number) => void;
-  onMoveToCart?: (productId: number) => void;
-  removingId?: number | null;
-  movingId?: number | null;
+  items: CustomerWishlistItemDto[];
+  onRemove: (variantUuid: string) => void;
+  onMoveToCart?: (variantUuid: string) => void;
+  removingId?: string | null;
+  movingId?: string | null;
 }
 
-function WishlistGrid({
+export function WishlistGrid({
   items,
   onRemove,
   onMoveToCart,
@@ -19,19 +19,17 @@ function WishlistGrid({
   movingId,
 }: WishlistGridProps) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
       {items.map((item) => (
         <WishlistCard
           key={item.id}
           item={item}
           onRemove={onRemove}
           onMoveToCart={onMoveToCart}
-          isRemoving={removingId === item.productId}
-          isMovingToCart={movingId === item.productId}
+          isRemoving={removingId === item.variantId}
+          isMovingToCart={movingId === item.variantId}
         />
       ))}
     </div>
   );
 }
-
-export { WishlistGrid };

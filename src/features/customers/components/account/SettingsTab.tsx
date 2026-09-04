@@ -94,7 +94,7 @@ export function SettingsTab() {
                   type="button"
                   onClick={() => setPrefs({ ...prefs, [opt.key]: !isChecked })}
                   className={`w-12 h-7 rounded-full p-1 transition-colors flex items-center flex-shrink-0 cursor-pointer ${
-                    isChecked ? "bg-[#3F8F5E] justify-end" : "bg-theme-border justify-start"
+                    isChecked ? "bg-theme-status-del-fg justify-end" : "bg-theme-border justify-start"
                   }`}
                 >
                   <span className="w-5 h-5 rounded-full bg-white block shadow-xs" />

@@ -516,29 +516,106 @@ export const orderRepository = {
 
   async findCustomerOrders(
     userId: bigint,
-    params: CustomerOrdersListInput | CustomerOrdersQueryInput
+    params: CustomerOrdersListInput | CustomerOrdersQueryInput = {}
   ): Promise<OrderListResponse<OrderDetailResponse>> {
-    const page = params.page ?? 1;
-    const limit = (params as any).limit ?? params.pageSize ?? 20;
+    const page = Number(params.page ?? 1) || 1;
+    const limit =
+      Number((params as any).limit ?? params.pageSize ?? 20) || 20;
 
     const where: Prisma.OrderWhereInput = {
       userId,
       is_active: true,
     };
 
-    if (params.status) {
-      where.order_status = params.status;
+    // 1. Resolve requested status(es) flexibly (single string, array, or nested filters)
+    const rawStatuses: string[] = [];
+    const collectStatus = (val: unknown) => {
+      if (!val) return;
+      if (Array.isArray(val)) {
+        val.forEach((v) => typeof v === "string" && rawStatuses.push(v));
+      } else if (typeof val === "string") {
+        rawStatuses.push(val);
+      }
+    };
+
+    collectStatus(params.status);
+    collectStatus((params as any).statuses);
+    collectStatus((params as any).filters?.status);
+    collectStatus((params as any).filters?.statuses);
+
+    const validStatuses: any[] = [];
+    for (const raw of rawStatuses) {
+      const normalized = raw.trim().toLowerCase().replace(/\s+/g, "_");
+      if (
+        normalized === "order_placed" ||
+        normalized === "orderplaced" ||
+        normalized === "placed"
+      ) {
+        validStatuses.push("pending", "confirmed");
+      } else if (
+        normalized === "out_of_delivery" ||
+        normalized === "out_for_delivery" ||
+        normalized === "outfordelivery" ||
+        normalized === "outdelivery"
+      ) {
+        validStatuses.push("out_for_delivery");
+      } else if (
+        [
+          "pending",
+          "confirmed",
+          "processing",
+          "packed",
+          "shipped",
+          "out_for_delivery",
+          "delivered",
+          "cancelled",
+          "returned",
+        ].includes(normalized)
+      ) {
+        validStatuses.push(normalized);
+      }
     }
 
-    if ((params as any).paymentStatus) {
-      where.payment_status = (params as any).paymentStatus;
+    if (validStatuses.length === 1) {
+      where.order_status = validStatuses[0];
+    } else if (validStatuses.length > 1) {
+      where.order_status = { in: Array.from(new Set(validStatuses)) };
+    }
+
+    // 2. Resolve requested payment status(es)
+    const rawPaymentStatuses: string[] = [];
+    const collectPaymentStatus = (val: unknown) => {
+      if (!val) return;
+      if (Array.isArray(val)) {
+        val.forEach((v) => typeof v === "string" && rawPaymentStatuses.push(v));
+      } else if (typeof val === "string") {
+        rawPaymentStatuses.push(val);
+      }
+    };
+
+    collectPaymentStatus((params as any).paymentStatus);
+    collectPaymentStatus((params as any).paymentStatuses);
+    collectPaymentStatus((params as any).filters?.paymentStatus);
+    collectPaymentStatus((params as any).filters?.paymentStatuses);
+
+    const validPayments = rawPaymentStatuses
+      .map((s) => s.trim().toLowerCase())
+      .filter((s): s is any =>
+        ["pending", "paid", "failed", "refunded", "partial_refund"].includes(s)
+      );
+
+    if (validPayments.length === 1) {
+      where.payment_status = validPayments[0];
+    } else if (validPayments.length > 1) {
+      where.payment_status = { in: Array.from(new Set(validPayments)) };
     }
 
     if (params.search) {
       where.orderNumber = { contains: params.search };
     }
 
-    const sortOrder = params.sortOrder ?? "desc";
+    const sortOrder =
+      String(params.sortOrder || "desc").toLowerCase() === "asc" ? "asc" : "desc";
     let orderBy: Prisma.OrderOrderByWithRelationInput = { createdAt: sortOrder };
 
     if (params.sortBy === "orderNumber") {

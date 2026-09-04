@@ -1,13 +1,16 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiClient } from "@/lib/api/api-client";
-import type { CartItem, ApiResponse } from "@/types";
+import {
+  customerCartApi,
+  CUSTOMER_CART_QUERY_KEY,
+  type AddCartItemPayload,
+} from "@/features/customers";
 
 export function useCart() {
   return useQuery({
-    queryKey: ["cart"],
-    queryFn: () => apiClient.get<{ items: CartItem[] }>("/api/cart"),
+    queryKey: CUSTOMER_CART_QUERY_KEY,
+    queryFn: () => customerCartApi.getCart(),
   });
 }
 
@@ -15,10 +18,9 @@ export function useAddToCart() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: { productId: number; variantId?: number; quantity?: number }) =>
-      apiClient.post("/api/cart", data),
+    mutationFn: (data: AddCartItemPayload) => customerCartApi.addItem(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["cart"] });
+      queryClient.invalidateQueries({ queryKey: CUSTOMER_CART_QUERY_KEY });
     },
   });
 }
@@ -27,10 +29,15 @@ export function useUpdateCartItem() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ itemId, quantity }: { itemId: number; quantity: number }) =>
-      apiClient.put(`/api/cart/${itemId}`, { quantity }),
+    mutationFn: ({
+      variantUuid,
+      quantity,
+    }: {
+      variantUuid: string;
+      quantity: number;
+    }) => customerCartApi.updateQuantity(variantUuid, quantity),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["cart"] });
+      queryClient.invalidateQueries({ queryKey: CUSTOMER_CART_QUERY_KEY });
     },
   });
 }
@@ -39,10 +46,11 @@ export function useRemoveCartItem() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (itemId: number) =>
-      apiClient.delete(`/api/cart/${itemId}`),
+    mutationFn: (variantUuid: string) =>
+      customerCartApi.removeItem(variantUuid),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["cart"] });
+      queryClient.invalidateQueries({ queryKey: CUSTOMER_CART_QUERY_KEY });
     },
   });
 }
+

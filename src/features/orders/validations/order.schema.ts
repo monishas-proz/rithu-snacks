@@ -30,59 +30,66 @@ export const customerCreateOrderSchema = z
 
 export type CustomerCreateOrderInput = z.infer<typeof customerCreateOrderSchema>;
 
-export const customerOrdersQuerySchema = z.object({
-  page: z.coerce.number().int().min(1, "page must be at least 1").default(1),
-  pageSize: z.coerce
-    .number()
-    .int()
-    .min(1, "pageSize must be at least 1")
-    .max(100, "pageSize cannot exceed 100")
-    .default(20),
-  limit: z.coerce
-    .number()
-    .int()
-    .min(1, "limit must be at least 1")
-    .max(100, "limit cannot exceed 100")
-    .optional(),
-  search: z.string().trim().optional(),
-  status: z.enum(ORDER_STATUS_ENUM).optional(),
-  paymentStatus: z.enum(PAYMENT_STATUS_ENUM).optional(),
-  sortBy: z
-    .enum(["createdAt", "updatedAt", "placedAt", "totalAmount", "orderNumber"])
-    .default("createdAt"),
-  sortOrder: z.enum(["asc", "desc"]).default("desc"),
-});
-
-export type CustomerOrdersQueryInput = z.infer<typeof customerOrdersQuerySchema>;
-
-export const customerOrdersListSchema = z
+export const customerOrdersQuerySchema = z
   .object({
-    page: z.number().int().min(1, "page must be at least 1").default(1).optional(),
-    pageSize: z
+    page: z.coerce.number().int().min(1, "page must be at least 1").default(1),
+    pageSize: z.coerce
       .number()
       .int()
       .min(1, "pageSize must be at least 1")
       .max(100, "pageSize cannot exceed 100")
-      .default(20)
-      .optional(),
-    limit: z
+      .default(20),
+    limit: z.coerce
       .number()
       .int()
       .min(1, "limit must be at least 1")
       .max(100, "limit cannot exceed 100")
       .optional(),
     search: z.string().trim().optional(),
-    status: z.enum(ORDER_STATUS_ENUM).optional(),
-    paymentStatus: z.enum(PAYMENT_STATUS_ENUM).optional(),
-    sortBy: z
-      .enum(["createdAt", "updatedAt", "placedAt", "totalAmount", "orderNumber"])
-      .default("createdAt")
-      .optional(),
-    sortOrder: z.enum(["asc", "desc"]).default("desc").optional(),
+    status: z.union([z.string(), z.array(z.string())]).optional(),
+    statuses: z.array(z.string()).optional(),
+    paymentStatus: z.union([z.string(), z.array(z.string())]).optional(),
+    paymentStatuses: z.array(z.string()).optional(),
+    filters: z.record(z.string(), z.any()).optional(),
+    sortBy: z.string().default("createdAt"),
+    sortOrder: z.string().default("desc"),
   })
-  .strict();
+  .passthrough();
+
+export type CustomerOrdersQueryInput = z.infer<typeof customerOrdersQuerySchema>;
+
+export const customerOrdersListSchema = z
+  .object({
+    page: z.coerce.number().int().min(1, "page must be at least 1").default(1).optional(),
+    pageSize: z.coerce
+      .number()
+      .int()
+      .min(1, "pageSize must be at least 1")
+      .max(100, "pageSize cannot exceed 100")
+      .default(20)
+      .optional(),
+    limit: z.coerce
+      .number()
+      .int()
+      .min(1, "limit must be at least 1")
+      .max(100, "limit cannot exceed 100")
+      .optional(),
+    search: z.string().trim().optional(),
+    status: z.union([z.string(), z.array(z.string())]).optional(),
+    statuses: z.array(z.string()).optional(),
+    paymentStatus: z.union([z.string(), z.array(z.string())]).optional(),
+    paymentStatuses: z.array(z.string()).optional(),
+    filters: z.record(z.string(), z.any()).optional(),
+    sortBy: z.string().default("createdAt").optional(),
+    sortOrder: z.string().default("desc").optional(),
+    shippingAddressId: z.string().optional(),
+    billingAddressId: z.string().optional(),
+    notes: z.string().optional(),
+  })
+  .passthrough();
 
 export type CustomerOrdersListInput = z.infer<typeof customerOrdersListSchema>;
+
 
 export const adminOrdersListSchema = z
   .object({

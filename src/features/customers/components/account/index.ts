@@ -6,3 +6,4 @@ export { AddressesTab } from "./AddressesTab";
 export { WishlistTab } from "./WishlistTab";
 export { WalletTab } from "./WalletTab";
 export { SettingsTab } from "./SettingsTab";
+export { CustomDropdown } from "./CustomDropdown";

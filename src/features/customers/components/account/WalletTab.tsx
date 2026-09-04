@@ -2,15 +2,40 @@
 
 import React, { useState } from "react";
 import type { CustomerProfileResponse } from "../../types";
-import type { OrderListItem } from "@/features/orders/types";
+import type { OrderDetailResponse } from "@/features/orders/types";
 
 interface WalletTabProps {
   profile?: CustomerProfileResponse | null;
-  orders?: OrderListItem[];
+  orders?: OrderDetailResponse[];
+  isLoading?: boolean;
 }
 
-export function WalletTab({ profile, orders = [] }: WalletTabProps) {
+export function WalletTab({
+  profile,
+  orders = [],
+  isLoading = false,
+}: WalletTabProps) {
   const [copied, setCopied] = useState(false);
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-4 min-w-0 animate-pulse">
+        <div className="h-8 w-48 bg-theme-border rounded-md" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="bg-theme-surface border border-theme-border rounded-2xl p-5 sm:p-6 shadow-2xs space-y-4"
+            >
+              <div className="h-3 w-24 bg-theme-border-subtle rounded-md" />
+              <div className="h-8 w-20 bg-theme-border rounded-md" />
+              <div className="h-3 w-full bg-theme-border-subtle rounded-md" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   // Compute points and tier dynamically from actual orders
   const totalSpend = orders.reduce((sum, o) => {
@@ -47,14 +72,14 @@ export function WalletTab({ profile, orders = [] }: WalletTabProps) {
           <div className="text-3xl sm:text-4xl font-bold mt-3">
             ₹{coinsBalance}
           </div>
-          <div className="text-xs text-[#E6CDAE] font-light mt-2">
+          <div className="text-xs text-theme-text-gold font-light mt-2">
             Auto-applied at checkout on orders above ₹499
           </div>
         </div>
 
         {/* Loyalty Tier */}
         <div className="bg-theme-surface border border-theme-border rounded-2xl p-5 sm:p-6 shadow-2xs">
-          <div className="text-[11px] font-semibold uppercase tracking-widest text-theme-text-muted">
+          <div className="text-xs font-semibold uppercase tracking-widest text-theme-text-muted">
             Loyalty Tier
           </div>
           <div className="text-2xl sm:text-3xl font-bold uppercase text-theme-primary mt-3">
@@ -63,7 +88,7 @@ export function WalletTab({ profile, orders = [] }: WalletTabProps) {
           <div className="text-xs text-theme-text-subtle font-light mt-2">
             {tier === "Platinum" ? "Top tier unlocked!" : `Spend ₹${Math.max(0, nextTierTarget - totalSpend)} more to reach Platinum`}
           </div>
-          <div className="h-2 rounded-full bg-[#F2E7D6] mt-3 overflow-hidden">
+          <div className="h-2 rounded-full bg-theme-border-subtle mt-3 overflow-hidden">
             <div
               className="h-full bg-theme-secondary transition-all duration-500 rounded-full"
               style={{ width: `${progressPercent}%` }}
@@ -126,7 +151,7 @@ export function WalletTab({ profile, orders = [] }: WalletTabProps) {
                       {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ""}
                     </div>
                   </div>
-                  <div className="text-xs sm:text-sm font-bold text-[#2F6E48]">
+                  <div className="text-xs sm:text-sm font-bold text-theme-status-del-fg">
                     +₹{earnedCoins}
                   </div>
                 </div>

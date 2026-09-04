@@ -4,26 +4,63 @@ import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { LOGOS, ICONS, navigation, desktopIcons, mobileBottomIcons } from "@/constants/storefront";
 import { NavButton } from "@/components/storefront/buttons/NavButton";
 import { IconButton } from "@/components/storefront/buttons/IconButton";
 import { useClickOutside } from "@/hooks/useClickOutside";
+import { useCustomerWishlistCount } from "@/features/customers/hooks/use-customer-wishlist";
+import { useCustomerCartCount } from "@/features/customers/hooks/use-customer-cart";
 
 export function Header() {
   const [isOpen, setIsOpen] = React.useState(false);
   const router = useRouter();
   const pathname = usePathname();
+  const { status } = useSession();
+  const isAuthenticated = status === "authenticated";
+
+  // Real-time badge counts from customer endpoints (only enabled when authenticated)
+  const { data: wishlistCount = 0 } = useCustomerWishlistCount();
+  const { data: cartCountData } = useCustomerCartCount();
+  const cartCount =
+    typeof cartCountData === "number"
+      ? cartCountData
+      : (cartCountData as { count?: number })?.count ?? 0;
+
   const menuRef = React.useRef<HTMLDivElement>(null);
   const buttonRef = React.useRef<HTMLDivElement>(null);
 
   useClickOutside([menuRef, buttonRef], () => setIsOpen(false));
+
+  const resolvePath = React.useCallback(
+    (item: { id: number; path?: string; alt?: string; text?: string }) => {
+      const isUser =
+        item.alt === "user" || item.text === "Account" || item.path === "/profile";
+      const isWishlist =
+        item.alt === "wishlist" || item.text === "Wishlist" || item.path === "/wishlist";
+      const isCart =
+        item.alt === "cart" || item.text === "Cart" || item.path === "/cart";
+
+      if (isUser) {
+        return isAuthenticated ? "/profile" : "/login";
+      }
+      if (isWishlist) {
+        return isAuthenticated ? "/wishlist" : "/login?callbackUrl=/wishlist";
+      }
+      if (isCart) {
+        return isAuthenticated ? "/cart" : "/login?callbackUrl=/cart";
+      }
+      return item.path || "/";
+    },
+    [isAuthenticated]
+  );
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white shadow-xs header-font">
       <div className="max-w-[1400px] mx-auto h-20 sm:h-24 px-2 sm:px-4 md:px-8 flex items-center justify-between">
         {/* Left Section (Logo + Brand Title) */}
         <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
-          <Link href="/">
+          <Link href="/" className="inline-block">
             <Image
               src={LOGOS.logo}
               alt="logo"
@@ -35,24 +72,28 @@ export function Header() {
           </Link>
 
           {/* Mobile Title */}
-          <Image
-            src={LOGOS.mobileTitle}
-            alt="mobile title"
-            width={120}
-            height={40}
-            priority
-            className="block md:hidden w-[95px] sm:w-[120px] hover:scale-105 transition-transform duration-300"
-          />
+          <Link href="/" className="block md:hidden">
+            <Image
+              src={LOGOS.mobileTitle}
+              alt="mobile title"
+              width={120}
+              height={40}
+              priority
+              className="w-[95px] sm:w-[120px] hover:scale-105 transition-transform duration-300"
+            />
+          </Link>
 
           {/* Desktop Title */}
-          <Image
-            src={LOGOS.title}
-            alt="title"
-            width={150}
-            height={60}
-            priority
-            className="hidden md:block hover:scale-105 transition-transform duration-300"
-          />
+          <Link href="/" className="hidden md:block">
+            <Image
+              src={LOGOS.title}
+              alt="title"
+              width={150}
+              height={60}
+              priority
+              className="hover:scale-105 transition-transform duration-300"
+            />
+          </Link>
         </div>
 
         {/* Desktop Navigation */}
@@ -63,7 +104,8 @@ export function Header() {
               variant="desktop"
               text={item.text}
               icon={item.icon}
-              onClick={item.path ? () => router.push(item.path) : undefined}
+              href={item.path}
+              isActive={pathname === item.path}
             />
           ))}
         </nav>
@@ -71,14 +113,25 @@ export function Header() {
         {/* Right Section (Icons & Hamburger) */}
         <div className="flex items-center gap-2 sm:gap-3 md:gap-5">
           <div className="hidden lg:flex items-center gap-5">
-            {desktopIcons.map((item) => (
-              <IconButton
-                key={item.id}
-                icon={item.icon}
-                alt={item.alt}
-                onClick={item.path ? () => router.push(item.path) : undefined}
-              />
-            ))}
+            {desktopIcons.map((item) => {
+              const targetPath = resolvePath(item);
+              const badge =
+                item.alt === "cart"
+                  ? cartCount
+                  : item.alt === "wishlist"
+                  ? wishlistCount
+                  : undefined;
+
+              return (
+                <IconButton
+                  key={item.id}
+                  icon={item.icon}
+                  alt={item.alt}
+                  href={targetPath}
+                  badge={badge}
+                />
+              );
+            })}
           </div>
 
           {/* Hamburger Menu Trigger */}
@@ -132,14 +185,8 @@ export function Header() {
                 text={item.text}
                 icon={item.icon}
                 isActive={pathname === item.path}
-                onClick={
-                  item.path
-                    ? () => {
-                        router.push(item.path);
-                        setIsOpen(false);
-                      }
-                    : undefined
-                }
+                href={item.path}
+                onClick={() => setIsOpen(false)}
               />
             ))}
           </nav>
@@ -153,29 +200,41 @@ export function Header() {
           bottom-0
           left-0
           w-full
-          bg-white/80
+          bg-white/90
           backdrop-blur-xl
           border-t
-          border-white/20
-          shadow-[0_-8px_30px_rgba(0,0,0,0.15)]
+          border-stone-200
+          shadow-[0_-8px_30px_rgba(0,0,0,0.08)]
           flex
           justify-around
           items-center
-          py-3
-          pb-[calc(env(safe-area-inset-bottom)+12px)]
+          py-2.5
+          pb-[calc(env(safe-area-inset-bottom)+10px)]
           lg:hidden
           z-50
         "
       >
-        {mobileBottomIcons.map((item) => (
-          <NavButton
-            key={item.id}
-            variant="bottom"
-            icon={item.icon}
-            text={item.text}
-            onClick={item.path ? () => router.push(item.path) : undefined}
-          />
-        ))}
+        {mobileBottomIcons.map((item) => {
+          const targetPath = resolvePath(item);
+          const badge =
+            item.text === "Cart"
+              ? cartCount
+              : item.text === "Wishlist"
+              ? wishlistCount
+              : undefined;
+
+          return (
+            <NavButton
+              key={item.id}
+              variant="bottom"
+              icon={item.icon}
+              text={item.text}
+              href={targetPath}
+              badge={badge}
+              isActive={pathname === targetPath}
+            />
+          );
+        })}
       </div>
     </header>
   );
