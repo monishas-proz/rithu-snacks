@@ -9,13 +9,21 @@ export async function getWishlist(): Promise<CustomerWishlistResponse> {
   }
 }
 
-export async function addToWishlist(data: {
-  productId?: number;
-  variantId?: string;
-}): Promise<any> {
+export async function getWishlistCount(): Promise<number> {
   try {
-    if (data.variantId) {
-      return await customerWishlistApi.addToWishlist(data.variantId);
+    return await customerWishlistApi.getWishlistCount();
+  } catch {
+    return 0;
+  }
+}
+
+export async function addToWishlist(
+  data: string | { productId?: number; variantId?: string; variantUnitPriceId?: string }
+): Promise<any> {
+  try {
+    const id = typeof data === "string" ? data : data.variantUnitPriceId || data.variantId;
+    if (id) {
+      return await customerWishlistApi.addToWishlist(id);
     }
     return null;
   } catch {
@@ -23,13 +31,21 @@ export async function addToWishlist(data: {
   }
 }
 
-export async function removeFromWishlist(
-  id: number | string
-): Promise<void> {
+export async function removeFromWishlist(id: number | string): Promise<void> {
   try {
     await customerWishlistApi.removeFromWishlist(String(id));
   } catch {
     // Graceful error handling
+  }
+}
+
+export async function moveWishlistItemToCart(
+  variantUnitPriceId: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    return await customerWishlistApi.moveToCart(variantUnitPriceId);
+  } catch (error: any) {
+    return { success: false, message: error?.message || "Failed to move item to cart" };
   }
 }
 

@@ -296,7 +296,19 @@ async function run() {
     
     try {
       await conn.query(createSql);
-      // console.log(`✓ Table \`${t.tableName}\` ensured.`);
+      // Ensure any newly added columns exist in already-created tables
+      const existingDbCols = await conn.query(`DESCRIBE \`${t.tableName}\``);
+      const existingColNames = new Set(existingDbCols.map(c => c.Field));
+      for (const col of t.columns) {
+        if (!existingColNames.has(col.colName)) {
+          try {
+            await conn.query(`ALTER TABLE \`${t.tableName}\` ADD COLUMN ${col.colDef};`);
+            console.log(`✓ Added missing column \`${t.tableName}\`.\`${col.colName}\``);
+          } catch (colErr) {
+            console.warn(`Could not add column \`${t.tableName}\`.\`${col.colName}\`:`, colErr.message);
+          }
+        }
+      }
     } catch (err) {
       console.error(`Error creating table \`${t.tableName}\`:`, err.message);
     }
