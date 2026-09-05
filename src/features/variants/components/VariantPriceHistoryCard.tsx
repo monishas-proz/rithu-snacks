@@ -45,7 +45,7 @@ export function VariantPriceHistoryCard({
     null;
 
   const [activeTab, setActiveTab] = useState<"graph" | "list">("graph");
-  const [range, setRange] = useState<RangeOption>("30D");
+  const [range, setRange] = useState<RangeOption>("1Y");
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   const periodApiVal = useMemo(() => {
@@ -243,11 +243,7 @@ export function VariantPriceHistoryCard({
                   </span>
                 </div>
                 <p className="text-xs text-neutral-400">
-                  {range === "30D"
-                    ? "Base price trend · last 30 days"
-                    : range === "6M"
-                    ? "Base price trend · monthly average, last 6 months"
-                    : "Base price trend · monthly average, last 12 months"}
+                  Base price trend · monthly average, last 12 months
                 </p>
               </div>
 

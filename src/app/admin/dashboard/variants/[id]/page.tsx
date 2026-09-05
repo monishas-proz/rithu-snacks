@@ -16,7 +16,7 @@ import {
 import { useUnits } from "@/features/units/hooks";
 import { AdminDetailSkeleton } from "@/components/admin/AdminDetailSkeleton";
 import { ErrorState } from "@/components/ui/error-state";
-import { sanitizeRichText } from "@/lib/sanitize-html";
+import { ExpandableRichText } from "@/components/ui/expandable-rich-text";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/Switch";
 import { FormModal } from "@/components/common/FormModal";
@@ -267,8 +267,8 @@ export default function AdminVariantDetailsPage() {
     : "—";
 
   const attributes = [
-    { label: "Product Name", value: variant.productName || "—" },
-    { label: "Variant Name", value: variant.variantName || "—" },
+    // { label: "Product Name", value: variant.productName || "—" },
+    // { label: "Variant Name", value: variant.variantName || "—" },
     {
       label: "Total Stock (all pack sizes)",
       value: (
@@ -688,7 +688,7 @@ export default function AdminVariantDetailsPage() {
           </div>
 
           {/* Variant Attributes Technical Specifications Card */}
-          <div className="bg-white border border-cream-border rounded-2xl overflow-hidden shadow-xs">
+          {/* <div className="bg-white border border-cream-border rounded-2xl overflow-hidden shadow-xs">
             <div className="px-6 py-4.5 border-b border-cream-border">
               <h2 className="text-[15px] font-bold text-neutral-900 tracking-tight flex items-center gap-2">
                 <Layers className="w-4 h-4 text-secondary-600" />
@@ -715,7 +715,7 @@ export default function AdminVariantDetailsPage() {
                 </div>
               ))}
             </div>
-          </div>
+          </div> */}
 
           {/* Description Card */}
           <div className="bg-white border border-cream-border rounded-2xl overflow-hidden shadow-xs">
@@ -743,9 +743,10 @@ export default function AdminVariantDetailsPage() {
                       <div className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1">
                         Full Description
                       </div>
-                      <div
-                        className="rich-text-content text-xs sm:text-sm text-neutral-600"
-                        dangerouslySetInnerHTML={{ __html: sanitizeRichText(variant.description) }}
+                      <ExpandableRichText
+                        html={variant.description}
+                        className="text-xs sm:text-sm text-neutral-600"
+                        toggleClassName="mt-1 text-xs font-bold text-secondary-600 hover:underline cursor-pointer"
                       />
                     </div>
                   )}

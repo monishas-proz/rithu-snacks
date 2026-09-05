@@ -6,11 +6,11 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Heart, ShoppingCart, Package, Truck, Shield, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ExpandableRichText } from "@/components/ui/expandable-rich-text";
 import { ProductGallery } from "./ProductGallery";
 import { ProductPrice } from "./ProductPrice";
 import { ProductVariantSelector } from "./ProductVariantSelector";
 import { getImageUrl } from "@/lib/utils";
-import { sanitizeRichText } from "@/lib/sanitize-html";
 import { formatMeasurementLabel } from "@/features/variants/utils/measurement.util";
 import { useAddToCart } from "@/features/cart/hooks/use-cart";
 import {
@@ -147,9 +147,9 @@ function ProductDetails({ product }: ProductDetailsProps) {
         )}
 
         {product.description && (
-          <div
-            className="rich-text-content text-sm text-muted-foreground"
-            dangerouslySetInnerHTML={{ __html: sanitizeRichText(product.description) }}
+          <ExpandableRichText
+            html={product.description}
+            className="text-sm text-muted-foreground"
           />
         )}
 
