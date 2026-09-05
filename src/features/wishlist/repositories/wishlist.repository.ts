@@ -158,33 +158,32 @@ export const wishlistRepository = {
   async addOrReactivateWishlistItem(params: {
     userId: bigint;
     productId: bigint;
+    variantId?: bigint | null;
     variantUnitPriceId: bigint;
     userInternalId: bigint;
   }): Promise<CustomerWishlistItemDto> {
     const existing = await db.wishlistItem.findFirst({
       where: {
         userId: params.userId,
-        variant_unit_price_id: params.variantUnitPriceId,
+        productId: params.productId,
+        ...(params.variantId ? { variantId: params.variantId } : {}),
       },
       include: wishlistItemInclude,
     });
 
     if (existing) {
-      if (!existing.is_active) {
-        const updated = await db.wishlistItem.update({
-          where: { id: existing.id },
-          data: {
-            is_active: true,
-            updated_at: new Date(),
-            updated_by: params.userInternalId,
-          },
-          include: wishlistItemInclude,
-        });
-        const formatted = formatWishlistItem(updated);
-        if (!formatted) throw new Error("Failed to format wishlist item");
-        return formatted;
-      }
-      const formatted = formatWishlistItem(existing);
+      const updated = await db.wishlistItem.update({
+        where: { id: existing.id },
+        data: {
+          is_active: true,
+          variantId: params.variantId ?? existing.variantId,
+          variant_unit_price_id: params.variantUnitPriceId,
+          updated_at: new Date(),
+          updated_by: params.userInternalId,
+        },
+        include: wishlistItemInclude,
+      });
+      const formatted = formatWishlistItem(updated);
       if (!formatted) throw new Error("Failed to format wishlist item");
       return formatted;
     }
@@ -194,6 +193,7 @@ export const wishlistRepository = {
         uuid: crypto.randomUUID(),
         userId: params.userId,
         productId: params.productId,
+        variantId: params.variantId ?? null,
         variant_unit_price_id: params.variantUnitPriceId,
         is_active: true,
         created_by: params.userInternalId,

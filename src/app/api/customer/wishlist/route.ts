@@ -32,10 +32,15 @@ export const POST = createApiHandler(
         throw ApiError.unauthorized("Please login to add to your wishlist");
       }
 
-      const body = context.body as AddWishlistInput;
-      const result = await wishlistService.addToWishlist(sessionUserId, body);
-
-      return apiSuccess(result, "Added to wishlist successfully", 200);
+      try {
+        const body = context.body as AddWishlistInput;
+        console.log("Adding to wishlist with user:", sessionUserId, "body:", body);
+        const result = await wishlistService.addToWishlist(sessionUserId, body);
+        return apiSuccess(result, "Added to wishlist successfully", 200);
+      } catch (err) {
+        console.error("WISHLIST ROUTE ERROR:", err);
+        throw err;
+      }
     },
   },
   {

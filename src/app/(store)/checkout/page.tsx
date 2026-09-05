@@ -1,349 +1,1004 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
+import Image from "next/image";
+import { ProductImage } from "@/components/common/ProductImage";
 import {
   MapPin,
   Truck,
-  Ticket,
   CreditCard,
-  Loader2,
-  ShoppingBag,
+  CheckCircle2,
+  Plus,
   ArrowRight,
+  ArrowLeft,
+  ShieldCheck,
+  ShoppingBag,
+  Sparkles,
+  Lock,
+  AlertCircle,
+  Loader2,
+  X,
+  Phone,
+  Clock,
+  Check,
 } from "lucide-react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { RadioGroup } from "@/components/ui/Radio";
-import { LoadingState } from "@/components/ui/loading-state";
-import { ErrorState } from "@/components/ui/error-state";
-import { EmptyState } from "@/components/ui/empty-state";
 import { formatPrice } from "@/lib/utils";
-import { useCart } from "@/features/cart/hooks/use-cart";
-import { AddressList } from "@/features/addresses/components/AddressList";
-import { useAddresses } from "@/features/addresses/hooks";
-import { useCheckout } from "@/features/checkout/checkout-context";
+import { useCustomerCart } from "@/features/customers/hooks/use-customer-cart";
 import {
-  useCheckoutSummary,
-  usePlaceOrder,
-} from "@/features/orders/hooks";
-import { OrderItemsList } from "@/features/orders/components/OrderItemsList";
-import { OrderTotals } from "@/features/orders/components/OrderTotals";
-import {
-  DELIVERY_OPTIONS,
-  PAYMENT_METHOD_OPTIONS,
-} from "@/features/orders/constants";
+  useCustomerAddresses,
+  useCreateCustomerAddress,
+} from "@/features/customers/hooks/use-customer-address";
+import { useCreateCustomerOrder } from "@/features/customers/hooks/use-customer-orders";
+import type { CustomerAddressResponse } from "@/features/customers/types/customer-address.types";
+
+function CheckoutSkeleton() {
+  return (
+    <div className="container mx-auto px-4 py-8 sm:py-10 max-w-7xl animate-pulse">
+      <div className="mb-8 space-y-2">
+        <div className="h-8 w-64 rounded-xl skeleton-shimmer" />
+        <div className="h-4 w-96 rounded-lg skeleton-shimmer" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-8 space-y-6">
+          <div className="rounded-2xl border border-theme-border bg-theme-surface p-6 space-y-4">
+            <div className="h-6 w-48 rounded-md skeleton-shimmer" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="h-36 rounded-xl skeleton-shimmer" />
+              <div className="h-36 rounded-xl skeleton-shimmer" />
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-theme-border bg-theme-surface p-6 space-y-4">
+            <div className="h-6 w-48 rounded-md skeleton-shimmer" />
+            <div className="h-24 rounded-xl skeleton-shimmer" />
+          </div>
+
+          <div className="rounded-2xl border border-theme-border bg-theme-surface p-6 space-y-4">
+            <div className="h-6 w-48 rounded-md skeleton-shimmer" />
+            <div className="h-40 rounded-xl skeleton-shimmer" />
+          </div>
+        </div>
+
+        <div className="lg:col-span-4">
+          <div className="rounded-2xl border border-theme-border bg-theme-surface p-6 space-y-4">
+            <div className="h-6 w-36 rounded-md skeleton-shimmer" />
+            <div className="h-32 rounded-xl skeleton-shimmer" />
+            <div className="h-12 rounded-xl skeleton-shimmer" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { data: session, status } = useSession();
-  const [couponInput, setCouponInput] = useState("");
+  const { data: session, status: authStatus } = useSession();
 
-  const { data: cart, isLoading: cartLoading, error: cartError, refetch: refetchCart } = useCart();
-  const { data: addresses, isLoading: addressesLoading } = useAddresses();
-  const checkout = useCheckout();
-  const placeOrder = usePlaceOrder();
+  // Customer Module TanStack Query hooks
+  const { data: cart, isLoading: cartLoading } = useCustomerCart();
+  const { data: addresses = [], isLoading: addressesLoading } =
+    useCustomerAddresses();
+  const createAddressMutation = useCreateCustomerAddress();
+  const createOrderMutation = useCreateCustomerOrder();
 
-  const {
-    data: summary,
-    isLoading: summaryLoading,
-    error: summaryError,
-    refetch: refetchSummary,
-  } = useCheckoutSummary(checkout.deliveryMethod, checkout.couponCode);
+  // Selected state
+  const [selectedAddressId, setSelectedAddressId] = useState<string>("");
+  const [deliveryMethod, setDeliveryMethod] = useState<"standard" | "express">(
+    "standard"
+  );
+  const [paymentMethod, setPaymentMethod] = useState<"CARD" | "UPI" | "COD">(
+    "CARD"
+  );
+  const [orderNotes, setOrderNotes] = useState<string>("");
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
-  if (status === "loading" || cartLoading) {
-    return <LoadingState text="Loading checkout..." />;
+  // Add Address Modal state
+  const [isAddingAddress, setIsAddingAddress] = useState(false);
+  const [newAddressForm, setNewAddressForm] = useState({
+    fullName: "",
+    phone: "",
+    addressLine1: "",
+    addressLine2: "",
+    landmark: "",
+    city: "",
+    state: "Tamil Nadu",
+    pincode: "",
+    country: "India",
+    addressType: "shipping" as const,
+    isDefault: true,
+  });
+  const [addressFormError, setAddressFormError] = useState<string | null>(null);
+
+  // Pre-filled Simulated Card Details
+  const [cardNumber, setCardNumber] = useState("4242 4242 4242 4242");
+  const [cardExpiry, setCardExpiry] = useState("12/28");
+  const [cardCvv, setCardCvv] = useState("123");
+  const [cardName, setCardName] = useState("Demo Customer");
+
+  // Effective selected address (fall back to default or first available)
+  const effectiveAddressId = useMemo(() => {
+    if (selectedAddressId && addresses.some((a) => a.id === selectedAddressId)) {
+      return selectedAddressId;
+    }
+    const defaultAddr = addresses.find((a) => a.isDefault);
+    if (defaultAddr) return defaultAddr.id;
+    if (addresses.length > 0) return addresses[0].id;
+    return "";
+  }, [selectedAddressId, addresses]);
+
+  // Pricing calculations
+  const items = cart?.items || [];
+  const subtotal = Number(cart?.subtotal || 0);
+  const isFreeDelivery = subtotal >= 499;
+  const shippingCharge =
+    deliveryMethod === "express" ? 99 : isFreeDelivery ? 0 : 49;
+  const grandTotal = subtotal + shippingCharge;
+
+  // Authentication gate
+  if (authStatus === "loading" || (cartLoading && !cart) || addressesLoading) {
+    return <CheckoutSkeleton />;
   }
 
-  if (status === "unauthenticated" || !session) {
+  if (authStatus === "unauthenticated" || !session) {
     router.push("/login?callbackUrl=/checkout");
     return null;
   }
 
-  if (cartError) {
-    return (
-      <ErrorState
-        message="Failed to load your cart. Please try again."
-        onRetry={refetchCart}
-      />
-    );
-  }
-
-  const items = cart?.items ?? [];
-  const selectedAddress = addresses?.find((a) => a.id === checkout.addressId);
-
+  // Empty cart guard
   if (items.length === 0) {
     return (
-      <div>
-        <h1 className="text-2xl font-bold mb-6">Checkout</h1>
-        <EmptyState
-          title="Your cart is empty"
-          description="Add some products to your cart before proceeding to checkout."
-        >
-          <Link href="/products">
-            <Button>
-              Browse Products
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </Link>
-        </EmptyState>
+      <div className="container mx-auto px-4 py-12 max-w-4xl text-center">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-theme-surface-alt border border-theme-border text-theme-primary">
+          <ShoppingBag className="h-8 w-8" />
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-theme-text-primary mb-2">
+          Your Cart is Empty
+        </h1>
+        <p className="text-theme-text-subtle mb-6 text-sm max-w-md mx-auto">
+          Explore our handcrafted traditional South Indian snacks and sweets to
+          proceed with your order.
+        </p>
+        <Link href="/products">
+          <Button className="min-h-[44px] px-6 rounded-xl bg-theme-primary hover:bg-theme-primary-hover text-white font-semibold shadow-sm">
+            Browse Authentic Snacks
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </Link>
       </div>
     );
   }
 
-  const handleApplyCoupon = () => {
-    if (!couponInput.trim()) return;
-    checkout.setCouponCode(couponInput.trim().toUpperCase());
+  // Handle address form creation
+  const handleCreateAddress = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAddressFormError(null);
+
+    // Basic client validation
+    if (!newAddressForm.fullName.trim()) {
+      setAddressFormError("Full name is required");
+      return;
+    }
+    if (!/^[6-9]\d{9}$/.test(newAddressForm.phone.replace(/\D/g, "").slice(-10))) {
+      setAddressFormError("Please enter a valid 10-digit Indian phone number");
+      return;
+    }
+    if (!newAddressForm.addressLine1.trim()) {
+      setAddressFormError("Address line 1 is required");
+      return;
+    }
+    if (!newAddressForm.city.trim()) {
+      setAddressFormError("City is required");
+      return;
+    }
+    if (!/^\d{6}$/.test(newAddressForm.pincode.trim())) {
+      setAddressFormError("Please enter a valid 6-digit PIN code");
+      return;
+    }
+
+    try {
+      const cleanPhone = newAddressForm.phone.startsWith("+91")
+        ? newAddressForm.phone
+        : `+91${newAddressForm.phone.replace(/\D/g, "").slice(-10)}`;
+
+      const created = await createAddressMutation.mutateAsync({
+        fullName: newAddressForm.fullName.trim(),
+        phone: cleanPhone,
+        addressLine1: newAddressForm.addressLine1.trim(),
+        addressLine2: newAddressForm.addressLine2.trim() || undefined,
+        landmark: newAddressForm.landmark.trim() || undefined,
+        city: newAddressForm.city.trim(),
+        state: newAddressForm.state.trim(),
+        pincode: newAddressForm.pincode.trim(),
+        country: "India",
+        addressType: "shipping",
+        isDefault: newAddressForm.isDefault,
+      });
+
+      setSelectedAddressId(created.id);
+      setIsAddingAddress(false);
+      setNewAddressForm({
+        fullName: "",
+        phone: "",
+        addressLine1: "",
+        addressLine2: "",
+        landmark: "",
+        city: "",
+        state: "Tamil Nadu",
+        pincode: "",
+        country: "India",
+        addressType: "shipping",
+        isDefault: true,
+      });
+    } catch (err: any) {
+      setAddressFormError(err.message || "Failed to save address");
+    }
   };
 
-  const handleRemoveCoupon = () => {
-    checkout.setCouponCode(null);
-    setCouponInput("");
-  };
+  // Place Order Handler
+  const handlePlaceOrder = async () => {
+    setCheckoutError(null);
 
-  const handlePlaceOrder = () => {
-    if (!checkout.addressId) return;
-    placeOrder.mutate(
-      {
-        addressId: checkout.addressId,
-        deliveryMethod: checkout.deliveryMethod,
-        couponCode: checkout.couponCode ?? undefined,
-        paymentMethod: checkout.paymentMethod,
-        notes: checkout.notes || undefined,
-      },
-      {
-        onSuccess: (order) => {
-          checkout.resetCheckout();
-          router.push(`/checkout/success?orderNumber=${order.orderNumber}`);
-        },
+    if (!effectiveAddressId) {
+      setCheckoutError("Please select or add a delivery address to proceed.");
+      return;
+    }
+
+    try {
+      const orderRes = await createOrderMutation.mutateAsync({
+        shippingAddressId: effectiveAddressId,
+        paymentMethod,
+        notes: orderNotes.trim() || undefined,
+        paymentDetails:
+          paymentMethod === "CARD"
+            ? {
+                last4: cardNumber.replace(/\s/g, "").slice(-4) || "4242",
+                brand: "visa",
+                status: "succeeded",
+                isSimulated: true,
+              }
+            : paymentMethod === "UPI"
+            ? {
+                upiId: "rithu.customer@okaxis",
+                status: "succeeded",
+                isSimulated: true,
+              }
+            : {
+                method: "COD",
+                status: "pending",
+              },
+      });
+
+      // Safely resolve order id and order number across any response shape
+      const order =
+        (orderRes as any)?.data?.data ||
+        (orderRes as any)?.data ||
+        orderRes;
+      const orderId = order?.id || order?.uuid;
+      const orderNumber = order?.orderNumber;
+
+      if (orderId && orderId !== "undefined" && orderId !== "null") {
+        const query = new URLSearchParams();
+        query.set("orderId", String(orderId));
+        if (orderNumber && orderNumber !== "undefined") {
+          query.set("orderNumber", String(orderNumber));
+        }
+        router.push(`/checkout/success?${query.toString()}`);
+      } else if (orderNumber && orderNumber !== "undefined" && orderNumber !== "null") {
+        router.push(`/checkout/success?orderNumber=${encodeURIComponent(String(orderNumber))}`);
+      } else {
+        router.push("/orders");
       }
-    );
+    } catch (err: any) {
+      setCheckoutError(
+        err.message || "Failed to place order. Please check details and try again."
+      );
+    }
   };
-
-  const canPlaceOrder = !!checkout.addressId && !!checkout.paymentMethod;
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-6">Checkout</h1>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardHeader className="flex-row items-center justify-between space-y-0">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                Delivery Address
-              </CardTitle>
-              <Link
-                href="/checkout/address"
-                className="text-sm font-medium text-primary hover:underline"
-              >
-                {selectedAddress ? "Change" : "Select"} Address
-              </Link>
-            </CardHeader>
-            <CardContent>
-              {addressesLoading ? (
-                <LoadingState size="sm" text="Loading addresses..." />
-              ) : selectedAddress ? (
-                <div className="rounded-lg border border-primary bg-primary/5 p-4 text-sm">
-                  <p className="font-medium">
-                    {selectedAddress.firstName} {selectedAddress.lastName}
-                  </p>
-                  <p className="mt-1 text-muted-foreground">
-                    {selectedAddress.addressLine1}
-                    {selectedAddress.addressLine2
-                      ? `, ${selectedAddress.addressLine2}`
-                      : ""}
-                  </p>
-                  <p className="text-muted-foreground">
-                    {selectedAddress.city}, {selectedAddress.state} -{" "}
-                    {selectedAddress.postalCode}
-                  </p>
-                  <p className="text-muted-foreground">
-                    Phone: {selectedAddress.phone}
-                  </p>
-                </div>
-              ) : (
-                <div>
-                  <p className="mb-3 text-sm text-muted-foreground">
-                    Choose a delivery address or add a new one.
-                  </p>
-                  <AddressList
-                    addresses={addresses ?? []}
-                    selectable
-                    selectedId={checkout.addressId}
-                    onSelect={(id) => checkout.setAddressId(id)}
-                    onAdd={() => router.push("/checkout/address")}
-                  />
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Truck className="h-4 w-4 text-muted-foreground" />
-                Delivery Method
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <RadioGroup
-                name="deliveryMethod"
-                value={checkout.deliveryMethod}
-                onValueChange={(value) =>
-                  checkout.setDeliveryMethod(
-                    value as typeof checkout.deliveryMethod
-                  )
-                }
-                options={Object.entries(DELIVERY_OPTIONS).map(
-                  ([value, option]) => ({
-                    value,
-                    label: `${option.label} — ${
-                      option.cost === 0 ? "Free" : formatPrice(option.cost)
-                    }`,
-                    description: option.description,
-                  })
-                )}
-              />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Ticket className="h-4 w-4 text-muted-foreground" />
-                Coupon
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {checkout.couponCode ? (
-                <div className="flex items-center justify-between rounded-lg border border-green-200 bg-green-50 p-3">
-                  <div>
-                    <p className="text-sm font-medium text-green-700">
-                      Coupon applied: {checkout.couponCode}
-                    </p>
-                    {summary?.coupon && (
-                      <p className="text-xs text-green-600">
-                        You saved {formatPrice(summary.coupon.discountAmount)}
-                      </p>
-                    )}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleRemoveCoupon}
-                  >
-                    Remove
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={couponInput}
-                    onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
-                    placeholder="Enter coupon code"
-                    className="flex h-10 flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-                  />
-                  <Button variant="outline" onClick={handleApplyCoupon}>
-                    Apply
-                  </Button>
-                </div>
-              )}
-
-              {summaryError && checkout.couponCode && (
-                <p className="mt-2 text-sm text-error-600">
-                  {summaryError.message}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <CreditCard className="h-4 w-4 text-muted-foreground" />
-                Payment Method
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <RadioGroup
-                name="paymentMethod"
-                value={checkout.paymentMethod}
-                onValueChange={(value) =>
-                  checkout.setPaymentMethod(
-                    value as typeof checkout.paymentMethod
-                  )
-                }
-                options={PAYMENT_METHOD_OPTIONS.map((option) => ({
-                  value: option.value,
-                  label: option.label,
-                  description: option.description,
-                }))}
-              />
-            </CardContent>
-          </Card>
+    <div className="container mx-auto px-4 py-8 sm:py-10 max-w-7xl">
+      {/* Header & Steps */}
+      <div className="mb-8">
+        <div className="flex items-center gap-2 text-xs font-semibold text-theme-text-subtle mb-2">
+          <Link
+            href="/cart"
+            className="hover:text-theme-primary transition-colors flex items-center gap-1"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Return to Cart
+          </Link>
+          <span>/</span>
+          <span className="text-theme-primary font-bold">Checkout</span>
         </div>
 
-        <div>
-          <Card className="sticky top-24">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <ShoppingBag className="h-4 w-4 text-muted-foreground" />
-                Order Summary ({summary?.count ?? items.length} items)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="max-h-72 overflow-y-auto">
-                <OrderItemsList items={summary?.items ?? []} compact />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-theme-text-primary">
+              Checkout & Payment
+            </h1>
+            <p className="text-xs sm:text-sm text-theme-text-subtle mt-0.5">
+              Review your delivery address, choose a shipping option, and complete
+              your simulated payment.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs font-semibold bg-theme-surface-alt border border-theme-border px-3.5 py-1.5 rounded-full text-theme-text-subtle self-start sm:self-auto">
+            <ShieldCheck className="h-4 w-4 text-theme-secondary" />
+            <span>256-Bit SSL Encrypted</span>
+          </div>
+        </div>
+      </div>
+
+      {checkoutError && (
+        <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 shrink-0 text-red-600 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-semibold">Unable to complete checkout</p>
+            <p className="text-xs mt-0.5">{checkoutError}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Main Grid Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Left Column: Form & Steps (8 cols) */}
+        <div className="lg:col-span-8 space-y-6">
+          {/* 1. Delivery Address Card */}
+          <div className="rounded-2xl border border-theme-border bg-theme-surface shadow-xs p-5 sm:p-6">
+            <div className="flex items-center justify-between gap-4 mb-4 pb-3 border-b border-theme-border-subtle">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-theme-surface-alt border border-theme-border text-theme-primary font-bold text-xs">
+                  1
+                </span>
+                <h2 className="text-base sm:text-lg font-bold text-theme-text-primary flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-theme-secondary" />
+                  Delivery Address
+                </h2>
               </div>
 
-              <div className="my-4 border-t" />
-
-              {summaryLoading ? (
-                <LoadingState size="sm" text="Calculating totals..." />
-              ) : summary ? (
-                <OrderTotals
-                  totals={summary.totals}
-                  couponLabel={summary.coupon?.code ?? null}
-                />
-              ) : (
-                <ErrorState
-                  title="Could not calculate totals"
-                  message={summaryError?.message}
-                  onRetry={refetchSummary}
-                />
+              {!isAddingAddress && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsAddingAddress(true)}
+                  className="rounded-xl border-theme-border text-xs font-bold text-theme-primary hover:bg-theme-surface-alt min-h-[36px]"
+                >
+                  <Plus className="mr-1 h-3.5 w-3.5" />
+                  Add New
+                </Button>
               )}
+            </div>
 
+            {/* Address Selection List */}
+            {!isAddingAddress && (
+              <div className="space-y-3">
+                {addresses.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-theme-border p-6 text-center">
+                    <p className="text-sm font-semibold text-theme-text-primary mb-1">
+                      No saved addresses found
+                    </p>
+                    <p className="text-xs text-theme-text-subtle mb-4">
+                      Please add your delivery address to receive freshly packed
+                      snacks.
+                    </p>
+                    <Button
+                      type="button"
+                      onClick={() => setIsAddingAddress(true)}
+                      className="min-h-[44px] rounded-xl bg-theme-primary hover:bg-theme-primary-hover text-white text-xs font-semibold px-4"
+                    >
+                      <Plus className="mr-1.5 h-4 w-4" />
+                      Add Delivery Address
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                    {addresses.map((addr) => {
+                      const isSelected = effectiveAddressId === addr.id;
+                      return (
+                        <div
+                          key={addr.id}
+                          onClick={() => setSelectedAddressId(addr.id)}
+                          className={`relative rounded-xl border p-4 cursor-pointer transition-all ${
+                            isSelected
+                              ? "border-theme-primary bg-theme-surface-alt/70 shadow-xs ring-1 ring-theme-primary"
+                              : "border-theme-border bg-theme-surface hover:border-theme-border-accent hover:bg-theme-surface-warm"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`flex h-4 w-4 items-center justify-center rounded-full border transition-colors ${
+                                  isSelected
+                                    ? "border-theme-primary bg-theme-primary text-white"
+                                    : "border-theme-border-input bg-white"
+                                }`}
+                              >
+                                {isSelected && <Check className="h-2.5 w-2.5 stroke-[3]" />}
+                              </span>
+                              <span className="font-bold text-sm text-theme-text-primary line-clamp-1">
+                                {addr.fullName}
+                              </span>
+                            </div>
+
+                            {addr.isDefault && (
+                              <span className="shrink-0 rounded-md bg-theme-status-del-bg px-2 py-0.5 text-[10px] font-extrabold text-theme-status-del-fg">
+                                Default
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="text-xs text-theme-text-subtle space-y-1 pl-6">
+                            <p className="line-clamp-2">
+                              {addr.addressLine1}
+                              {addr.addressLine2 ? `, ${addr.addressLine2}` : ""}
+                            </p>
+                            <p>
+                              {addr.city}, {addr.state} - {addr.pincode}
+                            </p>
+                            <p className="flex items-center gap-1 text-theme-text-muted pt-0.5">
+                              <Phone className="h-3 w-3" />
+                              {addr.phone}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Inline Add Address Form */}
+            {isAddingAddress && (
+              <form
+                onSubmit={handleCreateAddress}
+                className="rounded-xl border border-theme-border bg-theme-surface-warm p-4 sm:p-5 space-y-4"
+              >
+                <div className="flex items-center justify-between border-b border-theme-border pb-2.5">
+                  <h3 className="text-sm font-bold text-theme-text-primary">
+                    New Delivery Address
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingAddress(false)}
+                    className="text-theme-text-subtle hover:text-theme-text-primary"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {addressFormError && (
+                  <div className="rounded-lg bg-red-50 border border-red-200 p-2.5 text-xs text-red-600">
+                    {addressFormError}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <label className="block text-xs font-semibold text-theme-text-secondary mb-1">
+                      Recipient Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Ramesh Kumar"
+                      value={newAddressForm.fullName}
+                      onChange={(e) =>
+                        setNewAddressForm((prev) => ({
+                          ...prev,
+                          fullName: e.target.value,
+                        }))
+                      }
+                      className="w-full min-h-[44px] rounded-xl border border-theme-border-input bg-white px-3 text-xs text-theme-text-primary placeholder:text-theme-text-muted focus:border-theme-primary focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-theme-text-secondary mb-1">
+                      Phone Number (10 digits) *
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      placeholder="e.g. 9876543210"
+                      value={newAddressForm.phone}
+                      onChange={(e) =>
+                        setNewAddressForm((prev) => ({
+                          ...prev,
+                          phone: e.target.value,
+                        }))
+                      }
+                      className="w-full min-h-[44px] rounded-xl border border-theme-border-input bg-white px-3 text-xs text-theme-text-primary placeholder:text-theme-text-muted focus:border-theme-primary focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-semibold text-theme-text-secondary mb-1">
+                      Flat / House No., Building, Street *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. 42, Sri Krishna Nagar, Main Road"
+                      value={newAddressForm.addressLine1}
+                      onChange={(e) =>
+                        setNewAddressForm((prev) => ({
+                          ...prev,
+                          addressLine1: e.target.value,
+                        }))
+                      }
+                      className="w-full min-h-[44px] rounded-xl border border-theme-border-input bg-white px-3 text-xs text-theme-text-primary placeholder:text-theme-text-muted focus:border-theme-primary focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-theme-text-secondary mb-1">
+                      City *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Salem"
+                      value={newAddressForm.city}
+                      onChange={(e) =>
+                        setNewAddressForm((prev) => ({
+                          ...prev,
+                          city: e.target.value,
+                        }))
+                      }
+                      className="w-full min-h-[44px] rounded-xl border border-theme-border-input bg-white px-3 text-xs text-theme-text-primary placeholder:text-theme-text-muted focus:border-theme-primary focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-theme-text-secondary mb-1">
+                      PIN Code (6 digits) *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      maxLength={6}
+                      placeholder="e.g. 636001"
+                      value={newAddressForm.pincode}
+                      onChange={(e) =>
+                        setNewAddressForm((prev) => ({
+                          ...prev,
+                          pincode: e.target.value,
+                        }))
+                      }
+                      className="w-full min-h-[44px] rounded-xl border border-theme-border-input bg-white px-3 text-xs text-theme-text-primary placeholder:text-theme-text-muted focus:border-theme-primary focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2.5 pt-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsAddingAddress(false)}
+                    className="min-h-[40px] text-xs font-semibold rounded-xl text-theme-text-subtle"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={createAddressMutation.isPending}
+                    className="min-h-[40px] px-4 text-xs font-bold rounded-xl bg-theme-primary hover:bg-theme-primary-hover text-white"
+                  >
+                    {createAddressMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                        Saving Address...
+                      </>
+                    ) : (
+                      "Save Address"
+                    )}
+                  </Button>
+                </div>
+              </form>
+            )}
+          </div>
+
+          {/* 2. Delivery Method Card */}
+          <div className="rounded-2xl border border-theme-border bg-theme-surface shadow-xs p-5 sm:p-6">
+            <div className="flex items-center gap-2.5 mb-4 pb-3 border-b border-theme-border-subtle">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-theme-surface-alt border border-theme-border text-theme-primary font-bold text-xs">
+                2
+              </span>
+              <h2 className="text-base sm:text-lg font-bold text-theme-text-primary flex items-center gap-2">
+                <Truck className="h-4 w-4 text-theme-secondary" />
+                Shipping & Delivery Method
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {/* Standard */}
+              <div
+                onClick={() => setDeliveryMethod("standard")}
+                className={`rounded-xl border p-4 cursor-pointer transition-all ${
+                  deliveryMethod === "standard"
+                    ? "border-theme-primary bg-theme-surface-alt/70 shadow-xs ring-1 ring-theme-primary"
+                    : "border-theme-border bg-theme-surface hover:border-theme-border-accent"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xs font-bold text-theme-text-primary">
+                    Standard Delivery
+                  </span>
+                  <span className="text-xs font-extrabold text-theme-primary">
+                    {isFreeDelivery ? "FREE" : "₹49"}
+                  </span>
+                </div>
+                <p className="text-[11px] text-theme-text-subtle flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  Estimated: 3 - 5 business days
+                </p>
+                {isFreeDelivery && (
+                  <span className="mt-2 inline-block rounded bg-theme-status-del-bg px-2 py-0.5 text-[10px] font-bold text-theme-status-del-fg">
+                    Free Delivery Unlocked!
+                  </span>
+                )}
+              </div>
+
+              {/* Express */}
+              <div
+                onClick={() => setDeliveryMethod("express")}
+                className={`rounded-xl border p-4 cursor-pointer transition-all ${
+                  deliveryMethod === "express"
+                    ? "border-theme-primary bg-theme-surface-alt/70 shadow-xs ring-1 ring-theme-primary"
+                    : "border-theme-border bg-theme-surface hover:border-theme-border-accent"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-theme-text-primary">
+                      Express Fast Delivery
+                    </span>
+                    <Sparkles className="h-3 w-3 text-theme-secondary" />
+                  </div>
+                  <span className="text-xs font-extrabold text-theme-primary">
+                    ₹99
+                  </span>
+                </div>
+                <p className="text-[11px] text-theme-text-subtle flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  Estimated: 1 - 2 business days (Priority)
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. Payment Method Card (with Dummy Card) */}
+          <div className="rounded-2xl border border-theme-border bg-theme-surface shadow-xs p-5 sm:p-6">
+            <div className="flex items-center justify-between gap-4 mb-4 pb-3 border-b border-theme-border-subtle">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-theme-surface-alt border border-theme-border text-theme-primary font-bold text-xs">
+                  3
+                </span>
+                <h2 className="text-base sm:text-lg font-bold text-theme-text-primary flex items-center gap-2">
+                  <CreditCard className="h-4 w-4 text-theme-secondary" />
+                  Payment Method
+                </h2>
+              </div>
+
+              <span className="rounded-full bg-theme-status-out-bg border border-theme-border-accent px-3 py-0.5 text-[11px] font-bold text-theme-status-out-fg">
+                Simulated Test Mode
+              </span>
+            </div>
+
+            {/* Payment Method Selector Tabs */}
+            <div className="grid grid-cols-3 gap-2.5 mb-5">
+              <button
+                type="button"
+                onClick={() => setPaymentMethod("CARD")}
+                className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all min-h-[56px] ${
+                  paymentMethod === "CARD"
+                    ? "border-theme-primary bg-theme-surface-alt font-bold text-theme-primary shadow-xs ring-1 ring-theme-primary"
+                    : "border-theme-border bg-theme-surface text-theme-text-subtle hover:bg-theme-surface-warm"
+                }`}
+              >
+                <CreditCard className="h-4 w-4 mb-1" />
+                <span className="text-xs">Card (Test)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPaymentMethod("UPI")}
+                className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all min-h-[56px] ${
+                  paymentMethod === "UPI"
+                    ? "border-theme-primary bg-theme-surface-alt font-bold text-theme-primary shadow-xs ring-1 ring-theme-primary"
+                    : "border-theme-border bg-theme-surface text-theme-text-subtle hover:bg-theme-surface-warm"
+                }`}
+              >
+                <span className="text-xs font-black mb-0.5">UPI</span>
+                <span className="text-xs">UPI QR (Test)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPaymentMethod("COD")}
+                className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all min-h-[56px] ${
+                  paymentMethod === "COD"
+                    ? "border-theme-primary bg-theme-surface-alt font-bold text-theme-primary shadow-xs ring-1 ring-theme-primary"
+                    : "border-theme-border bg-theme-surface text-theme-text-subtle hover:bg-theme-surface-warm"
+                }`}
+              >
+                <Truck className="h-4 w-4 mb-1" />
+                <span className="text-xs">Cash on Delivery</span>
+              </button>
+            </div>
+
+            {/* Payment Details Container */}
+            {paymentMethod === "CARD" && (
+              <div className="rounded-xl border border-theme-border-subtle bg-theme-surface-alt/50 p-4 sm:p-5 space-y-4">
+                {/* Simulated Card Preview */}
+                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-tr from-[#5C1512] via-[#7A211B] to-[#9E2E27] p-5 text-white shadow-md">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-1.5">
+                      <Sparkles className="h-4 w-4 text-theme-secondary" />
+                      <span className="text-xs font-extrabold tracking-wider uppercase text-theme-secondary">
+                        Rithu Snacks Pay
+                      </span>
+                    </div>
+                    <span className="rounded bg-white/20 px-2 py-0.5 text-[10px] font-bold tracking-widest uppercase backdrop-blur-xs">
+                      TEST VISA
+                    </span>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="font-mono text-base sm:text-lg tracking-widest font-bold drop-shadow">
+                      {cardNumber}
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs pt-1 border-t border-white/20">
+                      <div>
+                        <div className="text-[9px] uppercase tracking-wider text-white/70">
+                          Cardholder
+                        </div>
+                        <div className="font-semibold">{cardName}</div>
+                      </div>
+                      <div>
+                        <div className="text-[9px] uppercase tracking-wider text-white/70">
+                          Expires
+                        </div>
+                        <div className="font-mono font-semibold">{cardExpiry}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-[11px] text-theme-text-subtle bg-white border border-theme-border rounded-xl p-3 flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-theme-status-del-fg shrink-0" />
+                  <span>
+                    <strong>Dummy test card details are pre-filled</strong> for your
+                    convenience. Clicking &ldquo;Place Order&rdquo; simulates an instant
+                    successful payment without real charges.
+                  </span>
+                </div>
+
+                {/* Card input fields (editable if user wishes to test validation) */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="sm:col-span-3">
+                    <label className="block text-xs font-semibold text-theme-text-secondary mb-1">
+                      Card Number
+                    </label>
+                    <input
+                      type="text"
+                      value={cardNumber}
+                      onChange={(e) => setCardNumber(e.target.value)}
+                      className="w-full min-h-[44px] font-mono rounded-xl border border-theme-border-input bg-white px-3 text-xs text-theme-text-primary focus:border-theme-primary focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-theme-text-secondary mb-1">
+                      Expiry Date
+                    </label>
+                    <input
+                      type="text"
+                      value={cardExpiry}
+                      onChange={(e) => setCardExpiry(e.target.value)}
+                      className="w-full min-h-[44px] font-mono rounded-xl border border-theme-border-input bg-white px-3 text-xs text-theme-text-primary focus:border-theme-primary focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-theme-text-secondary mb-1">
+                      CVV / CVC
+                    </label>
+                    <input
+                      type="password"
+                      maxLength={4}
+                      value={cardCvv}
+                      onChange={(e) => setCardCvv(e.target.value)}
+                      className="w-full min-h-[44px] font-mono rounded-xl border border-theme-border-input bg-white px-3 text-xs text-theme-text-primary focus:border-theme-primary focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-theme-text-secondary mb-1">
+                      Name on Card
+                    </label>
+                    <input
+                      type="text"
+                      value={cardName}
+                      onChange={(e) => setCardName(e.target.value)}
+                      className="w-full min-h-[44px] rounded-xl border border-theme-border-input bg-white px-3 text-xs text-theme-text-primary focus:border-theme-primary focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {paymentMethod === "UPI" && (
+              <div className="rounded-xl border border-theme-border-subtle bg-theme-surface-alt/50 p-4 sm:p-5 space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white border border-theme-border font-bold text-theme-primary text-xs">
+                    UPI
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-theme-text-primary">
+                      Instant Simulated UPI Transfer
+                    </p>
+                    <p className="text-[11px] text-theme-text-subtle font-mono">
+                      rithu.customer@okaxis
+                    </p>
+                  </div>
+                </div>
+                <p className="text-[11px] text-theme-text-subtle bg-white border border-theme-border rounded-xl p-3">
+                  Orders placed with simulated UPI will be auto-confirmed and
+                  marked as Paid immediately upon checkout.
+                </p>
+              </div>
+            )}
+
+            {paymentMethod === "COD" && (
+              <div className="rounded-xl border border-theme-border-subtle bg-theme-surface-alt/50 p-4 sm:p-5 space-y-2">
+                <p className="text-xs font-bold text-theme-text-primary">
+                  Pay with Cash upon Doorstep Delivery
+                </p>
+                <p className="text-[11px] text-theme-text-subtle">
+                  Please keep the exact amount ready upon delivery. Our delivery
+                  partner will provide a digital confirmation receipt.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* 4. Delivery Instructions */}
+          <div className="rounded-2xl border border-theme-border bg-theme-surface shadow-xs p-5 sm:p-6">
+            <label className="block text-xs font-bold text-theme-text-primary mb-1.5">
+              Special Delivery Instructions (Optional)
+            </label>
+            <textarea
+              rows={2}
+              maxLength={300}
+              placeholder="e.g. Ring bell twice, leave with security, call before arrival..."
+              value={orderNotes}
+              onChange={(e) => setOrderNotes(e.target.value)}
+              className="w-full rounded-xl border border-theme-border-input bg-white p-3 text-xs text-theme-text-primary placeholder:text-theme-text-muted focus:border-theme-primary focus:outline-none"
+            />
+          </div>
+        </div>
+
+        {/* Right Column: Order Summary Sidebar (4 cols - Sticky) */}
+        <div className="lg:col-span-4 sticky top-24 space-y-4">
+          <div className="rounded-2xl border border-theme-border bg-theme-surface shadow-xs overflow-hidden">
+            <div className="border-b border-theme-border-subtle bg-theme-surface-alt px-5 py-4">
+              <h2 className="text-base font-bold text-theme-text-primary flex items-center gap-2">
+                <ShoppingBag className="h-4 w-4 text-theme-secondary" />
+                Order Summary ({items.length} {items.length === 1 ? "item" : "items"})
+              </h2>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {/* Items Mini List */}
+              <div className="max-h-60 overflow-y-auto space-y-3 divide-y divide-theme-border-subtle pr-1">
+                {items.map((item) => (
+                  <div key={item.id} className="pt-3 first:pt-0 flex items-center gap-3">
+                    <div className="relative h-14 w-14 rounded-xl border border-theme-border bg-theme-surface-alt shrink-0 overflow-hidden">
+                      <ProductImage
+                        src={item.primaryImage}
+                        alt={item.productName}
+                        fallbackText={item.productName}
+                        containerClassName="w-full h-full"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-theme-text-primary truncate">
+                        {item.productName}
+                      </p>
+                      <p className="text-[11px] text-theme-text-subtle">
+                        {item.variantName}{" "}
+                        {item.measurement?.formatted
+                          ? `(${item.measurement.formatted})`
+                          : ""}
+                      </p>
+                      <p className="text-[11px] text-theme-text-muted">
+                        Qty: {item.quantity} × {formatPrice(item.currentPrice)}
+                      </p>
+                    </div>
+
+                    <div className="text-xs font-bold text-theme-text-primary shrink-0">
+                      {formatPrice(item.itemTotal)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Price Calculation Breakdown */}
+              <div className="border-t border-theme-border-subtle pt-4 space-y-2.5 text-xs">
+                <div className="flex justify-between text-theme-text-subtle">
+                  <span>Items Subtotal</span>
+                  <span className="font-semibold text-theme-text-primary">
+                    {formatPrice(subtotal)}
+                  </span>
+                </div>
+
+                <div className="flex justify-between text-theme-text-subtle items-center">
+                  <span>Shipping & Handling</span>
+                  {shippingCharge === 0 ? (
+                    <span className="rounded bg-theme-status-del-bg px-2 py-0.5 text-[10px] font-bold text-theme-status-del-fg">
+                      FREE
+                    </span>
+                  ) : (
+                    <span className="font-semibold text-theme-text-primary">
+                      {formatPrice(shippingCharge)}
+                    </span>
+                  )}
+                </div>
+
+                <div className="border-t border-theme-border pt-3 flex justify-between items-baseline">
+                  <span className="text-sm font-bold text-theme-text-primary">
+                    Total Amount
+                  </span>
+                  <span className="text-xl font-extrabold text-theme-primary">
+                    {formatPrice(grandTotal)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Place Order CTA Button */}
               <Button
-                className="mt-5 w-full"
-                size="lg"
+                type="button"
                 onClick={handlePlaceOrder}
                 disabled={
-                  !canPlaceOrder || summaryLoading || placeOrder.isPending
+                  createOrderMutation.isPending ||
+                  addressesLoading ||
+                  !effectiveAddressId
                 }
+                className="w-full min-h-[48px] rounded-xl bg-theme-primary hover:bg-theme-primary-hover text-white font-bold text-sm shadow-md transition-all disabled:opacity-50"
               >
-                {placeOrder.isPending && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {createOrderMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Placing Your Order...
+                  </>
+                ) : (
+                  <>
+                    <Lock className="mr-2 h-4 w-4" />
+                    Pay {formatPrice(grandTotal)} & Confirm
+                  </>
                 )}
-                Place Order
               </Button>
 
-              {!checkout.addressId && (
-                <p className="mt-2 text-center text-xs text-muted-foreground">
-                  Select a delivery address to place your order.
-                </p>
-              )}
-
-              {placeOrder.error && (
-                <p className="mt-2 text-sm text-error-600">
-                  {placeOrder.error.message}
-                </p>
-              )}
-            </CardContent>
-          </Card>
+              <div className="text-[11px] text-center text-theme-text-muted space-y-1 pt-1">
+                <p>🔒 100% Secure Simulated Transaction</p>
+                <p>Freshly prepared South Indian delicacies delivered with care.</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

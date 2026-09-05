@@ -20,23 +20,15 @@ export async function getWishlistCount(): Promise<number> {
 export async function addToWishlist(
   data: string | { productId?: number; variantId?: string; variantUnitPriceId?: string }
 ): Promise<any> {
-  try {
-    const id = typeof data === "string" ? data : data.variantUnitPriceId || data.variantId;
-    if (id) {
-      return await customerWishlistApi.addToWishlist(id);
-    }
-    return null;
-  } catch {
-    return null;
+  const id = typeof data === "string" ? data : data.variantUnitPriceId || data.variantId;
+  if (!id) {
+    throw new Error("No variant or unit price selected");
   }
+  return await customerWishlistApi.addToWishlist(id);
 }
 
 export async function removeFromWishlist(id: number | string): Promise<void> {
-  try {
-    await customerWishlistApi.removeFromWishlist(String(id));
-  } catch {
-    // Graceful error handling
-  }
+  await customerWishlistApi.removeFromWishlist(String(id));
 }
 
 export async function moveWishlistItemToCart(

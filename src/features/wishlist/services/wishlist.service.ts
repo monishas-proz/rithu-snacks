@@ -20,10 +20,11 @@ async function resolveInternalUser(sessionUserId: string) {
   return user;
 }
 
-async function validateActiveVariantUnitPrice(variantUnitPriceUuid: string) {
-  const unitPrice = await db.variantUnitPrice.findFirst({
+async function validateActiveVariantUnitPrice(identifier: string) {
+  let unitPrice = await db.variantUnitPrice.findFirst({
     where: {
-      uuid: variantUnitPriceUuid,
+      uuid: identifier,
+      deleted_at: null,
     },
     include: {
       variant: {
@@ -31,6 +32,22 @@ async function validateActiveVariantUnitPrice(variantUnitPriceUuid: string) {
       },
     },
   });
+
+  if (!unitPrice) {
+    // Try looking up by variant UUID
+    unitPrice = await db.variantUnitPrice.findFirst({
+      where: {
+        variant: { uuid: identifier },
+        deleted_at: null,
+      },
+      orderBy: [{ is_default: "desc" }, { createdAt: "asc" }],
+      include: {
+        variant: {
+          include: { product: true },
+        },
+      },
+    });
+  }
 
   if (!unitPrice || unitPrice.deleted_at !== null) {
     throw ApiError.notFound("Product pack size not found");
@@ -58,7 +75,7 @@ export const wishlistService = {
     sessionUserId: string
   ): Promise<CustomerWishlistResponse> {
     const user = await resolveInternalUser(sessionUserId);
-    return wishlistRepository.findActiveWishlistByUserId(user.internalId);
+    return wishlistRepository.findActiveWishlistByUserId(BigInt(user.internalId));
   },
 
   async addToWishlist(
@@ -66,35 +83,46 @@ export const wishlistService = {
     input: AddWishlistInput
   ): Promise<CustomerWishlistItemDto> {
     const user = await resolveInternalUser(sessionUserId);
-    const unitPrice = await validateActiveVariantUnitPrice(
-      input.variantUnitPriceId
-    );
+    const identifier = input.variantUnitPriceId || input.variantId;
+    if (!identifier) {
+      throw ApiError.badRequest("Either variantUnitPriceId or variantId is required");
+    }
+
+    const unitPrice = await validateActiveVariantUnitPrice(identifier);
 
     return wishlistRepository.addOrReactivateWishlistItem({
-      userId: user.internalId,
+      userId: BigInt(user.internalId),
       productId: unitPrice.variant.productId,
+      variantId: unitPrice.variant_id,
       variantUnitPriceId: unitPrice.id,
-      userInternalId: user.internalId,
+      userInternalId: BigInt(user.internalId),
     });
   },
 
   async removeFromWishlist(
     sessionUserId: string,
-    variantUnitPriceUuid: string
+    identifier: string
   ): Promise<void> {
     const user = await resolveInternalUser(sessionUserId);
-    const unitPrice = await db.variantUnitPrice.findFirst({
-      where: { uuid: variantUnitPriceUuid },
+    let unitPrice = await db.variantUnitPrice.findFirst({
+      where: { uuid: identifier },
     });
+
+    if (!unitPrice) {
+      unitPrice = await db.variantUnitPrice.findFirst({
+        where: { variant: { uuid: identifier } },
+        orderBy: [{ is_default: "desc" }, { createdAt: "asc" }],
+      });
+    }
 
     if (!unitPrice) {
       throw ApiError.notFound("Product pack size not found");
     }
 
     const removed = await wishlistRepository.softRemoveWishlistItem(
-      user.internalId,
+      BigInt(user.internalId),
       unitPrice.id,
-      user.internalId
+      BigInt(user.internalId)
     );
 
     if (!removed) {

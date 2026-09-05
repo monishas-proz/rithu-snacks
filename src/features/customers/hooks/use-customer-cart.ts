@@ -28,7 +28,7 @@ export function useCustomerCartCount(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: [...CUSTOMER_CART_QUERY_KEY, "count"],
     queryFn: () => customerCartApi.getCartCount(),
-    staleTime: 1000 * 30,
+    staleTime: 0,
     enabled: isAuthenticated && (options?.enabled ?? true),
   });
 }
@@ -41,6 +41,9 @@ export function useAddToCartMutation() {
       customerCartApi.addItem(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CUSTOMER_CART_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
+      queryClient.invalidateQueries({ queryKey: ["customer", "wishlist"] });
+      queryClient.invalidateQueries({ queryKey: ["wishlist"] });
     },
   });
 }
@@ -58,6 +61,7 @@ export function useUpdateCartQuantityMutation() {
     }) => customerCartApi.updateQuantity(variantUuid, quantity),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CUSTOMER_CART_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
     },
   });
 }
@@ -70,6 +74,7 @@ export function useRemoveCartItemMutation() {
       customerCartApi.removeItem(variantUuid),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CUSTOMER_CART_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
     },
   });
 }
@@ -81,6 +86,7 @@ export function useClearCartMutation() {
     mutationFn: () => customerCartApi.clearCart(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CUSTOMER_CART_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
     },
   });
 }

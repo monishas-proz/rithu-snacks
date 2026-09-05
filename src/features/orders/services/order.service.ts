@@ -66,6 +66,7 @@ export const orderService = {
     // 2. Validate every cart item's product and variant unit price
     const orderItemsData: Array<{
       productId: bigint;
+      variantId: bigint;
       variantUnitPriceId: bigint;
       productName: string;
       variantName: string;
@@ -109,7 +110,8 @@ export const orderService = {
 
       orderItemsData.push({
         productId: item.productId,
-        variantUnitPriceId: item.variantUnitPriceId,
+        variantId: variant.id,
+        variantUnitPriceId: item.variantUnitPriceId!,
         productName: item.product.name,
         variantName: variant.variant_name,
         sku: unitPriceRow.sku,
@@ -136,12 +138,6 @@ export const orderService = {
       );
     }
 
-    if (shippingAddress.addressType !== "shipping") {
-      throw ApiError.badRequest(
-        "Selected shipping address must have addressType 'shipping'"
-      );
-    }
-
     // 4. Validate billing address if provided
     let billingAddress = shippingAddress;
     if (input.billingAddressId) {
@@ -160,23 +156,28 @@ export const orderService = {
         );
       }
 
-      if (foundBilling.addressType !== "billing") {
-        throw ApiError.badRequest(
-          "Selected billing address must have addressType 'billing'"
-        );
-      }
-
       billingAddress = foundBilling;
     }
 
-    const totalAmount = subtotal;
+    const paymentMethod = input.paymentMethod || "CARD";
+    const isPaid = paymentMethod === "CARD" || paymentMethod === "UPI";
+    const paymentStatus: "paid" | "pending" = isPaid ? "paid" : "pending";
+    const orderStatus: "confirmed" | "pending" = isPaid ? "confirmed" : "pending";
+
+    // Free delivery on orders ₹499 and above, otherwise ₹49
+    const shippingCharge = subtotal >= 499 ? 0 : 49;
+    const totalAmount = subtotal + shippingCharge;
 
     // 5. Execute creation transaction
     return orderRepository.createCustomerOrderTransaction({
       userId,
       cartId: cart.id,
       subtotal,
+      shippingCharge,
       totalAmount,
+      orderStatus,
+      paymentStatus,
+      paymentMethod,
       notes: input.notes,
       shippingAddress: {
         fullName: shippingAddress.full_name,
@@ -490,5 +491,48 @@ export const orderService = {
       "packed",
       input
     );
+  },
+
+  async getOrders(userId: number | string | bigint, params: any = {}) {
+    return this.getCustomerOrders(String(userId), params);
+  },
+
+  async placeOrder(userId: number | string | bigint, input: any) {
+    return this.createCustomerOrder(String(userId), {
+      shippingAddressId: input.shippingAddressId || String(input.addressId),
+      billingAddressId: input.billingAddressId,
+      notes: input.notes,
+      paymentMethod: input.paymentMethod || "CARD",
+      paymentDetails: input.paymentDetails,
+    });
+  },
+
+  async getCheckoutSummary(
+    userId: number | string | bigint,
+    deliveryMethod?: string,
+    _couponCode?: string
+  ) {
+    const user = await userRepository.findById(String(userId));
+    if (!user || !user.internalId) throw ApiError.unauthorized("User not found");
+    const cart = await db.cart.findFirst({
+      where: { userId: user.internalId, status: "active", is_active: true },
+      include: {
+        items: {
+          where: { is_active: true },
+          include: { variant_unit_price: true },
+        },
+      },
+    });
+    let subtotal = 0;
+    cart?.items.forEach((it) => {
+      subtotal += Number(it.price_at_add || 0) * it.quantity;
+    });
+    const deliveryCharge = deliveryMethod === "EXPRESS" ? 100 : 0;
+    return {
+      subtotal,
+      deliveryCharge,
+      discount: 0,
+      total: subtotal + deliveryCharge,
+    };
   },
 };

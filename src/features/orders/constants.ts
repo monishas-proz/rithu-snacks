@@ -7,10 +7,8 @@ export const DELIVERY_OPTIONS: Record<
   DeliveryMethod,
   { label: string; cost: number; description: string }
 > = {
-  STANDARD: { label: "Standard Delivery", cost: 49, description: "3 - 5 business days" },
-  EXPRESS: { label: "Express Delivery", cost: 99, description: "1 - 2 business days" },
-  SAME_DAY: { label: "Same Day Delivery", cost: 149, description: "Same day dispatch" },
-  PICKUP: { label: "Store Pickup", cost: 0, description: "Pick up from our store" },
+  standard: { label: "Standard Delivery", cost: 49, description: "3 - 5 business days" },
+  express: { label: "Express Delivery", cost: 99, description: "1 - 2 business days" },
 };
 
 export const PAYMENT_METHOD_OPTIONS: {

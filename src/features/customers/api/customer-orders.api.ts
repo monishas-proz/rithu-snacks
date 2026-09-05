@@ -19,6 +19,8 @@ export interface CreateCustomerOrderPayload {
   shippingAddressId: string;
   billingAddressId?: string;
   notes?: string;
+  paymentMethod?: "CARD" | "COD" | "UPI";
+  paymentDetails?: Record<string, any>;
 }
 
 export interface CancelCustomerOrderPayload {
@@ -102,11 +104,12 @@ export const customerOrdersApi = {
   async createOrder(
     payload: CreateCustomerOrderPayload
   ): Promise<OrderDetailResponse> {
-    const response = await apiClient.post<OrderDetailResponse>(
+    const response = await apiClient.post<any>(
       "/api/customer/orders",
       payload
     );
-    return response.data!;
+    const result = (response as any)?.data?.data ?? (response as any)?.data ?? response;
+    return result as OrderDetailResponse;
   },
 
   /**

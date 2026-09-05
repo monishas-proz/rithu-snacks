@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { ImageWithFallback } from "@/components/common/ImageWithFallback";
+import { ChevronLeft, ChevronRight, Sparkles, CheckCircle2 } from "lucide-react";
+import { ProductImage } from "@/components/common/ProductImage";
 
 export interface GalleryImage {
   id: string;
@@ -16,44 +16,118 @@ interface ProductGalleryProps {
   images: GalleryImage[];
   productName: string;
   className?: string;
+  isVeg?: boolean;
+  isInStock?: boolean;
 }
 
-function ProductGallery({ images, productName, className }: ProductGalleryProps) {
+function ProductGallery({
+  images,
+  productName,
+  className,
+  isVeg = true,
+  isInStock = true,
+}: ProductGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  if (!images || images.length === 0) {
+  const validImages = (images || []).filter((img) => img && img.url && img.url.trim() !== "");
+
+  if (validImages.length === 0) {
     return (
-      <div className={cn("aspect-square bg-muted rounded-lg flex items-center justify-center", className)}>
-        <span className="text-muted-foreground">No Image Available</span>
+      <div className={cn("space-y-4", className)}>
+        <div className="relative aspect-square w-full rounded-2xl overflow-hidden border border-amber-200/50 bg-gradient-to-br from-[#FFFDF9] to-[#FFF5EB] shadow-xs group">
+          {/* Top badges */}
+          <div className="absolute top-3.5 left-3.5 z-20 flex flex-wrap gap-2">
+            {isVeg && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/80 shadow-2xs backdrop-blur-xs">
+                <span className="w-2 h-2 rounded-full bg-emerald-600 ring-2 ring-emerald-600/30" />
+                100% Veg
+              </span>
+            )}
+            <span
+              className={cn(
+                "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border shadow-2xs backdrop-blur-xs",
+                isInStock
+                  ? "bg-stone-50/90 text-stone-700 border-stone-200/80"
+                  : "bg-rose-50 text-rose-700 border-rose-200/80"
+              )}
+            >
+              {isInStock ? "In Stock" : "Out of Stock"}
+            </span>
+          </div>
+
+          <ProductImage
+            src={null}
+            alt={productName}
+            fallbackText={productName}
+            containerClassName="w-full h-full aspect-square"
+            className="w-full h-full"
+          />
+        </div>
       </div>
     );
   }
 
-  const selected = images[selectedIndex];
+  const selected = validImages[selectedIndex] || validImages[0];
 
   return (
     <div className={cn("space-y-4", className)}>
-      <div className="relative aspect-square overflow-hidden rounded-lg bg-muted">
-        <ImageWithFallback
+      <div className="relative aspect-square w-full overflow-hidden rounded-2xl border border-stone-200/80 bg-stone-50 shadow-xs group">
+        {/* Badges */}
+        <div className="absolute top-3.5 left-3.5 z-20 flex flex-wrap gap-2">
+          {isVeg && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/80 shadow-2xs backdrop-blur-xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-600 ring-2 ring-emerald-600/30" />
+              100% Veg
+            </span>
+          )}
+          <span
+            className={cn(
+              "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border shadow-2xs backdrop-blur-xs",
+              isInStock
+                ? "bg-white/90 text-stone-700 border-stone-200/80"
+                : "bg-rose-50 text-rose-700 border-rose-200/80"
+            )}
+          >
+            {isInStock ? "In Stock" : "Out of Stock"}
+          </span>
+        </div>
+
+        {/* Quality Seal */}
+        <div className="absolute top-3.5 right-3.5 z-20">
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-[#8B1D1D]/10 text-[#8B1D1D] border border-[#8B1D1D]/20 shadow-2xs backdrop-blur-xs">
+            <Sparkles className="w-3 h-3 text-[#8B1D1D]" />
+            Traditional
+          </span>
+        </div>
+
+        <ProductImage
           src={selected.url}
           alt={selected.altText || productName}
-          className="h-full w-full"
+          fallbackText={productName}
+          priority={true}
+          containerClassName="w-full h-full aspect-square"
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
-        {images.length > 1 && (
+
+        {validImages.length > 1 && (
           <>
             <Button
-              variant="ghost"
+              type="button"
+              variant="secondary"
               size="icon"
-              className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white"
-              onClick={() => setSelectedIndex((i) => (i > 0 ? i - 1 : images.length - 1))}
+              className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-stone-700 shadow-md h-9 w-9 rounded-full border border-stone-200 transition-transform active:scale-95"
+              onClick={() => setSelectedIndex((i) => (i > 0 ? i - 1 : validImages.length - 1))}
+              aria-label="Previous image"
             >
               <ChevronLeft className="h-5 w-5" />
             </Button>
             <Button
-              variant="ghost"
+              type="button"
+              variant="secondary"
               size="icon"
-              className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white"
-              onClick={() => setSelectedIndex((i) => (i < images.length - 1 ? i + 1 : 0))}
+              className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-stone-700 shadow-md h-9 w-9 rounded-full border border-stone-200 transition-transform active:scale-95"
+              onClick={() => setSelectedIndex((i) => (i < validImages.length - 1 ? i + 1 : 0))}
+              aria-label="Next image"
             >
               <ChevronRight className="h-5 w-5" />
             </Button>
@@ -61,23 +135,25 @@ function ProductGallery({ images, productName, className }: ProductGalleryProps)
         )}
       </div>
 
-      {images.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          {images.map((image, index) => (
+      {validImages.length > 1 && (
+        <div className="flex gap-2.5 overflow-x-auto pb-1.5 scrollbar-thin">
+          {validImages.map((image, index) => (
             <button
-              key={image.id}
+              key={image.id || index}
+              type="button"
               onClick={() => setSelectedIndex(index)}
               className={cn(
-                "relative h-16 w-16 shrink-0 overflow-hidden rounded-md border-2 transition-colors",
+                "relative h-18 w-18 shrink-0 overflow-hidden rounded-xl border-2 transition-all p-0.5 bg-white",
                 selectedIndex === index
-                  ? "border-primary"
-                  : "border-transparent hover:border-muted-foreground/50"
+                  ? "border-[#8B1D1D] ring-2 ring-[#8B1D1D]/20 shadow-xs scale-102"
+                  : "border-stone-200 hover:border-stone-400 opacity-70 hover:opacity-100"
               )}
             >
-              <ImageWithFallback
+              <ProductImage
                 src={image.url}
                 alt={image.altText || `${productName} ${index + 1}`}
-                className="h-full w-full"
+                containerClassName="w-full h-full rounded-lg"
+                className="w-full h-full object-cover"
               />
             </button>
           ))}

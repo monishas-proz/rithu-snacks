@@ -25,9 +25,10 @@ export const POST = createApiHandler(
       try {
         const userId = context.session?.user?.id;
         if (!userId) return apiFromError(new Error("Unauthorized"));
-        const body = context.body as { variantId: string; quantity: number };
+        const body = context.body as { variantId?: string; variantUnitPriceId?: string; quantity: number };
         const cart = await cartService.addItem(userId, {
-          variantId: String(body.variantId),
+          variantUnitPriceId: body.variantUnitPriceId,
+          variantId: body.variantId,
           quantity: body.quantity ?? 1,
         });
         return apiSuccess(cart, "Item added to cart", 201);

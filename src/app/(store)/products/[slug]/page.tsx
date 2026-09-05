@@ -47,7 +47,6 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
     <PageContainer>
       <Breadcrumb
         items={[
-          { label: "Home", href: "/" },
           { label: "Products", href: "/products" },
           ...(product.category
             ? [{ label: product.category.name, href: `/categories/${product.category.id}` }]

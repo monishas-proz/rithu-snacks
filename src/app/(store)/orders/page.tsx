@@ -11,7 +11,7 @@ import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { EmptyState } from "@/components/ui/empty-state";
 import { OrderCard } from "@/features/orders/components/OrderCard";
-import { useOrders } from "@/features/orders/hooks";
+import { useCustomerOrders } from "@/features/customers/hooks/use-customer-orders";
 import { ORDER_STATUS_LABELS } from "@/features/orders/components/OrderStatusBadge";
 import type { OrderStatus } from "@/features/orders/types";
 
@@ -21,10 +21,10 @@ export default function OrdersPage() {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("");
 
-  const { data, isLoading, error, refetch } = useOrders({
+  const { data, isLoading, error, refetch } = useCustomerOrders({
     page,
     limit: 10,
-    status: (statusFilter || undefined) as OrderStatus | undefined,
+    status: statusFilter || undefined,
   });
 
   if (status === "loading" || isLoading) {

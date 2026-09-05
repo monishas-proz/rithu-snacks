@@ -24,6 +24,9 @@ export function useAddToCart() {
     mutationFn: (input: AddToCartInput) => addToCart(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: cartKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["customer", "cart"] });
+      queryClient.invalidateQueries({ queryKey: ["customer", "wishlist"] });
+      queryClient.invalidateQueries({ queryKey: ["wishlist"] });
     },
   });
 }
@@ -39,6 +42,7 @@ export function useUpdateCart() {
       updateCartItem(itemId, { quantity: data.quantity }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: cartKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["customer", "cart"] });
     },
   });
 }
@@ -50,6 +54,7 @@ export function useRemoveCartItem() {
     mutationFn: (itemId: string | number) => removeCartItem(itemId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: cartKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["customer", "cart"] });
     },
   });
 }

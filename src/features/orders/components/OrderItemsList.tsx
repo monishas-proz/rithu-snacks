@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { getImageUrl, formatPrice } from "@/lib/utils";
+import { ProductImage } from "@/components/common/ProductImage";
 import type { OrderItemResponse, OrderItemDisplay } from "../types";
 
 interface OrderItemsListProps {
@@ -36,17 +37,13 @@ export function OrderItemsList({
         return (
           <div key={item.id} className="flex items-center gap-4 py-3">
             <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
-              {image ? (
-                <img
-                  src={getImageUrl(image)}
-                  alt={item.productName}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
-                  No image
-                </div>
-              )}
+              <ProductImage
+                src={image ? getImageUrl(image) : null}
+                alt={item.productName}
+                fallbackText={item.productName}
+                containerClassName="w-full h-full"
+                className="w-full h-full object-cover"
+              />
             </div>
 
             <div className="min-w-0 flex-1">

@@ -17,7 +17,6 @@ export const POST = createApiHandler(
 
       const body = context.body as AddCartItemInput;
       const cart = await cartService.addItem(sessionUserId, body);
-
       return apiSuccess(cart, "Item added to cart successfully", 200);
     },
   },

@@ -28,13 +28,19 @@ export const customerWishlistApi = {
   },
 
   /**
-   * Add variant to wishlist
+   * Add variant or unit price to wishlist
    * Postman: POST /api/customer/wishlist
    */
-  async addToWishlist(variantId: string): Promise<CustomerWishlistItemDto> {
+  async addToWishlist(
+    identifier: string | { variantUnitPriceId?: string; variantId?: string }
+  ): Promise<CustomerWishlistItemDto> {
+    const payload =
+      typeof identifier === "string"
+        ? { variantUnitPriceId: identifier }
+        : identifier;
     const response = await apiClient.post<CustomerWishlistItemDto>(
       "/api/customer/wishlist",
-      { variantId }
+      payload
     );
     return response.data!;
   },

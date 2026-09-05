@@ -57,7 +57,7 @@ export function OrderDetailView({
           </h2>
           <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
             <CalendarDays className="h-4 w-4" />
-            Placed on {formatDateTime(order.placedAt || order.createdAt)}
+            Placed on {formatDateTime((order as any).placedAt || order.createdAt)}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

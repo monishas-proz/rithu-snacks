@@ -2,91 +2,105 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CheckCircle2, Circle } from "lucide-react";
+import { Check, ShoppingBag, MapPin, CreditCard, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CheckoutProvider } from "@/features/checkout/checkout-context";
 
 const STEPS = [
-  { key: "cart", label: "Cart", href: "/cart" },
-  { key: "address", label: "Address", href: "/checkout/address" },
-  { key: "payment", label: "Payment", href: "/checkout/payment" },
-  { key: "done", label: "Done", href: "/checkout/success" },
+  { key: "cart", label: "Cart", href: "/cart", icon: ShoppingBag },
+  { key: "address", label: "Address", href: "/checkout", icon: MapPin },
+  { key: "payment", label: "Payment", href: "/checkout", icon: CreditCard },
+  { key: "done", label: "Done", href: "#", icon: CheckCircle2 },
 ];
 
-function getActiveStep(pathname: string): { index: number; key: string } {
+function getActiveStepIndex(pathname: string): number {
   if (pathname.startsWith("/checkout/success")) {
-    return { index: 3, key: "done" };
+    return 3; // Done
   }
-  if (pathname === "/checkout/payment") {
-    return { index: 2, key: "payment" };
+  if (pathname.startsWith("/checkout")) {
+    return 2; // Payment is active, Cart and Address are completed
   }
-  if (pathname === "/checkout/address") {
-    return { index: 1, key: "address" };
-  }
-  return { index: 0, key: "cart" };
+  return 0; // Cart
 }
 
 function CheckoutStepper() {
   const pathname = usePathname();
-  const { index, key } = getActiveStep(pathname);
+  const activeIndex = getActiveStepIndex(pathname);
+  const isSuccessPage = pathname.startsWith("/checkout/success");
 
   return (
-    <div className="mx-auto flex max-w-2xl items-center justify-between px-2">
-      {STEPS.map((step, stepIndex) => {
-        const isDone = stepIndex < index;
-        const isActive = stepIndex === index;
-        const canNavigate = stepIndex < index && step.key !== "done";
+    <div className="mx-auto max-w-2xl px-3 py-2">
+      <div className="flex items-center justify-between">
+        {STEPS.map((step, stepIndex) => {
+          // On /checkout: steps 0 (Cart) and 1 (Address) are completed; step 2 (Payment) is active; step 3 is pending
+          // On /checkout/success: all steps 0, 1, 2, 3 are completed
+          const isDone = isSuccessPage ? true : stepIndex < activeIndex;
+          const isActive = !isSuccessPage && stepIndex === activeIndex;
+          const canNavigate = step.href !== "#" && stepIndex <= activeIndex;
 
-        return (
-          <div key={step.key} className="flex flex-1 items-center last:flex-none">
-            <div className="flex flex-col items-center">
-              <Link
-                href={canNavigate ? step.href : "#"}
-                aria-disabled={!canNavigate}
-                className={cn(
-                  "flex items-center gap-2",
-                  !canNavigate && "pointer-events-none"
-                )}
-              >
-                {isDone ? (
-                  <CheckCircle2 className="h-6 w-6 text-green-600" />
-                ) : (
-                  <Circle
+          return (
+            <div
+              key={step.key}
+              className="flex flex-1 items-center last:flex-none"
+            >
+              <div className="flex flex-col items-center">
+                <Link
+                  href={canNavigate ? step.href : "#"}
+                  aria-disabled={!canNavigate}
+                  className={cn(
+                    "group flex flex-col items-center transition-transform",
+                    canNavigate ? "cursor-pointer hover:scale-105" : "cursor-default pointer-events-none"
+                  )}
+                >
+                  <div
                     className={cn(
-                      "h-6 w-6",
-                      isActive
-                        ? "text-primary"
-                        : "text-muted-foreground/40"
+                      "flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold transition-all duration-300",
+                      isDone
+                        ? "bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-600/30"
+                        : isActive
+                        ? "bg-[#5C1512] text-white shadow-md ring-4 ring-[#5C1512]/20 scale-110"
+                        : "bg-theme-surface-alt border-2 border-theme-border text-theme-text-muted"
+                    )}
+                  >
+                    {isDone ? (
+                      <Check className="h-4 w-4 stroke-[3]" />
+                    ) : (
+                      <span>{stepIndex + 1}</span>
+                    )}
+                  </div>
+
+                  <span
+                    className={cn(
+                      "mt-1.5 text-xs font-semibold tracking-tight transition-colors",
+                      isDone
+                        ? "text-emerald-700 font-bold"
+                        : isActive
+                        ? "text-[#5C1512] font-black"
+                        : "text-theme-text-muted"
+                    )}
+                  >
+                    {step.label}
+                  </span>
+                </Link>
+              </div>
+
+              {/* Connecting Bar */}
+              {stepIndex < STEPS.length - 1 && (
+                <div className="mx-2 sm:mx-4 mb-5 h-1 flex-1 rounded-full bg-theme-border overflow-hidden">
+                  <div
+                    className={cn(
+                      "h-full rounded-full transition-all duration-500",
+                      isSuccessPage || stepIndex < activeIndex
+                        ? "w-full bg-emerald-500"
+                        : "w-0"
                     )}
                   />
-                )}
-              </Link>
-              <span
-                className={cn(
-                  "mt-1 text-xs font-medium",
-                  isActive
-                    ? "text-foreground"
-                    : isDone
-                      ? "text-green-600"
-                      : "text-muted-foreground"
-                )}
-              >
-                {step.label}
-              </span>
+                </div>
+              )}
             </div>
-            {stepIndex < STEPS.length - 1 && (
-              <div className="mx-2 mb-5 h-0.5 flex-1 rounded bg-gray-200">
-                <div
-                  className={cn(
-                    "h-full rounded bg-green-500 transition-all",
-                    stepIndex < index ? "w-full" : "w-0"
-                  )}
-                />
-              </div>
-            )}
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -98,11 +112,13 @@ export default function CheckoutLayout({
 }) {
   return (
     <CheckoutProvider>
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <CheckoutStepper />
+      <div className="min-h-screen bg-[#FFFDF9]/60">
+        <div className="container mx-auto px-4 pt-6 pb-12 max-w-6xl">
+          <div className="mb-6 sm:mb-8">
+            <CheckoutStepper />
+          </div>
+          {children}
         </div>
-        {children}
       </div>
     </CheckoutProvider>
   );
