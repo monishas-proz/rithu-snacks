@@ -301,14 +301,14 @@ export function AddressesTab() {
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {[1, 2].map((n) => (
+        {[1, 2, 3, 4].map((n) => (
           <div
             key={n}
-            className="bg-theme-surface border border-theme-border rounded-xl p-5 animate-pulse space-y-3"
+            className="bg-theme-surface border border-theme-border rounded-xl p-5 animate-pulse space-y-3 overflow-hidden"
           >
-            <div className="h-5 bg-theme-border rounded w-1/3" />
-            <div className="h-10 bg-theme-border-subtle rounded w-full" />
-            <div className="h-4 bg-theme-border-subtle rounded w-1/2" />
+            <div className="h-5 rounded w-1/3 skeleton-shimmer" />
+            <div className="h-10 rounded w-full skeleton-shimmer" />
+            <div className="h-4 rounded w-1/2 skeleton-shimmer" />
           </div>
         ))}
       </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
@@ -74,6 +75,7 @@ function CartPageSkeleton() {
 export default function CartPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
 
   const {
     data: cart,
@@ -165,6 +167,7 @@ export default function CartPage() {
   };
 
   const handleCheckout = () => {
+    setIsCheckingOut(true);
     router.push("/checkout");
   };
 
@@ -258,7 +261,7 @@ export default function CartPage() {
             <CartSummary
               summary={summary}
               onCheckout={handleCheckout}
-              isCheckingOut={false}
+              isCheckingOut={isCheckingOut}
             />
           </div>
         </div>

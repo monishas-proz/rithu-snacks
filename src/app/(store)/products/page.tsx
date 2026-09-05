@@ -32,17 +32,17 @@ function ProductCatalogSkeleton() {
       {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
         <div
           key={n}
-          className="rounded-2xl border border-theme-border bg-theme-surface p-4 space-y-4"
+          className="rounded-2xl border border-theme-border bg-theme-surface p-4 space-y-4 overflow-hidden"
         >
-          <div className="aspect-square w-full rounded-xl bg-theme-surface-alt" />
+          <div className="aspect-square w-full rounded-xl skeleton-shimmer" />
           <div className="space-y-2">
-            <div className="h-4 w-20 rounded-md bg-theme-border-subtle" />
-            <div className="h-5 w-3/4 rounded-md bg-theme-border" />
-            <div className="h-3 w-full rounded-md bg-theme-surface-alt" />
+            <div className="h-4 w-20 rounded-md skeleton-shimmer" />
+            <div className="h-5 w-3/4 rounded-md skeleton-shimmer" />
+            <div className="h-3 w-full rounded-md skeleton-shimmer" />
           </div>
           <div className="pt-2 border-t border-theme-border-subtle flex items-center justify-between">
-            <div className="h-6 w-16 rounded-md bg-theme-border" />
-            <div className="h-4 w-20 rounded-md bg-theme-border-subtle" />
+            <div className="h-6 w-16 rounded-md skeleton-shimmer" />
+            <div className="h-4 w-20 rounded-md skeleton-shimmer" />
           </div>
         </div>
       ))}
@@ -276,7 +276,7 @@ export default function ShopAllPage() {
         )}
 
         {/* Content Area: Skeleton vs Products */}
-        {isLoading ? (
+        {isLoading || isFetching ? (
           <ProductCatalogSkeleton />
         ) : (
           <>

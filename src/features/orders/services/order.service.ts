@@ -123,12 +123,16 @@ export const orderService = {
     }
 
     // 3. Validate shipping address
+    const isShippingNumeric = /^\d+$/.test(input.shippingAddressId);
     const shippingAddress = await db.customerAddress.findFirst({
       where: {
-        uuid: input.shippingAddressId,
         userId,
         is_active: true,
         deleted_at: null,
+        OR: [
+          { uuid: input.shippingAddressId },
+          ...(isShippingNumeric ? [{ id: BigInt(input.shippingAddressId) }] : []),
+        ],
       },
     });
 
@@ -141,12 +145,16 @@ export const orderService = {
     // 4. Validate billing address if provided
     let billingAddress = shippingAddress;
     if (input.billingAddressId) {
+      const isBillingNumeric = /^\d+$/.test(input.billingAddressId);
       const foundBilling = await db.customerAddress.findFirst({
         where: {
-          uuid: input.billingAddressId,
           userId,
           is_active: true,
           deleted_at: null,
+          OR: [
+            { uuid: input.billingAddressId },
+            ...(isBillingNumeric ? [{ id: BigInt(input.billingAddressId) }] : []),
+          ],
         },
       });
 

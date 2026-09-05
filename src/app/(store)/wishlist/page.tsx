@@ -16,22 +16,22 @@ function WishlistSkeleton() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl animate-pulse">
       <div className="mb-8 space-y-2">
-        <div className="h-8 w-56 rounded-xl bg-theme-border" />
-        <div className="h-4 w-72 rounded-lg bg-theme-border-subtle" />
+        <div className="h-8 w-56 rounded-xl skeleton-shimmer" />
+        <div className="h-4 w-72 rounded-lg skeleton-shimmer" />
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-        {[1, 2, 3, 4].map((n) => (
+        {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
           <div
             key={n}
-            className="rounded-2xl border border-theme-border bg-theme-surface p-4 space-y-4"
+            className="rounded-2xl border border-theme-border bg-theme-surface p-4 space-y-4 overflow-hidden"
           >
-            <div className="aspect-square w-full rounded-xl bg-theme-surface-alt" />
+            <div className="aspect-square w-full rounded-xl skeleton-shimmer" />
             <div className="space-y-2">
-              <div className="h-4 w-3/4 rounded-md bg-theme-border" />
-              <div className="h-3 w-1/2 rounded-md bg-theme-border-subtle" />
-              <div className="h-5 w-24 rounded-md bg-theme-border" />
+              <div className="h-4 w-3/4 rounded-md skeleton-shimmer" />
+              <div className="h-3 w-1/2 rounded-md skeleton-shimmer" />
+              <div className="h-5 w-24 rounded-md skeleton-shimmer" />
             </div>
-            <div className="h-9 w-full rounded-xl bg-theme-border-subtle" />
+            <div className="h-9 w-full rounded-xl skeleton-shimmer" />
           </div>
         ))}
       </div>

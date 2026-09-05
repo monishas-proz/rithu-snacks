@@ -27,12 +27,18 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";
+import { formatMeasurementLabel } from "@/features/variants/utils/measurement.util";
 import { useCustomerCart } from "@/features/customers/hooks/use-customer-cart";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useCustomerAddresses,
   useCreateCustomerAddress,
 } from "@/features/customers/hooks/use-customer-address";
-import { useCreateCustomerOrder } from "@/features/customers/hooks/use-customer-orders";
+import {
+  useCreateCustomerOrder,
+  CUSTOMER_ORDERS_QUERY_KEY,
+} from "@/features/customers/hooks/use-customer-orders";
+import { useCheckout } from "@/features/checkout/checkout-context";
 import type { CustomerAddressResponse } from "@/features/customers/types/customer-address.types";
 
 function CheckoutSkeleton() {
@@ -78,7 +84,9 @@ function CheckoutSkeleton() {
 
 export default function CheckoutPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { data: session, status: authStatus } = useSession();
+  const { isOrderPlaced, setIsOrderPlaced } = useCheckout();
 
   // Customer Module TanStack Query hooks
   const { data: cart, isLoading: cartLoading } = useCustomerCart();
@@ -148,6 +156,27 @@ export default function CheckoutPage() {
   if (authStatus === "unauthenticated" || !session) {
     router.push("/login?callbackUrl=/checkout");
     return null;
+  }
+
+  // Order placed confirmation guard (prevents flashing empty cart screen)
+  if (isOrderPlaced) {
+    return (
+      <div className="container mx-auto px-4 py-16 max-w-lg text-center space-y-4 animate-in fade-in duration-300">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 border border-emerald-300 text-emerald-600 shadow-sm animate-in zoom-in-75 duration-300">
+          <CheckCircle2 className="h-8 w-8" />
+        </div>
+        <h2 className="text-xl sm:text-2xl font-black text-theme-text-primary">
+          Order Placed Successfully!
+        </h2>
+        <p className="text-xs sm:text-sm text-theme-text-subtle">
+          Finalizing your order confirmation... Please wait.
+        </p>
+        <div className="flex items-center justify-center gap-2 text-xs text-theme-text-muted pt-2">
+          <Loader2 className="h-4 w-4 animate-spin text-theme-primary" />
+          <span>Preparing your order receipt...</span>
+        </div>
+      </div>
+    );
   }
 
   // Empty cart guard
@@ -279,22 +308,28 @@ export default function CheckoutPage() {
         (orderRes as any)?.data?.data ||
         (orderRes as any)?.data ||
         orderRes;
-      const orderId = order?.id || order?.uuid;
+      const orderId = order?.id;
       const orderNumber = order?.orderNumber;
 
-      if (orderId && orderId !== "undefined" && orderId !== "null") {
-        const query = new URLSearchParams();
-        query.set("orderId", String(orderId));
-        if (orderNumber && orderNumber !== "undefined") {
-          query.set("orderNumber", String(orderNumber));
-        }
-        router.push(`/checkout/success?${query.toString()}`);
-      } else if (orderNumber && orderNumber !== "undefined" && orderNumber !== "null") {
-        router.push(`/checkout/success?orderNumber=${encodeURIComponent(String(orderNumber))}`);
-      } else {
-        router.push("/orders");
+      // Mark order as placed immediately to transition stepper to "Done" and prevent empty cart screen
+      setIsOrderPlaced(true);
+
+      // Invalidate customer orders and carts in background without blocking route transition
+      queryClient.invalidateQueries({ queryKey: CUSTOMER_ORDERS_QUERY_KEY, refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["customer", "cart"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["cart"], refetchType: "all" });
+
+      // Navigate to the order success page immediately
+      const params = new URLSearchParams();
+      if (orderId && String(orderId) !== "undefined" && String(orderId) !== "null") {
+        params.set("orderId", String(orderId));
       }
+      if (orderNumber && String(orderNumber) !== "undefined" && String(orderNumber) !== "null") {
+        params.set("orderNumber", String(orderNumber));
+      }
+      router.push(`/checkout/success${params.toString() ? `?${params.toString()}` : ""}`);
     } catch (err: any) {
+      setIsOrderPlaced(false);
       setCheckoutError(
         err.message || "Failed to place order. Please check details and try again."
       );
@@ -921,8 +956,8 @@ export default function CheckoutPage() {
                       </p>
                       <p className="text-[11px] text-theme-text-subtle">
                         {item.variantName}{" "}
-                        {item.measurement?.formatted
-                          ? `(${item.measurement.formatted})`
+                        {item.measurement
+                          ? `(${formatMeasurementLabel(item.measurement)})`
                           : ""}
                       </p>
                       <p className="text-[11px] text-theme-text-muted">
