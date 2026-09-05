@@ -7,6 +7,29 @@ import {
   type UpdateCartItemInput,
 } from "@/features/cart/validations/cart.schema";
 
+export const GET = createApiHandler(
+  {
+    GET: async (_request, context) => {
+      const sessionUserId = context.session?.user?.id;
+      if (!sessionUserId) {
+        throw ApiError.unauthorized("Please login to access your cart");
+      }
+
+      const variantUuid = context.params?.variantUuid;
+      if (!variantUuid) {
+        throw ApiError.badRequest("variantUuid is required");
+      }
+
+      const item = await cartService.getCartItem(sessionUserId, variantUuid);
+
+      return apiSuccess(item, "Cart item fetched successfully", 200);
+    },
+  },
+  {
+    requireAuth: true,
+  }
+);
+
 export const PUT = createApiHandler(
   {
     PUT: async (_request, context) => {

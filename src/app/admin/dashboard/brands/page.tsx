@@ -42,102 +42,102 @@ export default function AdminBrandsPage() {
   const brands = data?.data ?? [];
 
   const columns: ColumnDef<BrandListItem, unknown>[] = [
-    // {
-    //   id: "logo",
-    //   header: "Logo",
-    //   cell: ({ row }) => (
-    //     <div className="h-12 w-12 overflow-hidden rounded-xl bg-[var(--color-neutral-100)]">
-    //       <Image
-    //         src={row.original.icon || "/images/category_img.png"}
-    //         alt={row.original.name}
-    //         width={48}
-    //         height={48}
-    //         className="h-full w-full object-cover"
-    //       />
-    //     </div>
-    //   ),
-    // },
-    {
-      accessorKey: "name",
-      header: "Brand Name",
-      cell: ({ row }) => (
-        <div>
-          <p className="font-semibold text-[var(--color-neutral-900)]">
-            {row.original.name}
-          </p>
-        </div>
-      ),
-    },
-    {
-      accessorKey: "slug",
-      header: "Brand Code",
-      cell: ({ row }) => (
-        <div>
-          <p className="text-sm text-[var(--color-neutral-600)]">
-            {row.original.slug || "—"}
-          </p>
-        </div>
-      ),
-    },
-    {
-      accessorKey: "description",
-      header: "Description",
-      cell: ({ row }) => (
-        <span className="text-[var(--color-neutral-700)]">
-          {row.original.description || "—"}
-        </span>
-      ),
-    },
-    // {
-    //   accessorKey: "isActive",
-    //   header: "Status",
-    //   cell: ({ row }) =>
-    //     row.original.isActive ? (
-    //       <span className="inline-flex items-center rounded-full bg-[var(--color-success-50)] px-3 py-1 text-xs font-medium text-[var(--color-success-700)]">
-    //         Active
-    //       </span>
-    //     ) : (
-    //       <span className="inline-flex items-center rounded-full bg-[var(--color-neutral-100)] px-3 py-1 text-xs font-medium text-[var(--color-neutral-600)]">
-    //         Inactive
-    //       </span>
-    //     ),
-    // },
-    {
-      accessorKey: "createdAt",
-      header: "Created Date",
-      cell: ({ row }) => (
-        <span className="text-[var(--color-neutral-700)]">
-          {new Date(row.original.createdAt).toLocaleDateString("en-IN")}
-        </span>
-      ),
-    },
-    {
-      id: "actions",
-      header: "Actions",
-      cell: ({ row }) => (
-        <div className="flex gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              setSelectedBrand(row.original);
-              setIsEditOpen(true);
-            }}
-          >
-            <Pencil className="h-4 w-4 text-[var(--color-neutral-500)]" />
-          </Button>
+  // {
+  //   id: "logo",
+  //   header: "Logo",
+  //   cell: ({ row }) => (
+  //     <div className="h-12 w-12 overflow-hidden rounded-xl bg-[var(--color-neutral-100)]">
+  //       <Image
+  //         src={row.original.icon || "/images/category_img.png"}
+  //         alt={row.original.name}
+  //         width={48}
+  //         height={48}
+  //         className="h-full w-full object-cover"
+  //       />
+  //     </div>
+  //   ),
+  // },
+  {
+    accessorKey: "name",
+    header: "Brand Name",
+    cell: ({ row }) => (
+      <div>
+        <p className="font-semibold text-[var(--color-neutral-900)]">
+          {row.original.name}
+        </p>
+      </div>
+    ),
+  },
+  {
+    accessorKey: "slug",
+    header: "Brand Code",
+    cell: ({ row }) => (
+      <div>
+        <p className="text-sm text-[var(--color-neutral-600)]">
+          {row.original.slug || "—"}
+        </p>
+      </div>
+    ),
+  },
+  {
+    accessorKey: "_count.products",
+    header: "Products",
+    cell: ({ row }) => (
+      <span className="text-[var(--color-neutral-700)]">
+        {row.original._count?.products || 0} Items
+      </span>
+    ),
+  },
+  // {
+  //   accessorKey: "isActive",
+  //   header: "Status",
+  //   cell: ({ row }) =>
+  //     row.original.isActive ? (
+  //       <span className="inline-flex items-center rounded-full bg-[var(--color-success-50)] px-3 py-1 text-xs font-medium text-[var(--color-success-700)]">
+  //         Active
+  //       </span>
+  //     ) : (
+  //       <span className="inline-flex items-center rounded-full bg-[var(--color-neutral-100)] px-3 py-1 text-xs font-medium text-[var(--color-neutral-600)]">
+  //         Inactive
+  //       </span>
+  //     ),
+  // },
+  {
+    accessorKey: "createdAt",
+    header: "Created Date",
+    cell: ({ row }) => (
+      <span className="text-[var(--color-neutral-700)]">
+        {new Date(row.original.createdAt).toLocaleDateString("en-IN")}
+      </span>
+    ),
+  },
+  {
+    id: "actions",
+    header: "Actions",
+    cell: ({ row }) => (
+      <div className="flex gap-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => {
+            setSelectedBrand(row.original);
+            setIsEditOpen(true);
+          }}
+        >
+          <Pencil className="h-4 w-4 text-[var(--color-neutral-500)]" />
+        </Button>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setDeleteId(row.original.uuid)}
-          >
-            <Trash2 className="h-4 w-4 text-[var(--color-error-600)]" />
-          </Button>
-        </div>
-      ),
-    },
-  ];
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setDeleteId(row.original.uuid)}
+        >
+          <Trash2 className="h-4 w-4 text-[var(--color-error-600)]" />
+        </Button>
+      </div>
+    ),
+  },
+];
 
   if (isLoading && !data) {
     return <AdminTableSkeleton />;
@@ -151,7 +151,7 @@ export default function AdminBrandsPage() {
         title="Brand Management"
         description="Manage product brands and their associated catalogs."
       />
-
+      
       <AdminContent className="flex-1 min-h-0 overflow-hidden">
         <div className="flex h-full flex-col overflow-hidden bg-[var(--color-background)] py-1 rounded-2xl">
 
@@ -198,79 +198,79 @@ export default function AdminBrandsPage() {
       </AdminContent>
 
       <FormModal
-        open={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
-        title="Add Brand"
-        description="Create a new product brand"
-      >
-        <BrandForm
-          isLoading={createMutation.isPending}
-          submitLabel="Create Brand"
-          onSubmit={async (data) => {
-            const payload = {
-              name: data.name,
-              slug: data.slug,
-              description: data.description || null,
-            };
+  open={isCreateOpen}
+  onClose={() => setIsCreateOpen(false)}
+  title="Add Brand"
+  description="Create a new product brand"
+>
+  <BrandForm
+    isLoading={createMutation.isPending}
+    submitLabel="Create Brand"
+    onSubmit={async (data) => {
+      const payload = {
+        name: data.name,
+        slug: data.slug,
+        description: data.description || null,
+      };
 
-            await createMutation.mutateAsync(payload);
+      await createMutation.mutateAsync(payload);
 
-            setIsCreateOpen(false);
-          }}
-        />
-      </FormModal>
+      setIsCreateOpen(false);
+    }}
+  />
+</FormModal>  
 
-      <FormModal
-        open={isEditOpen}
-        onClose={() => {
-          setIsEditOpen(false);
-          setSelectedBrand(null);
-        }}
-        title="Update Brand"
-        description="Update the selected brand"
-      >
-        {selectedBrand && (
-          <BrandForm
-            initialData={{
-              name: selectedBrand.name,
-              slug: selectedBrand.slug,
-              description: selectedBrand.description,
+<FormModal
+  open={isEditOpen}
+  onClose={() => {
+    setIsEditOpen(false);
+    setSelectedBrand(null);
+  }}
+  title="Update Brand"
+  description="Update the selected brand"
+>
+  {selectedBrand && (
+    <BrandForm
+      initialData={{
+        name: selectedBrand.name,
+        slug: selectedBrand.slug,
+        description: selectedBrand.description,
+        
+      }}
+      isEditing
+      isLoading={updateMutation.isPending}
+      submitLabel="Update Brand"
+      onSubmit={async (data) => {
+        const payload = {
+          name: data.name,
+          slug: data.slug,
+          description: data.description || null,
+         
+        };
 
-            }}
-            isEditing
-            isLoading={updateMutation.isPending}
-            submitLabel="Update Brand"
-            onSubmit={async (data) => {
-              const payload = {
-                name: data.name,
-                slug: data.slug,
-                description: data.description || null,
+        await updateMutation.mutateAsync({
+          uuid: selectedBrand.uuid,
+          data: payload,
+        });
 
-              };
-
-              await updateMutation.mutateAsync({
-                uuid: selectedBrand.uuid,
-                data: payload,
-              });
-
-              setIsEditOpen(false);
-              setSelectedBrand(null);
-              refetch();
-            }}
-          />
-        )}
-      </FormModal>
+        setIsEditOpen(false);
+        setSelectedBrand(null);
+        refetch();
+      }}
+    />
+  )}
+</FormModal>
 
       <ConfirmDialog
         open={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={() => {
-          if (deleteId)
+          if (deleteId) 
 
             deleteMutation.mutate(deleteId, {
               onSuccess: () => setDeleteId(null),
             });
-        }
+          }
         }
         title="Delete Brand"
         description="Are you sure you want to delete this brand? This action cannot be undone."

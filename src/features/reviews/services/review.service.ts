@@ -107,7 +107,10 @@ export const reviewService = {
     }
 
     // 4. Verify Submitted Variant Unit Price Matches Order Item's Actual Pack Size
-    if (orderItem.variant_unit_price.uuid !== input.variantUnitPriceId) {
+    if (
+      !orderItem.variant_unit_price ||
+      orderItem.variant_unit_price.uuid !== input.variantUnitPriceId
+    ) {
       throw ApiError.badRequest(
         "The selected pack size does not match the one purchased in the order item"
       );
@@ -127,7 +130,7 @@ export const reviewService = {
     // 6. Create Review Transaction with derived parent product and variant
     const created = await reviewRepository.createReviewTransaction({
       productId: orderItem.productId,
-      variantUnitPriceId: orderItem.variantUnitPriceId,
+      variantUnitPriceId: orderItem.variantUnitPriceId!,
       userId: customerId,
       orderItemId: orderItem.id,
       rating: input.rating,

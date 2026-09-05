@@ -162,7 +162,12 @@ export function createApiHandler(
 
     try {
       return await handler(request, context);
-    } catch (error) {
+    } catch (error: any) {
+      try {
+        const fs = await import("fs");
+        fs.writeFileSync("d:/Projects/Rithu snacks/rithu-snacks/handler_error.log", String(error?.stack || error?.message || error));
+      } catch {}
+
       if (error instanceof ApiError) {
         return apiFromError(error);
       }

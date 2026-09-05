@@ -8,11 +8,11 @@ import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { useOrder, useCancelOrder } from "@/features/orders/hooks";
+import { useCustomerOrderDetail, useCancelCustomerOrder } from "@/features/customers/hooks/use-customer-orders";
 import { OrderDetailView } from "@/features/orders/components/OrderDetailView";
 import type { OrderStatus } from "@/features/orders/types";
 
-const CUSTOMER_CANCELLABLE: OrderStatus[] = ["PENDING", "CONFIRMED"];
+const CUSTOMER_CANCELLABLE: OrderStatus[] = ["pending", "confirmed"];
 
 export default function OrderDetailPage() {
   const router = useRouter();
@@ -20,11 +20,8 @@ export default function OrderDetailPage() {
   const { data: session, status } = useSession();
   const [cancelOpen, setCancelOpen] = useState(false);
 
-  const orderId = parseInt(id, 10);
-  const { data: order, isLoading, error, refetch } = useOrder(
-    Number.isNaN(orderId) ? null : orderId
-  );
-  const cancelOrder = useCancelOrder();
+  const { data: order, isLoading, error, refetch } = useCustomerOrderDetail(id);
+  const cancelOrderMutation = useCancelCustomerOrder();
 
   if (status === "loading" || isLoading) {
     return <LoadingState text="Loading order details..." />;
@@ -65,7 +62,7 @@ export default function OrderDetailPage() {
       <OrderDetailView
         order={order}
         canCancel={canCancel}
-        isCancelling={cancelOrder.isPending}
+        isCancelling={cancelOrderMutation.isPending}
         onCancel={() => setCancelOpen(true)}
       />
 
@@ -73,8 +70,8 @@ export default function OrderDetailPage() {
         open={cancelOpen}
         onClose={() => setCancelOpen(false)}
         onConfirm={() => {
-          cancelOrder.mutate(
-            { id: order.id },
+          cancelOrderMutation.mutate(
+            { uuid: order.id },
             {
               onSuccess: () => setCancelOpen(false),
             }
@@ -84,7 +81,7 @@ export default function OrderDetailPage() {
         description={`Are you sure you want to cancel order ${order.orderNumber}? Your items will be returned to stock.`}
         confirmText="Cancel Order"
         variant="destructive"
-        isLoading={cancelOrder.isPending}
+        isLoading={cancelOrderMutation.isPending}
       />
     </div>
   );

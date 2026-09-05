@@ -48,6 +48,9 @@ export function useAddToWishlist() {
     mutationFn: (variantUnitPriceId: string) => addToWishlist(variantUnitPriceId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: wishlistKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["customer", "wishlist"] });
+      queryClient.invalidateQueries({ queryKey: ["customer", "cart"] });
+      queryClient.invalidateQueries({ queryKey: cartKeys.all });
     },
   });
 }
@@ -59,6 +62,9 @@ export function useRemoveFromWishlist() {
     mutationFn: (variantUnitPriceId: string) => removeFromWishlist(variantUnitPriceId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: wishlistKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["customer", "wishlist"] });
+      queryClient.invalidateQueries({ queryKey: ["customer", "cart"] });
+      queryClient.invalidateQueries({ queryKey: cartKeys.all });
     },
   });
 }
@@ -70,7 +76,9 @@ export function useMoveWishlistItemToCart() {
     mutationFn: (variantUnitPriceId: string) => moveWishlistItemToCart(variantUnitPriceId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: wishlistKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["customer", "wishlist"] });
       queryClient.invalidateQueries({ queryKey: cartKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["customer", "cart"] });
     },
   });
 }

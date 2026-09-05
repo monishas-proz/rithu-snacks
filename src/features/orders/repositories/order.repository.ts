@@ -349,8 +349,12 @@ export const orderRepository = {
     userId: bigint;
     cartId: bigint;
     subtotal: number;
+    shippingCharge?: number;
     totalAmount: number;
     notes?: string;
+    orderStatus?: "pending" | "confirmed";
+    paymentStatus?: "pending" | "paid";
+    paymentMethod?: string;
     shippingAddress: {
       fullName: string;
       phone: string;
@@ -379,6 +383,7 @@ export const orderRepository = {
     };
     items: Array<{
       productId: bigint;
+      variantId: bigint;
       variantUnitPriceId: bigint;
       productName: string;
       variantName: string;
@@ -400,12 +405,12 @@ export const orderRepository = {
           orderNumber,
           userId: params.userId,
           cart_id: params.cartId,
-          order_status: "pending",
-          payment_status: "pending",
+          order_status: (params.orderStatus ?? "pending") as any,
+          payment_status: (params.paymentStatus ?? "pending") as any,
           subtotal: params.subtotal,
           discountAmount: 0,
           taxAmount: 0,
-          shipping_charge: 0,
+          shipping_charge: params.shippingCharge ?? 0,
           totalAmount: params.totalAmount,
           notes: params.notes ?? null,
           placed_at: now,
@@ -465,6 +470,7 @@ export const orderRepository = {
           uuid: crypto.randomUUID(),
           orderId: createdOrder.id,
           productId: item.productId,
+          variantId: item.variantId,
           variantUnitPriceId: item.variantUnitPriceId,
           product_name_snapshot: item.productName,
           variant_snapshot: item.variantName,
@@ -483,8 +489,12 @@ export const orderRepository = {
       await tx.order_status_history.create({
         data: {
           order_id: createdOrder.id,
-          status: "pending",
-          note: params.notes || "Order placed by customer",
+          status: (params.orderStatus ?? "pending") as any,
+          note:
+            params.notes ||
+            (params.paymentStatus === "paid"
+              ? `Order confirmed with payment via ${params.paymentMethod ?? "CARD"}`
+              : "Order placed by customer"),
           changed_by: params.userId,
           is_active: true,
           created_by: params.userId,
@@ -668,11 +678,20 @@ export const orderRepository = {
     userId: bigint,
     uuid: string
   ): Promise<OrderDetailResponse | null> {
+    if (!uuid || uuid === "undefined" || uuid === "null") {
+      return null;
+    }
+
+    const isNumeric = /^\d+$/.test(uuid);
     const order = await db.order.findFirst({
       where: {
-        uuid,
         userId,
         is_active: true,
+        OR: [
+          { uuid },
+          { orderNumber: uuid },
+          ...(isNumeric ? [{ id: BigInt(uuid) }] : []),
+        ],
       },
       include: orderDetailInclude,
     });

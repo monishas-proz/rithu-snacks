@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ArrowRight, Sparkles, Tag } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ImageWithFallback } from "@/components/common/ImageWithFallback";
+import { ProductImage } from "@/components/common/ProductImage";
 import { formatPrice } from "@/lib/utils";
 import type { CustomerProductListItemDto } from "../../types/catalog.types";
 
@@ -24,18 +24,13 @@ export function CustomerProductCard({ product }: CustomerProductCardProps) {
           href={`/products/${product.id}`}
           className="block relative aspect-square overflow-hidden bg-theme-surface-alt"
         >
-          {product.image ? (
-            <ImageWithFallback
-              src={product.image}
-              alt={product.name}
-              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-            />
-          ) : (
-            <div className="flex h-full flex-col items-center justify-center text-theme-text-muted p-4 text-center">
-              <Sparkles className="h-8 w-8 mb-2 text-theme-secondary opacity-60" />
-              <span className="text-xs font-medium">Authentic Snack</span>
-            </div>
-          )}
+          <ProductImage
+            src={product.image}
+            alt={product.name}
+            fallbackText={product.name}
+            containerClassName="w-full h-full aspect-square"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
 
           {/* Badges on Image */}
           <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5 z-10 pointer-events-none">

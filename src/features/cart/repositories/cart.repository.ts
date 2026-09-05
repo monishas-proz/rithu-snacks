@@ -123,7 +123,8 @@ export const cartRepository = {
   async addItemToCart(params: {
     userId: bigint;
     productId: bigint;
-    variantUnitPriceId: bigint;
+    variantId: bigint;
+    variantUnitPriceId?: bigint | null;
     quantity: number;
     currentPrice: number;
     adminOrUserId?: bigint;
@@ -140,7 +141,8 @@ export const cartRepository = {
       const existingItem = await tx.cartItem.findFirst({
         where: {
           cartId: cart.id,
-          variantUnitPriceId: params.variantUnitPriceId,
+          variantId: params.variantId,
+          ...(params.variantUnitPriceId ? { variantUnitPriceId: params.variantUnitPriceId } : {}),
         },
       });
 
@@ -167,7 +169,8 @@ export const cartRepository = {
             uuid: crypto.randomUUID(),
             cartId: cart.id,
             productId: params.productId,
-            variantUnitPriceId: params.variantUnitPriceId,
+            variantId: params.variantId,
+            variantUnitPriceId: params.variantUnitPriceId ?? null,
             quantity: params.quantity,
             price_at_add: params.currentPrice,
             is_active: true,
@@ -195,11 +198,36 @@ export const cartRepository = {
     });
   },
 
+  async findCartItem(params: { userId: bigint; identifier: string }) {
+    const cart = await db.cart.findFirst({
+      where: {
+        userId: params.userId,
+        status: "active",
+        is_active: true,
+      },
+    });
+
+    if (!cart) return null;
+
+    return db.cartItem.findFirst({
+      where: {
+        cartId: cart.id,
+        is_active: true,
+        OR: [
+          { uuid: params.identifier },
+          { variant_unit_price: { uuid: params.identifier } },
+          { variant_unit_price: { variant: { uuid: params.identifier } } },
+        ],
+      },
+      include: cartItemInclude,
+    });
+  },
+
   async updateItemQuantity(params: {
     userId: bigint;
     variantUnitPriceUuid: string;
     quantity: number;
-    currentPrice: number;
+    currentPrice?: number;
     adminOrUserId?: bigint;
   }) {
     return db.$transaction(async (tx) => {
@@ -217,21 +245,30 @@ export const cartRepository = {
         where: {
           cartId: cart.id,
           is_active: true,
-          variant_unit_price: {
-            uuid: params.variantUnitPriceUuid,
-            isActive: true,
-            deleted_at: null,
-          },
+          OR: [
+            { uuid: params.variantUnitPriceUuid },
+            { variant_unit_price: { uuid: params.variantUnitPriceUuid } },
+            { variant_unit_price: { variant: { uuid: params.variantUnitPriceUuid } } },
+          ],
+        },
+        include: {
+          variant_unit_price: true,
         },
       });
 
       if (!item) return null;
 
+      const price =
+        params.currentPrice ??
+        (item.variant_unit_price
+          ? Number(item.variant_unit_price.base_price)
+          : Number(item.price_at_add));
+
       await tx.cartItem.update({
         where: { id: item.id },
         data: {
           quantity: params.quantity,
-          price_at_add: params.currentPrice,
+          price_at_add: price,
           updatedAt: new Date(),
           updated_by: params.adminOrUserId,
         },
@@ -273,9 +310,11 @@ export const cartRepository = {
         where: {
           cartId: cart.id,
           is_active: true,
-          variant_unit_price: {
-            uuid: params.variantUnitPriceUuid,
-          },
+          OR: [
+            { uuid: params.variantUnitPriceUuid },
+            { variant_unit_price: { uuid: params.variantUnitPriceUuid } },
+            { variant_unit_price: { variant: { uuid: params.variantUnitPriceUuid } } },
+          ],
         },
       });
 

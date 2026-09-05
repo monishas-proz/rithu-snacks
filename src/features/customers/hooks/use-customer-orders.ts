@@ -19,10 +19,16 @@ export function useCustomerOrders(params: CustomerOrdersQueryParams = {}) {
 }
 
 export function useCustomerOrderDetail(uuid: string) {
+  const isValid =
+    Boolean(uuid) &&
+    uuid !== "undefined" &&
+    uuid !== "null" &&
+    uuid.trim() !== "";
+
   return useQuery({
     queryKey: [...CUSTOMER_ORDERS_QUERY_KEY, "detail", uuid],
     queryFn: () => customerOrdersApi.getOrderByUuid(uuid),
-    enabled: Boolean(uuid),
+    enabled: isValid,
   });
 }
 
@@ -35,6 +41,7 @@ export function useCreateCustomerOrder() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CUSTOMER_ORDERS_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: ["customer", "cart"] });
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
     },
   });
 }

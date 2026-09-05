@@ -421,6 +421,9 @@ model ProductVariant {
   users_product_variants_updated_byTousers User?                    @relation("product_variants_updated_byTousers", fields: [updated_by], references: [id], onUpdate: NoAction, map: "fk_product_variants_updated_by")
   product                                  Product                  @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_variant_product")
   variant_unit_prices                      VariantUnitPrice[]
+  cart_items                               CartItem[]
+  wishlist_items                           WishlistItem[]
+  order_items                              OrderItem[]
 
   @@index([created_by], map: "fk_product_variants_created_by")
   @@index([updated_by], map: "fk_product_variants_updated_by")
@@ -556,28 +559,31 @@ model Cart {
 }
 
 model CartItem {
-  id                                 BigInt           @id @default(autoincrement()) @db.UnsignedBigInt
-  uuid                               String?          @default("UUID()") @db.VarChar(255)
-  cartId                             BigInt           @map("cart_id") @db.UnsignedBigInt
-  productId                          BigInt           @map("product_id") @db.UnsignedBigInt
-  variantUnitPriceId                 BigInt           @map("variant_unit_price_id") @db.UnsignedBigInt
-  quantity                           Int              @default(1)
-  price_at_add                       Decimal          @db.Decimal(10, 2)
-  createdAt                          DateTime         @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt                          DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
-  is_active                          Boolean          @default(true)
-  created_by                         BigInt?          @db.UnsignedBigInt
-  updated_by                         BigInt?          @db.UnsignedBigInt
-  users_cart_items_created_byTousers User?            @relation("cart_items_created_byTousers", fields: [created_by], references: [id], onUpdate: NoAction, map: "fk_cart_items_created_by")
-  users_cart_items_updated_byTousers User?            @relation("cart_items_updated_byTousers", fields: [updated_by], references: [id], onUpdate: NoAction, map: "fk_cart_items_updated_by")
-  cart                               Cart             @relation(fields: [cartId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_cartitem_cart")
-  product                            Product          @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_cartitem_product")
-  variant_unit_price                 VariantUnitPrice @relation(fields: [variantUnitPriceId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_cartitem_variant_unit_price")
+  id                                 BigInt            @id @default(autoincrement()) @db.UnsignedBigInt
+  uuid                               String?           @default("UUID()") @db.VarChar(255)
+  cartId                             BigInt            @map("cart_id") @db.UnsignedBigInt
+  productId                          BigInt            @map("product_id") @db.UnsignedBigInt
+  variantId                          BigInt            @map("variant_id") @db.UnsignedBigInt
+  variantUnitPriceId                 BigInt?           @map("variant_unit_price_id") @db.UnsignedBigInt
+  quantity                           Int               @default(1)
+  price_at_add                       Decimal           @db.Decimal(10, 2)
+  createdAt                          DateTime          @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt                          DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+  is_active                          Boolean           @default(true)
+  created_by                         BigInt?           @db.UnsignedBigInt
+  updated_by                         BigInt?           @db.UnsignedBigInt
+  users_cart_items_created_byTousers User?             @relation("cart_items_created_byTousers", fields: [created_by], references: [id], onUpdate: NoAction, map: "fk_cart_items_created_by")
+  users_cart_items_updated_byTousers User?             @relation("cart_items_updated_byTousers", fields: [updated_by], references: [id], onUpdate: NoAction, map: "fk_cart_items_updated_by")
+  cart                               Cart              @relation(fields: [cartId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_cartitem_cart")
+  product                            Product           @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_cartitem_product")
+  variant                            ProductVariant    @relation(fields: [variantId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_cartitem_variant")
+  variant_unit_price                 VariantUnitPrice? @relation(fields: [variantUnitPriceId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_cartitem_variant_unit_price")
 
   @@index([created_by], map: "fk_cart_items_created_by")
   @@index([updated_by], map: "fk_cart_items_updated_by")
   @@index([cartId], map: "fk_cartitem_cart")
   @@index([productId], map: "fk_cartitem_product")
+  @@index([variantId], map: "fk_cartitem_variant")
   @@index([variantUnitPriceId], map: "fk_cartitem_variant_unit_price")
   @@map("cart_items")
 }
@@ -587,6 +593,7 @@ model WishlistItem {
   uuid                                   String?           @default("UUID()") @db.VarChar(255)
   userId                                 BigInt            @map("user_id") @db.UnsignedBigInt
   productId                              BigInt            @map("product_id") @db.UnsignedBigInt
+  variantId                              BigInt?           @map("variant_id") @db.UnsignedBigInt
   variant_unit_price_id                  BigInt?           @db.UnsignedBigInt
   createdAt                              DateTime          @default(now()) @map("created_at") @db.Timestamp(0)
   updated_at                             DateTime          @default(now()) @db.Timestamp(0)
@@ -597,12 +604,14 @@ model WishlistItem {
   users_wishlist_items_updated_byTousers User?             @relation("wishlist_items_updated_byTousers", fields: [updated_by], references: [id], onUpdate: NoAction, map: "fk_wishlist_items_updated_by")
   product                                Product           @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_wishlist_product")
   user                                   User              @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_wishlist_user")
+  variant                                ProductVariant?   @relation(fields: [variantId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_wishlist_variant")
   variant_unit_price                     VariantUnitPrice? @relation(fields: [variant_unit_price_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_wishlist_variant_unit_price")
 
-  @@unique([userId, productId, variant_unit_price_id], map: "uq_wishlist_user_product_variant")
+  @@unique([userId, productId, variantId], map: "uq_wishlist_user_product_variant")
   @@index([created_by], map: "fk_wishlist_items_created_by")
   @@index([updated_by], map: "fk_wishlist_items_updated_by")
   @@index([productId], map: "fk_wishlist_product")
+  @@index([variantId], map: "fk_wishlist_variant")
   @@index([variant_unit_price_id], map: "fk_wishlist_variant_unit_price")
   @@map("wishlist_items")
 }
@@ -656,28 +665,30 @@ model Order {
 }
 
 model OrderItem {
-  id                                  BigInt           @id @default(autoincrement()) @db.UnsignedBigInt
-  uuid                                String?          @default("UUID()") @db.VarChar(255)
-  orderId                             BigInt           @map("order_id") @db.UnsignedBigInt
-  productId                           BigInt           @map("product_id") @db.UnsignedBigInt
-  variantUnitPriceId                  BigInt           @map("variant_unit_price_id") @db.UnsignedBigInt
-  product_name_snapshot               String           @db.VarChar(200)
-  variant_snapshot                    String           @db.VarChar(100)
-  sku_snapshot                        String           @db.VarChar(100)
+  id                                  BigInt            @id @default(autoincrement()) @db.UnsignedBigInt
+  uuid                                String?           @default("UUID()") @db.VarChar(255)
+  orderId                             BigInt            @map("order_id") @db.UnsignedBigInt
+  productId                           BigInt            @map("product_id") @db.UnsignedBigInt
+  variantId                           BigInt            @map("variant_id") @db.UnsignedBigInt
+  variantUnitPriceId                  BigInt?           @map("variant_unit_price_id") @db.UnsignedBigInt
+  product_name_snapshot               String            @db.VarChar(200)
+  variant_snapshot                    String            @db.VarChar(100)
+  sku_snapshot                        String            @db.VarChar(100)
   quantity                            Int
-  unit_price                          Decimal          @db.Decimal(10, 2)
-  tax_amount                          Decimal          @default(0.00) @db.Decimal(10, 2)
-  total_price                         Decimal          @db.Decimal(10, 2)
-  createdAt                           DateTime         @default(now()) @map("created_at") @db.Timestamp(0)
-  updated_at                          DateTime         @default(now()) @db.Timestamp(0)
-  is_active                           Boolean          @default(true)
-  created_by                          BigInt?          @db.UnsignedBigInt
-  updated_by                          BigInt?          @db.UnsignedBigInt
-  users_order_items_created_byTousers User?            @relation("order_items_created_byTousers", fields: [created_by], references: [id], onUpdate: NoAction, map: "fk_order_items_created_by")
-  users_order_items_updated_byTousers User?            @relation("order_items_updated_byTousers", fields: [updated_by], references: [id], onUpdate: NoAction, map: "fk_order_items_updated_by")
-  order                               Order            @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_orderitem_order")
-  product                             Product          @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_orderitem_product")
-  variant_unit_price                  VariantUnitPrice @relation(fields: [variantUnitPriceId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_orderitem_variant_unit_price")
+  unit_price                          Decimal           @db.Decimal(10, 2)
+  tax_amount                          Decimal           @default(0.00) @db.Decimal(10, 2)
+  total_price                         Decimal           @db.Decimal(10, 2)
+  createdAt                           DateTime          @default(now()) @map("created_at") @db.Timestamp(0)
+  updated_at                          DateTime          @default(now()) @db.Timestamp(0)
+  is_active                           Boolean           @default(true)
+  created_by                          BigInt?           @db.UnsignedBigInt
+  updated_by                          BigInt?           @db.UnsignedBigInt
+  users_order_items_created_byTousers User?             @relation("order_items_created_byTousers", fields: [created_by], references: [id], onUpdate: NoAction, map: "fk_order_items_created_by")
+  users_order_items_updated_byTousers User?             @relation("order_items_updated_byTousers", fields: [updated_by], references: [id], onUpdate: NoAction, map: "fk_order_items_updated_by")
+  order                               Order             @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_orderitem_order")
+  product                             Product           @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_orderitem_product")
+  variant                             ProductVariant    @relation(fields: [variantId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_orderitem_variant")
+  variant_unit_price                  VariantUnitPrice? @relation(fields: [variantUnitPriceId], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_orderitem_variant_unit_price")
   return_items                        return_items[]
   reviews                             Review[]
 
@@ -685,6 +696,7 @@ model OrderItem {
   @@index([updated_by], map: "fk_order_items_updated_by")
   @@index([orderId], map: "fk_orderitem_order")
   @@index([productId], map: "fk_orderitem_product")
+  @@index([variantId], map: "fk_orderitem_variant")
   @@index([variantUnitPriceId], map: "fk_orderitem_variant_unit_price")
   @@map("order_items")
 }

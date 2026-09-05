@@ -4,7 +4,7 @@ import React from "react";
 import { Trash2, Loader2, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ImageWithFallback } from "@/components/common/ImageWithFallback";
+import { ProductImage } from "@/components/common/ProductImage";
 import { QuantitySelector } from "./QuantitySelector";
 import { formatPrice } from "@/lib/utils";
 
@@ -131,33 +131,23 @@ function CartItem({
               href={`/products/${productSlug}`}
               className="block overflow-hidden rounded-xl border border-theme-border-subtle bg-theme-surface-alt h-20 w-20 sm:h-24 sm:w-24 transition-transform group-hover:scale-102"
             >
-              {primaryImageUrl ? (
-                <ImageWithFallback
-                  src={primaryImageUrl}
-                  alt={productName}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div className="flex h-full w-full flex-col items-center justify-center p-2 text-center text-xs font-medium text-theme-text-subtle">
-                  <Sparkles className="h-5 w-5 mb-1 text-theme-secondary" />
-                  <span>Snack</span>
-                </div>
-              )}
+              <ProductImage
+                src={primaryImageUrl}
+                alt={productName}
+                fallbackText={productName}
+                containerClassName="w-full h-full rounded-xl"
+                className="w-full h-full object-cover"
+              />
             </Link>
           ) : (
-            <div className="overflow-hidden rounded-xl border border-theme-border-subtle bg-theme-surface-alt h-20 w-20 sm:h-24 sm:w-24 flex flex-col items-center justify-center p-2 text-xs font-medium text-theme-text-subtle">
-              {primaryImageUrl ? (
-                <ImageWithFallback
-                  src={primaryImageUrl}
-                  alt={productName}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <>
-                  <Sparkles className="h-5 w-5 mb-1 text-theme-secondary" />
-                  <span>Snack</span>
-                </>
-              )}
+            <div className="overflow-hidden rounded-xl border border-theme-border-subtle bg-theme-surface-alt h-20 w-20 sm:h-24 sm:w-24 flex flex-col items-center justify-center text-xs font-medium text-theme-text-subtle">
+              <ProductImage
+                src={primaryImageUrl}
+                alt={productName}
+                fallbackText={productName}
+                containerClassName="w-full h-full rounded-xl"
+                className="w-full h-full object-cover"
+              />
             </div>
           )}
 

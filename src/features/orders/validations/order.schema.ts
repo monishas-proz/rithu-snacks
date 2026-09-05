@@ -25,6 +25,8 @@ export const customerCreateOrderSchema = z
     shippingAddressId: z.string().uuid("Invalid shippingAddressId UUID format"),
     billingAddressId: z.string().uuid("Invalid billingAddressId UUID format").optional(),
     notes: z.string().max(500, "Notes cannot exceed 500 characters").optional(),
+    paymentMethod: z.enum(["CARD", "COD", "UPI"]).default("CARD").optional(),
+    paymentDetails: z.record(z.string(), z.any()).optional(),
   })
   .strict();
 
@@ -151,3 +153,37 @@ export const orderStatusTransitionSchema = z
 export type OrderStatusTransitionInput = z.infer<
   typeof orderStatusTransitionSchema
 >;
+
+export const getOrdersQuerySchema = z
+  .object({
+    page: z.coerce.number().int().positive().default(1).optional(),
+    limit: z.coerce.number().int().positive().max(100).default(10).optional(),
+    search: z.string().max(255).optional(),
+    status: z.string().optional(),
+  })
+  .passthrough();
+
+export type GetOrdersQueryInput = z.infer<typeof getOrdersQuerySchema>;
+
+export const placeOrderSchema = z
+  .object({
+    addressId: z.union([z.number(), z.string()]).optional(),
+    shippingAddressId: z.string().optional(),
+    deliveryMethod: z.string().optional().default("STANDARD"),
+    couponCode: z.string().trim().max(50).optional(),
+    paymentMethod: z.string().optional(),
+    notes: z.string().max(500).optional(),
+    paymentDetails: z.record(z.string(), z.any()).optional(),
+  })
+  .passthrough();
+
+export type PlaceOrderSchemaInput = z.infer<typeof placeOrderSchema>;
+
+export const checkoutSummarySchema = z
+  .object({
+    deliveryMethod: z.string().optional().default("STANDARD"),
+    couponCode: z.string().trim().max(50).optional(),
+  })
+  .passthrough();
+
+export type CheckoutSummarySchemaInput = z.infer<typeof checkoutSummarySchema>;

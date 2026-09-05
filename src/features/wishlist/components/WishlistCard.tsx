@@ -5,7 +5,7 @@ import { Trash2, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ImageWithFallback } from "@/components/common/ImageWithFallback";
+import { ProductImage } from "@/components/common/ProductImage";
 import { formatPrice } from "@/lib/utils";
 import type { CustomerWishlistItemDto } from "../types/wishlist.types";
 
@@ -35,17 +35,13 @@ export function WishlistCard({
     <Card className="group overflow-hidden rounded-2xl border border-theme-border bg-theme-surface shadow-xs hover:shadow-md transition-shadow">
       <Link href={productUrl}>
         <div className="relative aspect-square overflow-hidden bg-theme-surface-alt">
-          {item.primaryImage ? (
-            <ImageWithFallback
-              src={item.primaryImage}
-              alt={item.product.name}
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center text-theme-text-muted text-sm">
-              No Image
-            </div>
-          )}
+          <ProductImage
+            src={item.primaryImage}
+            alt={item.product.name}
+            fallbackText={item.product.name}
+            containerClassName="w-full h-full aspect-square"
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          />
           {hasDiscount && (
             <Badge className="absolute top-2 left-2 bg-theme-status-can-fg text-white border-0 text-xs font-semibold px-2 py-0.5 rounded-full">
               -{discountPercent}%

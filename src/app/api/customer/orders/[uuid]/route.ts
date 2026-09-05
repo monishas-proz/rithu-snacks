@@ -12,8 +12,8 @@ export const GET = createApiHandler(
       }
 
       const uuid = context.params?.uuid;
-      if (!uuid) {
-        throw ApiError.badRequest("Order UUID is required");
+      if (!uuid || uuid === "undefined" || uuid === "null" || uuid.trim() === "") {
+        throw ApiError.badRequest("Valid Order UUID is required");
       }
 
       const order = await orderService.getCustomerOrderByUuid(sessionUserId, uuid);

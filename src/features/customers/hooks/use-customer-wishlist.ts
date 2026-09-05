@@ -25,7 +25,7 @@ export function useCustomerWishlistCount(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: [...CUSTOMER_WISHLIST_QUERY_KEY, "count"],
     queryFn: () => customerWishlistApi.getWishlistCount(),
-    staleTime: 1000 * 30,
+    staleTime: 0,
     enabled: isAuthenticated && (options?.enabled ?? true),
   });
 }
@@ -37,6 +37,9 @@ export function useAddCustomerWishlist() {
     mutationFn: (variantId: string) => customerWishlistApi.addToWishlist(variantId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CUSTOMER_WISHLIST_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["wishlist"] });
+      queryClient.invalidateQueries({ queryKey: ["customer", "cart"] });
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
     },
   });
 }
@@ -49,6 +52,9 @@ export function useRemoveCustomerWishlist() {
       customerWishlistApi.removeFromWishlist(variantUuid),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CUSTOMER_WISHLIST_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["wishlist"] });
+      queryClient.invalidateQueries({ queryKey: ["customer", "cart"] });
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
     },
   });
 }
@@ -61,7 +67,9 @@ export function useMoveCustomerWishlistToCart() {
       customerWishlistApi.moveToCart(variantUuid),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CUSTOMER_WISHLIST_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["wishlist"] });
       queryClient.invalidateQueries({ queryKey: ["customer", "cart"] });
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
     },
   });
 }

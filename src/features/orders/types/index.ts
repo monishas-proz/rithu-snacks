@@ -114,6 +114,15 @@ export interface OrderListResponse<T = OrderListItemResponse> {
 }
 
 export type DeliveryMethod = "standard" | "express";
+export type PaymentMethod =
+  | "CASH_ON_DELIVERY"
+  | "UPI"
+  | "CREDIT_CARD"
+  | "DEBIT_CARD"
+  | "NET_BANKING"
+  | "WALLET"
+  | "CARD"
+  | "COD";
 
 export interface GetOrdersParams {
   page?: number;
@@ -123,12 +132,13 @@ export interface GetOrdersParams {
 }
 
 export interface OrderListItem {
-  id: number;
+  id: number | string;
   orderNumber: string;
   status: OrderStatus;
   paymentStatus: PaymentStatus;
   totalAmount: number;
-  itemCount: number;
+  itemCount?: number;
+  totalItems?: number;
   createdAt: Date | string;
   items?: OrderItemResponse[];
   customer?: OrderCustomerDto;

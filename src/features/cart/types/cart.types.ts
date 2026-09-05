@@ -43,7 +43,9 @@ export interface CartSummary {
 }
 
 export interface AddToCartInput {
-  variantId: string;
+  variantId?: string;
+  variantUnitPriceId?: string;
+  productId?: number | string;
   quantity?: number;
 }
 

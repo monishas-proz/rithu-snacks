@@ -22,6 +22,7 @@ import {
   uploadProductImageFiles,
   uploadProductImageFile,
 } from "../api/get-products";
+import type { AdminProductImageResponse } from "../types";
 
 interface PendingImage {
   id: string;
@@ -119,7 +120,7 @@ export function ProductImageUploader({
     }
 
     const hasAnyPrimary =
-      existingImages.some((img) => img.isPrimary) ||
+      existingImages.some((img: AdminProductImageResponse) => img.isPrimary) ||
       pendingImages.some((img) => img.isPrimary);
 
     setPendingImages((prev) => [
@@ -299,7 +300,7 @@ export function ProductImageUploader({
             Current Images ({existingImages.length})
           </h4>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {existingImages.map((img) => (
+            {existingImages.map((img: AdminProductImageResponse) => (
               <div
                 key={img.id}
                 className={`group relative aspect-square rounded-xl overflow-hidden border ${

@@ -25,7 +25,9 @@ export function Header() {
   const cartCount =
     typeof cartCountData === "number"
       ? cartCountData
-      : (cartCountData as { count?: number })?.count ?? 0;
+      : (cartCountData as { count?: number; totalQuantity?: number })?.totalQuantity ??
+        (cartCountData as { count?: number })?.count ??
+        0;
 
   const menuRef = React.useRef<HTMLDivElement>(null);
   const buttonRef = React.useRef<HTMLDivElement>(null);
