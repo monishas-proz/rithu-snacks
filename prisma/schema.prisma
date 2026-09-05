@@ -117,6 +117,8 @@ model User {
   combo_products_combo_products_updated_byTousers                     combo_products[]           @relation("combo_products_updated_byTousers")
   companies_companies_created_byTousers                               Company[]                  @relation("companies_created_byTousers")
   companies_companies_updated_byTousers                               Company[]                  @relation("companies_updated_byTousers")
+  bulk_order_enquiries_bulk_order_enquiries_created_byTousers         bulk_order_enquiries[]     @relation("bulk_order_enquiries_created_byTousers")
+  bulk_order_enquiries_bulk_order_enquiries_updated_byTousers         bulk_order_enquiries[]     @relation("bulk_order_enquiries_updated_byTousers")
   contact_messages_contact_messages_created_byTousers                 contact_messages[]         @relation("contact_messages_created_byTousers")
   contact_messages_contact_messages_updated_byTousers                 contact_messages[]         @relation("contact_messages_updated_byTousers")
   coupon_usage_coupon_usage_created_byTousers                         coupon_usage[]             @relation("coupon_usage_created_byTousers")
@@ -1229,6 +1231,30 @@ model Company {
   @@index([createdBy], map: "fk_companies_created_by")
   @@index([updatedBy], map: "fk_companies_updated_by")
   @@map("companies")
+}
+
+model bulk_order_enquiries {
+  id                                             BigInt                       @id @default(autoincrement()) @db.UnsignedBigInt
+  uuid                                           String                       @unique(map: "idx_bulk_order_enquiries_uuid") @default("UUID()") @db.VarChar(255)
+  name                                           String                       @db.VarChar(150)
+  email                                          String                       @db.VarChar(150)
+  phone                                          String                       @db.VarChar(20)
+  company_name                                   String?                     @db.VarChar(150)
+  product_interest                               String?                     @db.VarChar(255)
+  quantity                                       Int
+  message                                        String?                     @db.Text
+  admin_comment                                  String?                     @db.Text
+  status                                         bulk_order_enquiries_status @default(new)
+  created_at                                     DateTime                     @default(now()) @db.Timestamp(0)
+  updated_at                                     DateTime                     @default(now()) @updatedAt @db.Timestamp(0)
+  is_active                                      Boolean                      @default(true)
+  created_by                                     BigInt?                      @db.UnsignedBigInt
+  updated_by                                     BigInt?                      @db.UnsignedBigInt
+  users_bulk_order_enquiries_created_byTousers   User?                        @relation("bulk_order_enquiries_created_byTousers", fields: [created_by], references: [id], onUpdate: NoAction, map: "fk_bulk_order_enquiries_created_by")
+  users_bulk_order_enquiries_updated_byTousers   User?                        @relation("bulk_order_enquiries_updated_byTousers", fields: [updated_by], references: [id], onUpdate: NoAction, map: "fk_bulk_order_enquiries_updated_by")
+
+  @@index([created_by], map: "fk_bulk_order_enquiries_created_by")
+  @@index([updated_by], map: "fk_bulk_order_enquiries_updated_by")
 }
 
 model contact_messages {
@@ -2376,6 +2402,12 @@ enum contact_messages_status {
   new
   read
   replied
+}
+
+enum bulk_order_enquiries_status {
+  new
+  contacted
+  closed
 }
 
 enum orders_order_status {

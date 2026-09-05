@@ -1,7 +1,7 @@
 "use client";
 
 import { use } from "react";
-import { useCustomerProduct } from "@/features/products/hooks/use-products";
+import { useCustomerProduct } from "@/features/customers/hooks/use-customer-catalog";
 import { ProductDetails } from "@/features/products/components/ProductDetails";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
