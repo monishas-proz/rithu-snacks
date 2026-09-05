@@ -23,7 +23,14 @@ export const ALLOWED_MIME_TYPES: Record<string, string> = {
   "image/gif": ".gif",
 };
 
+export const ALLOWED_VIDEO_MIME_TYPES: Record<string, string> = {
+  "video/mp4": ".mp4",
+  "video/webm": ".webm",
+  "video/quicktime": ".mov",
+};
+
 export const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+export const MAX_VIDEO_FILE_SIZE = 30 * 1024 * 1024; // 30 MB
 export const MAX_FILES_PER_REQUEST = 4;
 
 function validateFolder(folder: unknown): AllowedFolder {
@@ -82,18 +89,22 @@ export const uploadService = {
       throw ApiError.badRequest("Uploaded file is empty");
     }
 
-    if (file.size > MAX_FILE_SIZE) {
-      throw ApiError.badRequest(
-        "File size exceeds maximum allowed limit of 5MB"
-      );
-    }
-
     const mimeType = file.type.toLowerCase();
-    const extension = ALLOWED_MIME_TYPES[mimeType];
+    const isVideo = mimeType in ALLOWED_VIDEO_MIME_TYPES;
+    const extension = isVideo
+      ? ALLOWED_VIDEO_MIME_TYPES[mimeType]
+      : ALLOWED_MIME_TYPES[mimeType];
 
     if (!extension) {
       throw ApiError.badRequest(
-        "Invalid file type. Allowed image types: JPEG, PNG, WebP, GIF"
+        "Invalid file type. Allowed types: JPEG, PNG, WebP, GIF images or MP4, WebM, MOV videos"
+      );
+    }
+
+    const maxSize = isVideo ? MAX_VIDEO_FILE_SIZE : MAX_FILE_SIZE;
+    if (file.size > maxSize) {
+      throw ApiError.badRequest(
+        `File size exceeds maximum allowed limit of ${maxSize / (1024 * 1024)}MB`
       );
     }
 

@@ -25,8 +25,12 @@ import {
   useUpdateBanner,
   useDeleteBanner,
 } from "@/features/banners/hooks";
-import { BannerForm } from "@/features/banners/components";
+import {
+  BannerForm,
+  ManageBannerPositionsModal,
+} from "@/features/banners/components";
 import type { BannerDto } from "@/features/banners/types";
+import { Settings2 } from "lucide-react";
 
 export default function AdminBannersPage() {
   const [search, setSearch] = useState("");
@@ -36,6 +40,7 @@ export default function AdminBannersPage() {
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isManagePositionsOpen, setIsManagePositionsOpen] = useState(false);
   const [selectedBanner, setSelectedBanner] = useState<BannerDto | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{
     uuid: string;
@@ -300,13 +305,24 @@ export default function AdminBannersPage() {
               {hasActiveFilters && <ClearFiltersButton onClick={handleClearFilters} />}
             </div>
 
-            <Button
-              onClick={() => setIsCreateOpen(true)}
-              className="h-11 rounded-xl bg-[var(--color-secondary-600)] px-5 text-sm font-semibold text-white hover:bg-[var(--color-secondary-700)]"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Add Banner
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsManagePositionsOpen(true)}
+                className="h-11 rounded-xl px-4 text-sm font-semibold"
+              >
+                <Settings2 className="mr-2 h-4 w-4" />
+                Manage Positions
+              </Button>
+
+              <Button
+                onClick={() => setIsCreateOpen(true)}
+                className="h-11 rounded-xl bg-[var(--color-secondary-600)] px-5 text-sm font-semibold text-white hover:bg-[var(--color-secondary-700)]"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add Banner
+              </Button>
+            </div>
           </div>
 
           {/* Data Table */}
@@ -393,6 +409,12 @@ export default function AdminBannersPage() {
         confirmText="Delete Banner"
         variant="destructive"
         isLoading={deleteMutation.isPending}
+      />
+
+      {/* MANAGE POSITIONS MODAL */}
+      <ManageBannerPositionsModal
+        open={isManagePositionsOpen}
+        onClose={() => setIsManagePositionsOpen(false)}
       />
     </div>
   );

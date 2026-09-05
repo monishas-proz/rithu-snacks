@@ -21,6 +21,7 @@ import {
   useCreateCategory,
   useUpdateCategory,
 } from "@/features/categories/hooks";
+import { getImageUrl } from "@/lib/utils";
 import { DataTable } from "@/components/admin/data-table/DataTable";
 import { AdminPageHeader, AdminContent } from "@/components/admin/AdminPageHeader";
 import { AdminBreadcrumb } from "@/components/admin/AdminBreadcrumb";
@@ -77,7 +78,11 @@ export default function AdminCategoriesPage() {
       cell: ({ row }) => (
         <div className="h-12 w-12 overflow-hidden rounded-xl bg-[var(--color-neutral-100)]">
           <Image
-            src={row.original.icon || "/images/category_img.png"}
+            src={
+              row.original.icon
+                ? getImageUrl(row.original.icon)
+                : "/images/category_img.png"
+            }
             alt={row.original.name}
             width={48}
             height={48}

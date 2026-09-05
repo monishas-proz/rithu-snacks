@@ -7,10 +7,15 @@ export interface BannerPositionSummaryDto {
   page: string | null;
 }
 
+export type BannerMediaType = "image" | "video";
+
 export interface BannerDto {
   id: string; // Public Banner UUID
   title: string | null;
+  mediaType: BannerMediaType;
   imageUrl: string;
+  videoUrl: string | null;
+  thumbnailUrl: string | null;
   linkUrl: string | null;
   sortOrder: number;
   isActive: boolean;
@@ -29,7 +34,10 @@ export interface BannerListResponse {
 export interface CustomerBannerDto {
   id: string; // Public Banner UUID
   title: string | null;
+  mediaType: BannerMediaType;
   imageUrl: string;
+  videoUrl: string | null;
+  thumbnailUrl: string | null;
   linkUrl: string | null;
   sortOrder: number;
   bannerPosition: BannerPositionSummaryDto;

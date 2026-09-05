@@ -1007,6 +1007,9 @@ model Banner {
   title                           String?          @db.VarChar(150)
   image_url                       String           @db.VarChar(500)
   link_url                        String?          @db.VarChar(500)
+  media_type                      banners_media_type @default(image)
+  video_url                       String?          @db.VarChar(500)
+  thumbnail_url                   String?          @db.VarChar(500)
   sortOrder                       Int              @default(0) @map("sort_order")
   isActive                        Boolean          @default(true) @map("is_active")
   startsAt                        DateTime?        @map("starts_at") @db.Timestamp(0)
@@ -2281,6 +2284,11 @@ model user_sessions {
   @@index([created_by], map: "fk_user_sessions_created_by")
   @@index([updated_by], map: "fk_user_sessions_updated_by")
   @@index([user_id], map: "idx_sessions_user")
+}
+
+enum banners_media_type {
+  image
+  video
 }
 
 enum inventory_transactions_type {

@@ -120,6 +120,33 @@ async function main() {
   }
 
   console.log("Users created/updated with UUIDs");
+
+  const defaultBannerPositions = [
+    { name: "Home Hero Banner", slug: "home-hero", page: "home" },
+    { name: "Home Offer Banner", slug: "home-offer", page: "home" },
+    { name: "Home Popup Offer", slug: "home-popup-offer", page: "home" },
+    { name: "Home Reels", slug: "home-reels", page: "home" },
+  ];
+
+  for (const position of defaultBannerPositions) {
+    const existing = await prisma.banner_positions.findFirst({
+      where: { slug: position.slug },
+    });
+    if (!existing) {
+      await prisma.banner_positions.create({
+        data: {
+          uuid: crypto.randomUUID(),
+          name: position.name,
+          slug: position.slug,
+          page: position.page,
+          created_by: adminUser.id,
+          updated_by: adminUser.id,
+        },
+      });
+    }
+  }
+  console.log("Default banner positions created/verified");
+
   console.log("\n--- Seed Complete ---");
   console.log("Admin Login: admin@rithusnacks.com / admin123");
   console.log("Customer Login: customer@example.com / customer123");

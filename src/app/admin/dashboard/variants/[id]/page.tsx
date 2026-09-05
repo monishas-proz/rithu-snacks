@@ -767,6 +767,68 @@ export default function AdminVariantDetailsPage() {
               )}
             </div>
           </div>
+
+          {/* Ingredients / Recipe / Best Before Card */}
+          <div className="bg-white border border-cream-border rounded-2xl overflow-hidden shadow-xs">
+            <div className="px-6 py-4.5 border-b border-cream-border flex items-center justify-between">
+              <h2 className="text-[15px] font-bold text-neutral-900 tracking-tight">
+                Ingredients &amp; Recipe
+              </h2>
+            </div>
+            <div className="p-6">
+              {variant.ingredients ||
+              (variant.isReadyToMix && variant.cookingRecipe) ||
+              variant.shelfLife ? (
+                <div className="space-y-4">
+                  {variant.ingredients && (
+                    <div>
+                      <div className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1">
+                        Ingredients
+                      </div>
+                      <p className="text-xs sm:text-sm text-neutral-700 leading-relaxed whitespace-pre-line">
+                        {variant.ingredients}
+                      </p>
+                    </div>
+                  )}
+
+                  {variant.isReadyToMix && variant.cookingRecipe && (
+                    <div>
+                      <div className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1">
+                        Cooking Recipe
+                      </div>
+                      <p className="text-xs sm:text-sm text-neutral-700 leading-relaxed whitespace-pre-line">
+                        {variant.cookingRecipe}
+                      </p>
+                    </div>
+                  )}
+
+                  {variant.shelfLife && (
+                    <div>
+                      <div className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1">
+                        Best Before
+                      </div>
+                      <p className="text-xs sm:text-sm text-neutral-700 leading-relaxed">
+                        {variant.shelfLife}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="py-6 px-4 text-center flex flex-col items-center gap-2">
+                  <p className="text-xs sm:text-sm font-semibold text-neutral-700">
+                    No ingredients or recipe added yet
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditModalOpen(true)}
+                    className="mt-1 border border-cream-border-subtle bg-white text-secondary-600 hover:bg-secondary-50 hover:border-secondary-200 text-xs font-bold px-3.5 py-1.5 rounded-lg cursor-pointer transition-colors"
+                  >
+                    Add ingredients / recipe
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </section>
 

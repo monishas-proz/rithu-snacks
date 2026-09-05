@@ -10,9 +10,28 @@ import type {
   CreateBannerPositionInput,
   UpdateBannerPositionInput,
   BannerPositionListQueryInput,
+  CustomerBannerDto,
+  CustomerBannerQueryInput,
 } from "../types";
 
 export const bannerApi = {
+  // Storefront (public) banners
+  async getCustomerBanners(
+    params?: CustomerBannerQueryInput
+  ): Promise<CustomerBannerDto[]> {
+    const response = await apiClient.get<CustomerBannerDto[]>(
+      "/api/customer/banners",
+      {
+        params: params as Record<
+          string,
+          string | number | boolean | undefined | null
+        >,
+      }
+    );
+    return response.data ?? [];
+  },
+
+
   // Admin Banners
   async getBanners(params?: BannerListQueryInput): Promise<BannerListResponse> {
     const response = await apiClient.get<BannerDto[]>("/api/admin/banners", {

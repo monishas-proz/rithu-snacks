@@ -15,6 +15,7 @@ import type {
   BannerPositionListQueryInput,
   CreateBannerPositionInput,
   UpdateBannerPositionInput,
+  CustomerBannerQueryInput,
 } from "../types";
 
 export const BANNER_KEYS = {
@@ -24,6 +25,9 @@ export const BANNER_KEYS = {
     [...BANNER_KEYS.lists(), params] as const,
   details: () => [...BANNER_KEYS.all, "detail"] as const,
   detail: (uuid: string) => [...BANNER_KEYS.details(), uuid] as const,
+
+  customer: (params?: CustomerBannerQueryInput) =>
+    [...BANNER_KEYS.all, "customer", params] as const,
 
   positions: ["banner-positions"] as const,
   positionLists: () => [...BANNER_KEYS.positions, "list"] as const,
@@ -42,6 +46,18 @@ export function useBanners(
     queryKey: BANNER_KEYS.list(params),
     queryFn: () => bannerApi.getBanners(params),
     placeholderData: keepPreviousData,
+    ...options,
+  });
+}
+
+export function useCustomerBanners(
+  params?: CustomerBannerQueryInput,
+  options?: { enabled?: boolean }
+) {
+  return useQuery({
+    queryKey: BANNER_KEYS.customer(params),
+    queryFn: () => bannerApi.getCustomerBanners(params),
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 }

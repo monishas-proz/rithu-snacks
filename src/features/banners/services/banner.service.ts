@@ -138,12 +138,31 @@ export const bannerService = {
       throw ApiError.notFound("Banner not found");
     }
 
-    // Safely delete local image file if stored under /uploads/banners/
+    // Safely delete local image/video files if stored under /uploads/banners/
     if (record.image_url) {
       try {
         await uploadService.deleteUploadedFile(record.image_url, "banners");
       } catch (error) {
         console.error("Failed to delete banner image file:", error);
+      }
+    }
+
+    if (record.video_url) {
+      try {
+        await uploadService.deleteUploadedFile(record.video_url, "banners");
+      } catch (error) {
+        console.error("Failed to delete banner video file:", error);
+      }
+    }
+
+    if (record.thumbnail_url) {
+      try {
+        await uploadService.deleteUploadedFile(
+          record.thumbnail_url,
+          "banners"
+        );
+      } catch (error) {
+        console.error("Failed to delete banner thumbnail file:", error);
       }
     }
 

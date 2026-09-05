@@ -8,6 +8,8 @@ const parseDateString = z
   })
   .transform((val) => new Date(val));
 
+export const bannerMediaTypeSchema = z.enum(["image", "video"]);
+
 export const createBannerSchema = z
   .object({
     bannerPositionId: z
@@ -19,11 +21,24 @@ export const createBannerSchema = z
       .max(150, "Title cannot exceed 150 characters")
       .nullable()
       .optional(),
+    mediaType: bannerMediaTypeSchema.default("image"),
     imageUrl: z
       .string({ message: "Image URL is required" })
       .trim()
       .min(1, "Image URL is required")
       .max(500, "Image URL cannot exceed 500 characters"),
+    videoUrl: z
+      .string()
+      .trim()
+      .max(500, "Video URL cannot exceed 500 characters")
+      .nullable()
+      .optional(),
+    thumbnailUrl: z
+      .string()
+      .trim()
+      .max(500, "Thumbnail URL cannot exceed 500 characters")
+      .nullable()
+      .optional(),
     linkUrl: z
       .string()
       .trim()
@@ -52,7 +67,11 @@ export const createBannerSchema = z
       message: "startsAt must be before or equal to endsAt",
       path: ["endsAt"],
     }
-  );
+  )
+  .refine((data) => data.mediaType !== "video" || Boolean(data.videoUrl), {
+    message: "Video URL is required when media type is video",
+    path: ["videoUrl"],
+  });
 
 export type CreateBannerInput = z.infer<typeof createBannerSchema>;
 
@@ -68,11 +87,24 @@ export const updateBannerSchema = z
       .max(150, "Title cannot exceed 150 characters")
       .nullable()
       .optional(),
+    mediaType: bannerMediaTypeSchema.optional(),
     imageUrl: z
       .string()
       .trim()
       .min(1, "Image URL cannot be empty")
       .max(500, "Image URL cannot exceed 500 characters")
+      .optional(),
+    videoUrl: z
+      .string()
+      .trim()
+      .max(500, "Video URL cannot exceed 500 characters")
+      .nullable()
+      .optional(),
+    thumbnailUrl: z
+      .string()
+      .trim()
+      .max(500, "Thumbnail URL cannot exceed 500 characters")
+      .nullable()
       .optional(),
     linkUrl: z
       .string()

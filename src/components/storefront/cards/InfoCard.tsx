@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
+import { getImageUrl } from "@/lib/utils";
 
 export interface InfoCardProps {
   image: string;
@@ -34,7 +35,7 @@ export function InfoCard({
     <div className={`group cursor-pointer ${cardClassName}`}>
       <div className={imageWrapperClassName}>
         <Image
-          src={image}
+          src={getImageUrl(image)}
           alt={alt}
           width={imageWidth}
           height={imageHeight}

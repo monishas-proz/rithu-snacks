@@ -33,7 +33,10 @@ export function formatBanner(
   return {
     id: record.uuid || String(record.id),
     title: record.title,
+    mediaType: record.media_type,
     imageUrl: record.image_url,
+    videoUrl: record.video_url,
+    thumbnailUrl: record.thumbnail_url,
     linkUrl: record.link_url,
     sortOrder: record.sortOrder,
     isActive: Boolean(record.isActive),
@@ -57,7 +60,10 @@ export function formatCustomerBanner(
   return {
     id: record.uuid || String(record.id),
     title: record.title,
+    mediaType: record.media_type,
     imageUrl: record.image_url,
+    videoUrl: record.video_url,
+    thumbnailUrl: record.thumbnail_url,
     linkUrl: record.link_url,
     sortOrder: record.sortOrder,
     bannerPosition: {
@@ -93,7 +99,10 @@ export const bannerRepository = {
         uuid: crypto.randomUUID(),
         banner_position_id: data.positionInternalId,
         title: data.title ? data.title.trim() : null,
+        media_type: data.mediaType ?? "image",
         image_url: data.imageUrl.trim(),
+        video_url: data.videoUrl ? data.videoUrl.trim() : null,
+        thumbnail_url: data.thumbnailUrl ? data.thumbnailUrl.trim() : null,
         link_url: data.linkUrl ? data.linkUrl.trim() : null,
         sortOrder: data.sortOrder ?? 0,
         isActive: data.isActive ?? true,
@@ -127,8 +136,22 @@ export const bannerRepository = {
       updateData.title = data.title ? data.title.trim() : null;
     }
 
+    if (data.mediaType !== undefined) {
+      updateData.media_type = data.mediaType;
+    }
+
     if (data.imageUrl !== undefined) {
       updateData.image_url = data.imageUrl.trim();
+    }
+
+    if (data.videoUrl !== undefined) {
+      updateData.video_url = data.videoUrl ? data.videoUrl.trim() : null;
+    }
+
+    if (data.thumbnailUrl !== undefined) {
+      updateData.thumbnail_url = data.thumbnailUrl
+        ? data.thumbnailUrl.trim()
+        : null;
     }
 
     if (data.linkUrl !== undefined) {

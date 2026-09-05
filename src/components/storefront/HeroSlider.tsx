@@ -2,12 +2,49 @@
 
 import * as React from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { ICONS, banners } from "@/constants/storefront";
 import { useSlider } from "@/hooks/useSlider";
+import { useCustomerBanners } from "@/features/banners/hooks";
 import { IconButton } from "./buttons/IconButton";
 
 export function HeroSlider() {
-  const { currentIndex, next, previous } = useSlider(banners.length);
+  const { data: heroBanners } = useCustomerBanners({ position: "home-hero" });
+
+  const slides = React.useMemo(() => {
+    if (heroBanners && heroBanners.length > 0) {
+      return heroBanners.map((banner) => ({
+        key: banner.id,
+        image: banner.imageUrl,
+        link: banner.linkUrl,
+        alt: banner.title || "Hero Banner",
+      }));
+    }
+    return banners.map((image, index) => ({
+      key: `fallback-${index}`,
+      image,
+      link: null as string | null,
+      alt: "Hero Banner",
+    }));
+  }, [heroBanners]);
+
+  const { currentIndex, next, previous } = useSlider(slides.length);
+  const activeSlide = slides[currentIndex] ?? slides[0];
+
+  if (!activeSlide) {
+    return null;
+  }
+
+  const slideImage = (
+    <Image
+      src={activeSlide.image}
+      alt={activeSlide.alt}
+      width={1366}
+      height={623}
+      priority
+      className="w-full h-auto block transition-all duration-500"
+    />
+  );
 
   return (
     <section className="relative w-full overflow-hidden">
@@ -21,14 +58,11 @@ export function HeroSlider() {
         imageClassName="w-6 sm:w-8 md:w-10 lg:w-12 h-auto"
       />
 
-      <Image
-        src={banners[currentIndex]}
-        alt="Hero Banner"
-        width={1366}
-        height={623}
-        priority
-        className="w-full h-auto block transition-all duration-500"
-      />
+      {activeSlide.link ? (
+        <Link href={activeSlide.link}>{slideImage}</Link>
+      ) : (
+        slideImage
+      )}
 
       <IconButton
         icon={ICONS.leftButton}

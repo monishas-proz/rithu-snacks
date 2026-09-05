@@ -24,10 +24,7 @@ const fallbackCategoryLogos: Record<string, string> = {
 };
 
 function resolveCategoryImage(category: CustomerCategoryDto): string {
-  if (category.image) {
-    if (category.image.startsWith("http") || category.image.startsWith("/")) {
-      return category.image;
-    }
+  if (category.image?.trim()) {
     return getImageUrl(category.image);
   }
 

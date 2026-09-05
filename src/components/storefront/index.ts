@@ -13,6 +13,8 @@ export * from "./HeroSlider";
 export * from "./CategorySection";
 export * from "./ProductSection";
 export * from "./Banner";
+export * from "./OfferPopup";
+export * from "./OfferReels";
 export * from "./Pledge";
 export * from "./Tradition";
 export * from "./Features";

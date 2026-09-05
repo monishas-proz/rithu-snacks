@@ -65,9 +65,12 @@ export function debounce<T extends (...args: unknown[]) => unknown>(
 }
 
 export function getImageUrl(path: string | null | undefined): string {
-  if (!path) return "/images/placeholder.png";
-  if (path.startsWith("http")) return path;
-  return path;
+  const trimmed = path?.trim();
+  if (!trimmed) return "/images/placeholder.png";
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("/")) {
+    return trimmed;
+  }
+  return `/${trimmed}`;
 }
 
 export function calculateDiscountPrice(
