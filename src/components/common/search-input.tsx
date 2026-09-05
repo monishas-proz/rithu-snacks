@@ -45,11 +45,14 @@ function SearchInput({
   return (
     <div className={cn("relative w-full", className)}>
       <Input
-        leftIcon={<Search className="h-4 w-4 text-neutral-400" />}
+        leftIcon={<Search className="h-4 w-4 text-theme-text-muted" />}
         placeholder={placeholder}
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        className={cn("h-11 rounded-xl border-neutral-300", value ? "pr-10" : "")}
+        className={cn(
+          "h-11 rounded-xl border-theme-border bg-theme-surface text-theme-text-primary placeholder:text-theme-text-muted hover:border-theme-border-accent focus:border-theme-primary",
+          value ? "pr-10" : ""
+        )}
         {...props}
       />
       {value && (
@@ -59,7 +62,7 @@ function SearchInput({
             setValue("");
             onSearchRef.current?.("");
           }}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 cursor-pointer p-1 z-10"
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-theme-text-muted hover:text-theme-primary cursor-pointer p-1 z-10"
         >
           <X className="h-4 w-4" />
         </button>

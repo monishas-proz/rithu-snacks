@@ -4,54 +4,7 @@ import type {
   GetAdminProductsResult,
   AdminProductListParams,
   GetAdminProductsParams,
-  AdminProductImageResponse,
-  CustomerProductListItemDto,
-  CustomerProductDetailDto,
-  CustomerProductListParams,
 } from "../types";
-
-// Customer-facing product catalog (real schema, powers the storefront).
-export async function getCustomerProducts(params?: CustomerProductListParams) {
-  const body: Record<string, unknown> = {
-    page: params?.page ?? 1,
-    pageSize: params?.pageSize ?? 20,
-    sortBy: params?.sortBy ?? "createdAt",
-    sortOrder: params?.sortOrder ?? "desc",
-  };
-
-  if (params?.search && params.search.trim()) {
-    body.search = params.search.trim();
-  }
-  if (params?.brandIds && params.brandIds.length > 0) {
-    body.brandIds = params.brandIds;
-  }
-  if (params?.categoryIds && params.categoryIds.length > 0) {
-    body.categoryIds = params.categoryIds;
-  }
-  if (params?.minPrice !== undefined && params?.minPrice !== null) {
-    body.minPrice = params.minPrice;
-  }
-  if (params?.maxPrice !== undefined && params?.maxPrice !== null) {
-    body.maxPrice = params.maxPrice;
-  }
-
-  const response = await apiClient.post<CustomerProductListItemDto[]>(
-    "/api/customer/products",
-    body
-  );
-
-  return {
-    data: response.data ?? [],
-    meta: response.meta,
-  };
-}
-
-export async function getCustomerProduct(uuid: string): Promise<CustomerProductDetailDto> {
-  const response = await apiClient.get<CustomerProductDetailDto>(
-    `/api/customer/products/${uuid}`
-  );
-  return response.data!;
-}
 
 export async function getAdminProducts(
   params?: AdminProductListParams | GetAdminProductsParams
@@ -80,6 +33,10 @@ export async function getAdminProducts(
   if (p?.categoryId) body.categoryId = String(p.categoryId);
   if (p?.brandId) body.brandId = String(p.brandId);
   if (p?.hsnCodeId) body.hsnCodeId = String(p.hsnCodeId);
+  if (p?.vegType) body.vegType = p.vegType;
+  if (p?.isFeatured !== undefined && p?.isFeatured !== null) {
+    body.isFeatured = Boolean(p.isFeatured);
+  }
   if (p?.status !== undefined && p?.status !== null) {
     body.status = Boolean(p.status);
   }
@@ -119,110 +76,29 @@ export async function deleteAdminProduct(uuid: string) {
   return apiClient.delete(`/api/admin/products/${uuid}`);
 }
 
-// Product Images API
-export async function getAdminProductImages(
-  productUuid: string
-): Promise<AdminProductImageResponse[]> {
-  const response = await apiClient.get<AdminProductImageResponse[]>(
-    `/api/admin/products/${productUuid}/images`
-  );
-  return response.data ?? [];
-}
-
-export async function createAdminProductImages(
-  productUuid: string,
-  images: Array<{
-    imageUrl: string;
-    sortOrder?: number;
-    isPrimary?: boolean;
-  }>
-): Promise<AdminProductImageResponse[]> {
-  const response = await apiClient.post<AdminProductImageResponse[]>(
-    `/api/admin/products/${productUuid}/images`,
-    images
-  );
-  return response.data ?? [];
-}
-
-export async function updateAdminProductImage(
-  productUuid: string,
-  imageId: string,
-  data: { imageUrl?: string; sortOrder?: number }
+export async function getStoreProducts(
+  params?: Record<string, unknown>
 ) {
-  return apiClient.put<AdminProductImageResponse>(
-    `/api/admin/products/${productUuid}/images/${imageId}`,
-    data
-  );
-}
-
-export async function setPrimaryAdminProductImage(
-  productUuid: string,
-  imageId: string
-) {
-  return apiClient.put<AdminProductImageResponse>(
-    `/api/admin/products/${productUuid}/images/${imageId}/primary`
-  );
-}
-
-export async function deleteAdminProductImage(
-  productUuid: string,
-  imageId: string
-) {
-  return apiClient.delete(
-    `/api/admin/products/${productUuid}/images/${imageId}`
-  );
-}
-
-// Multipart File Upload Helpers
-export async function uploadProductImageFile(
-  file: File,
-  folder: string = "products"
-): Promise<{ path: string }> {
-  const formData = new FormData();
-  formData.append("folder", folder);
-  formData.append("file", file);
-
-  const response = await fetch("/api/admin/upload", {
-    method: "POST",
-    body: formData,
-    credentials: "include",
-  });
-
-  const result = await response.json();
-  if (!response.ok || !result.success) {
-    throw new Error(result.message || "Failed to upload image");
+  const query = new URLSearchParams();
+  if (params) {
+    Object.entries(params).forEach(([key, val]) => {
+      if (val !== undefined && val !== null && val !== "") {
+        query.set(key, String(val));
+      }
+    });
   }
-
-  return result.data;
+  const queryString = query.toString();
+  const url = queryString ? `/api/products?${queryString}` : "/api/products";
+  return apiClient.get<any>(url);
 }
 
-export async function uploadProductImageFiles(
-  files: File[],
-  folder: string = "products"
-): Promise<{ paths: string[] }> {
-  const formData = new FormData();
-  formData.append("folder", folder);
-  files.forEach((file) => {
-    formData.append("files", file);
-  });
-
-  const response = await fetch("/api/admin/uploads", {
-    method: "POST",
-    body: formData,
-    credentials: "include",
-  });
-
-  const result = await response.json();
-  if (!response.ok || !result.success) {
-    throw new Error(result.message || "Failed to upload images");
-  }
-
-  return result.data;
+export async function getStoreProduct(idOrSlug: string) {
+  return apiClient.get<any>(`/api/products/${encodeURIComponent(idOrSlug)}`);
 }
 
 // Aliases for compatibility
-export const getProducts = getAdminProducts;
-export const getProduct = getAdminProduct;
+export const getProducts = getStoreProducts;
+export const getProduct = getStoreProduct;
 export const createProduct = createAdminProduct;
 export const updateProduct = (
   idOrUuid: string | number,

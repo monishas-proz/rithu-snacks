@@ -12,6 +12,7 @@ export interface CartItemResponse {
   measurement: VariantMeasurement;
   primaryImage: string | null;
   quantity: number;
+  price?: number;
   priceAtAdd: number;
   currentPrice: number;
   priceChanged: boolean;
@@ -25,8 +26,28 @@ export interface CartResponse {
   totalItems: number;
 }
 
+export type CartWithItems = CartResponse;
+
 export interface CartCountResponse {
   count: number;
   totalQuantity: number;
+}
+
+export interface CartSummary {
+  subtotal: number;
+  discount: number;
+  tax: number;
+  shippingCharge: number;
+  grandTotal: number;
+  totalItems: number;
+}
+
+export interface AddToCartInput {
+  variantId: string;
+  quantity?: number;
+}
+
+export interface UpdateCartItemInput {
+  quantity: number;
 }
 

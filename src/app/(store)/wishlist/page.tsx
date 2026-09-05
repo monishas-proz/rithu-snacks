@@ -1,104 +1,195 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { LoadingState } from "@/components/ui/loading-state";
-import { ErrorState } from "@/components/ui/error-state";
-import { WishlistEmpty } from "@/features/wishlist/components/WishlistEmpty";
-import { ProductCard } from "@/components/storefront";
+import { Heart, ShoppingBag, ArrowRight, RefreshCw, AlertCircle, LogIn } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { WishlistGrid } from "@/features/wishlist/components/WishlistGrid";
 import {
-  useWishlist,
-  useRemoveFromWishlist,
-  useMoveWishlistItemToCart,
-} from "@/features/wishlist/hooks/use-wishlist";
-import { mapWishlistItemToStorefrontProduct } from "@/lib/storefront";
-import type { CustomerWishlistItemDto } from "@/features/wishlist/types";
+  useCustomerWishlist,
+  useRemoveCustomerWishlist,
+  useMoveCustomerWishlistToCart,
+} from "@/features/customers/hooks/use-customer-wishlist";
+
+function WishlistSkeleton() {
+  return (
+    <div className="container mx-auto px-4 py-8 max-w-7xl animate-pulse">
+      <div className="mb-8 space-y-2">
+        <div className="h-8 w-56 rounded-xl bg-theme-border" />
+        <div className="h-4 w-72 rounded-lg bg-theme-border-subtle" />
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+        {[1, 2, 3, 4].map((n) => (
+          <div
+            key={n}
+            className="rounded-2xl border border-theme-border bg-theme-surface p-4 space-y-4"
+          >
+            <div className="aspect-square w-full rounded-xl bg-theme-surface-alt" />
+            <div className="space-y-2">
+              <div className="h-4 w-3/4 rounded-md bg-theme-border" />
+              <div className="h-3 w-1/2 rounded-md bg-theme-border-subtle" />
+              <div className="h-5 w-24 rounded-md bg-theme-border" />
+            </div>
+            <div className="h-9 w-full rounded-xl bg-theme-border-subtle" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function WishlistPage() {
-  const { status } = useSession();
-  const router = useRouter();
-  const [pendingId, setPendingId] = useState<string | null>(null);
+  const { data: session, status } = useSession();
+  const isAuthenticated = status === "authenticated";
+
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  const [movingId, setMovingId] = useState<string | null>(null);
 
   const {
     data: wishlist,
     isLoading,
     error,
     refetch,
-  } = useWishlist({ enabled: status === "authenticated" });
-  const removeFromWishlist = useRemoveFromWishlist();
-  const moveToCart = useMoveWishlistItemToCart();
+  } = useCustomerWishlist({ enabled: isAuthenticated });
 
-  if (status === "loading" || (status === "authenticated" && isLoading)) {
+  const removeMutation = useRemoveCustomerWishlist();
+  const moveToCartMutation = useMoveCustomerWishlistToCart();
+
+  if (status === "loading" || (isAuthenticated && isLoading && !wishlist)) {
+    return <WishlistSkeleton />;
+  }
+
+  // Guest prompt without redirect loops
+  if (status === "unauthenticated" || !session) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <LoadingState />
+      <div className="container mx-auto px-4 py-16 max-w-lg text-center">
+        <div className="rounded-3xl border border-theme-border bg-theme-surface p-8 sm:p-10 shadow-xs">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-theme-primary-light text-theme-status-can-fg">
+            <Heart className="h-8 w-8" />
+          </div>
+          <h1 className="text-2xl font-bold text-theme-text-primary mb-2 font-serif">
+            Your Wishlist is Waiting
+          </h1>
+          <p className="text-sm text-theme-text-subtle mb-8 leading-relaxed">
+            Please sign in to view and save your favorite authentic snacks and access them across all your devices.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link href="/login?callbackUrl=/wishlist" className="w-full sm:w-auto">
+              <Button className="w-full h-11 px-8 rounded-xl bg-theme-primary hover:bg-theme-primary-hover text-theme-primary-fg font-medium text-sm cursor-pointer shadow-xs">
+                <LogIn className="h-4 w-4 mr-2" />
+                Sign In to View
+              </Button>
+            </Link>
+            <Link href="/products" className="w-full sm:w-auto">
+              <Button
+                variant="outline"
+                className="w-full h-11 px-6 rounded-xl border-theme-border-input hover:bg-theme-surface-alt text-theme-text-primary text-sm cursor-pointer"
+              >
+                Explore Snacks
+              </Button>
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }
 
-  if (status === "unauthenticated") {
-    router.push("/login?callbackUrl=/wishlist");
-    return null;
-  }
-
   if (error) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <ErrorState
-          message="Failed to load wishlist. Please try again."
-          onRetry={() => refetch()}
-        />
+      <div className="container mx-auto px-4 py-12 max-w-lg text-center">
+        <div className="rounded-2xl border border-theme-border bg-theme-surface-alt p-8 shadow-xs">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-theme-primary-light text-theme-status-can-fg">
+            <AlertCircle className="h-7 w-7" />
+          </div>
+          <h2 className="text-xl font-bold text-theme-text-primary mb-2">
+            Unable to Load Wishlist
+          </h2>
+          <p className="text-sm text-theme-text-subtle mb-6">
+            We encountered an issue fetching your saved items.
+          </p>
+          <Button
+            onClick={() => refetch()}
+            className="h-10 px-6 rounded-xl bg-theme-primary hover:bg-theme-primary-hover text-theme-primary-fg font-semibold text-sm cursor-pointer"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry
+          </Button>
+        </div>
       </div>
     );
   }
 
   const items = wishlist?.items ?? [];
 
-  const handleRemove = (item: CustomerWishlistItemDto) => {
-    setPendingId(item.variantUnitPriceId);
-    removeFromWishlist.mutate(item.variantUnitPriceId, {
-      onSettled: () => setPendingId(null),
+  const handleRemove = (variantUuid: string) => {
+    setRemovingId(variantUuid);
+    removeMutation.mutate(variantUuid, {
+      onSettled: () => setRemovingId(null),
     });
   };
 
-  const handleMoveToCart = (item: CustomerWishlistItemDto) => {
-    setPendingId(item.variantUnitPriceId);
-    moveToCart.mutate(item.variantUnitPriceId, {
-      onSettled: () => setPendingId(null),
+  const handleMoveToCart = (variantUuid: string) => {
+    setMovingId(variantUuid);
+    moveToCartMutation.mutate(variantUuid, {
+      onSettled: () => setMovingId(null),
     });
   };
 
   if (items.length === 0) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-8">My Wishlist</h1>
-        <WishlistEmpty />
+      <div className="container mx-auto px-4 py-16 max-w-lg text-center">
+        <div className="rounded-3xl border border-theme-border bg-theme-surface p-8 sm:p-10 shadow-xs">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-theme-surface-alt text-theme-text-muted">
+            <Heart className="h-8 w-8" />
+          </div>
+          <h1 className="text-2xl font-bold text-theme-text-primary mb-2 font-serif">
+            Your Wishlist is Empty
+          </h1>
+          <p className="text-sm text-theme-text-subtle mb-8 leading-relaxed">
+            Explore our traditional handmade snacks and save your favorite treats here for later!
+          </p>
+          <Link href="/products">
+            <Button className="h-11 px-8 rounded-xl bg-theme-primary hover:bg-theme-primary-hover text-theme-primary-fg font-medium text-sm cursor-pointer shadow-xs">
+              <ShoppingBag className="h-4 w-4 mr-2" />
+              Explore All Snacks
+              <ArrowRight className="h-4 w-4 ml-1.5" />
+            </Button>
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold">
-          My Wishlist ({items.length} items)
-        </h1>
+    <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-theme-text-primary font-serif">
+            My Wishlist
+          </h1>
+          <p className="text-sm text-theme-text-subtle mt-1">
+            {items.length} {items.length === 1 ? "saved treat" : "saved treats"} ready to order
+          </p>
+        </div>
+
+        <Link href="/products">
+          <Button
+            variant="outline"
+            className="h-10 px-5 rounded-xl border-theme-border-input hover:bg-theme-surface-alt text-theme-text-primary text-sm cursor-pointer"
+          >
+            Continue Shopping
+          </Button>
+        </Link>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        {items.map((item) => (
-          <ProductCard
-            key={item.id}
-            type="wishlist"
-            product={mapWishlistItemToStorefrontProduct(item)}
-            isWishlisted
-            onWishlistClick={() => handleRemove(item)}
-            onButtonClick={() => handleMoveToCart(item)}
-            disabled={pendingId === item.variantUnitPriceId}
-          />
-        ))}
-      </div>
+      <WishlistGrid
+        items={items}
+        onRemove={handleRemove}
+        onMoveToCart={handleMoveToCart}
+        removingId={removingId}
+        movingId={movingId}
+      />
     </div>
   );
 }

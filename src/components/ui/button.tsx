@@ -4,23 +4,37 @@ import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 cursor-pointer",
+  "inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-primary/20 disabled:pointer-events-none disabled:opacity-50 cursor-pointer active:scale-98 select-none",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        destructive: "bg-[var(--color-secondary-600)] text-white  hover:bg-[var(--color-secondary-600)]/90",
-        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+        default:
+          "bg-theme-primary text-theme-primary-fg hover:bg-theme-primary-hover shadow-xs font-semibold",
+        primary:
+          "bg-theme-primary text-theme-primary-fg hover:bg-theme-primary-hover shadow-xs font-semibold",
+        secondary:
+          "bg-theme-secondary text-theme-secondary-fg hover:bg-theme-secondary-hover shadow-xs font-bold",
+        outline:
+          "border border-theme-border bg-theme-surface text-theme-text-primary hover:bg-theme-surface-alt hover:border-theme-border-accent shadow-2xs font-medium",
+        ghost:
+          "text-theme-text-subtle hover:bg-theme-surface-alt hover:text-theme-text-primary font-medium",
+        destructive:
+          "bg-theme-status-can-bg text-theme-status-can-fg hover:bg-red-100 border border-theme-status-can-fg/30 font-medium",
+        danger:
+          "bg-theme-status-can-bg text-theme-status-can-fg hover:bg-red-100 border border-theme-status-can-fg/30 font-medium",
+        warm:
+          "bg-theme-surface-alt hover:bg-theme-surface-warm border border-theme-border text-theme-text-primary font-medium",
+        link:
+          "text-theme-primary underline-offset-4 hover:underline font-medium",
       },
       size: {
-        default: "px-4 py-2",
-        sm: "rounded-md px-3",
-        lg: "rounded-md px-8",
-        xl: "rounded-md px-10 text-base",
-        icon: "h-10 w-10",
+        default: "h-11 px-4 py-2 rounded-xl text-xs sm:text-sm",
+        md: "h-11 px-4 py-2 rounded-xl text-xs sm:text-sm",
+        sm: "h-8 px-3 rounded-lg text-xs",
+        lg: "h-12 px-6 rounded-xl text-sm font-bold",
+        xl: "h-14 px-8 rounded-xl text-base font-bold",
+        icon: "h-10 w-10 rounded-xl p-0",
+        "icon-sm": "h-8 w-8 rounded-lg p-0",
       },
     },
     defaultVariants: {
@@ -45,7 +59,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={disabled || isLoading}
         {...props}
       >
-        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin text-current" />}
         {children}
       </button>
     );

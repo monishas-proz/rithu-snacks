@@ -7,24 +7,13 @@ import {
   addToCart,
   updateCartItem,
   removeCartItem,
-  clearCart,
-  getCartCount,
 } from "../api/get-cart";
-import type { AddCartItemInput, UpdateCartItemInput } from "../validations/cart.schema";
+import type { AddToCartInput, UpdateCartItemInput } from "../types";
 
-export function useCart(options?: { enabled?: boolean }) {
+export function useCart() {
   return useQuery({
     queryKey: cartKeys.all,
     queryFn: getCart,
-    enabled: options?.enabled,
-  });
-}
-
-export function useCartCount(options?: { enabled?: boolean }) {
-  return useQuery({
-    queryKey: [...cartKeys.all, "count"],
-    queryFn: getCartCount,
-    enabled: options?.enabled,
   });
 }
 
@@ -32,7 +21,7 @@ export function useAddToCart() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: AddCartItemInput) => addToCart(input),
+    mutationFn: (input: AddToCartInput) => addToCart(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: cartKeys.all });
     },
@@ -44,10 +33,10 @@ export function useUpdateCart() {
 
   return useMutation({
     mutationFn: ({
-      variantUnitPriceId,
-      quantity,
-    }: UpdateCartItemInput & { variantUnitPriceId: string }) =>
-      updateCartItem(variantUnitPriceId, { quantity }),
+      itemId,
+      ...data
+    }: UpdateCartItemInput & { itemId: string | number }) =>
+      updateCartItem(itemId, { quantity: data.quantity }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: cartKeys.all });
     },
@@ -58,20 +47,10 @@ export function useRemoveCartItem() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (variantUnitPriceId: string) => removeCartItem(variantUnitPriceId),
+    mutationFn: (itemId: string | number) => removeCartItem(itemId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: cartKeys.all });
     },
   });
 }
 
-export function useClearCart() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: () => clearCart(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: cartKeys.all });
-    },
-  });
-}

@@ -3,14 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node --max-old-space-size=4096 ./node_modules/next/dist/bin/next dev --webpack",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "db:generate": "prisma generate",
-    "db:push": "prisma db push",
+    "db:push": "node scripts/db-sync.cjs",
+    "db:sync": "node scripts/db-sync.cjs",
     "db:migrate": "prisma migrate dev",
-    "db:seed": "tsx prisma/seed.ts",
+    "db:seed": "node --experimental-strip-types prisma/seed.ts",
+    "db:seed:orders": "node --experimental-strip-types scripts/seed-test-orders.ts",
     "db:studio": "prisma studio"
   },
   "dependencies": {
@@ -56,10 +58,9 @@
     "prettier": "^3.9.6",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "tailwindcss": "^4",
-    "tsx": "^4.19.4",
     "typescript": "^5"
   },
   "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "seed": "node --experimental-strip-types prisma/seed.ts"
   }
 }

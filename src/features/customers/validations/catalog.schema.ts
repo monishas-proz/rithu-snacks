@@ -124,8 +124,8 @@ export const customerGlobalVariantListSchema = z
     }
   );
 
-export type CustomerBrandListInput = z.infer<typeof customerBrandListSchema>;
-export type CustomerCategoryListInput = z.infer<typeof customerCategoryListSchema>;
-export type CustomerProductListInput = z.infer<typeof customerProductListSchema>;
-export type CustomerVariantListInput = z.infer<typeof customerVariantListSchema>;
-export type CustomerGlobalVariantListInput = z.infer<typeof customerGlobalVariantListSchema>;
+export type CustomerBrandListInput = z.input<typeof customerBrandListSchema>;
+export type CustomerCategoryListInput = z.input<typeof customerCategoryListSchema>;
+export type CustomerProductListInput = z.input<typeof customerProductListSchema>;
+export type CustomerVariantListInput = z.input<typeof customerVariantListSchema>;
+export type CustomerGlobalVariantListInput = z.input<typeof customerGlobalVariantListSchema>;

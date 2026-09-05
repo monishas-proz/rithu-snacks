@@ -86,6 +86,7 @@ function formatCartResponse(
         measurement,
         primaryImage: primaryImg,
         quantity: item.quantity,
+        price: currentPrice,
         priceAtAdd,
         currentPrice,
         priceChanged,

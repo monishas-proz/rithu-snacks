@@ -32,49 +32,42 @@ function QuantitySelector({
     }
   };
 
-  const sizeClasses = {
-    sm: "h-7 w-7 text-xs",
-    md: "h-8 w-8 text-sm",
-    lg: "h-10 w-10 text-base",
+  const btnClasses = {
+    sm: "h-7 w-7 rounded-lg",
+    md: "h-8 w-8 rounded-lg",
+    lg: "h-9 w-9 rounded-xl",
   };
 
-  const inputSizeClasses = {
-    sm: "h-7 w-10 text-xs",
-    md: "h-8 w-12 text-sm",
-    lg: "h-10 w-14 text-base",
+  const inputClasses = {
+    sm: "w-8 text-xs font-semibold",
+    md: "w-10 text-sm font-semibold",
+    lg: "w-12 text-base font-bold",
   };
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="inline-flex items-center rounded-xl border border-theme-border bg-theme-surface-alt p-0.5 shadow-2xs">
       <Button
         type="button"
-        variant="outline"
+        variant="ghost"
         size="icon"
-        className={sizeClasses[size]}
+        className={`${btnClasses[size]} text-theme-primary hover:bg-theme-surface hover:text-theme-primary hover:shadow-2xs transition-all disabled:opacity-40 cursor-pointer`}
         onClick={handleDecrement}
         disabled={disabled || value <= min}
       >
         <Minus className="h-3 w-3" />
       </Button>
-      <input
-        type="number"
-        value={value}
-        onChange={(e) => {
-          const val = parseInt(e.target.value);
-          if (!isNaN(val) && val >= min && val <= max) {
-            onChange(val);
-          }
-        }}
-        className={`${inputSizeClasses[size]} flex items-center justify-center rounded-md border bg-background text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
-        min={min}
-        max={max}
-        disabled={disabled}
-      />
+
+      <span
+        className={`${inputClasses[size]} flex items-center justify-center text-center text-theme-text-primary select-none`}
+      >
+        {value}
+      </span>
+
       <Button
         type="button"
-        variant="outline"
+        variant="ghost"
         size="icon"
-        className={sizeClasses[size]}
+        className={`${btnClasses[size]} text-theme-primary hover:bg-theme-surface hover:text-theme-primary hover:shadow-2xs transition-all disabled:opacity-40 cursor-pointer`}
         onClick={handleIncrement}
         disabled={disabled || value >= max}
       >
@@ -85,3 +78,4 @@ function QuantitySelector({
 }
 
 export { QuantitySelector };
+

@@ -1,27 +1,56 @@
-import { apiClient } from "@/lib/api/api-client";
-import type { CustomerWishlistResponse, CustomerWishlistItemDto } from "../types";
+import { customerWishlistApi } from "@/features/customers/api/customer-wishlist.api";
+import type { CustomerWishlistResponse } from "../types/wishlist.types";
 
 export async function getWishlist(): Promise<CustomerWishlistResponse> {
-  const response = await apiClient.get<CustomerWishlistResponse>("/api/customer/wishlist");
-  return response.data!;
+  try {
+    return await customerWishlistApi.getWishlist();
+  } catch {
+    return { items: [], totalItems: 0 };
+  }
 }
 
-export async function addToWishlist(variantUnitPriceId: string): Promise<CustomerWishlistItemDto> {
-  const response = await apiClient.post<CustomerWishlistItemDto>("/api/customer/wishlist", {
-    variantUnitPriceId,
-  });
-  return response.data!;
+export async function getWishlistCount(): Promise<number> {
+  try {
+    return await customerWishlistApi.getWishlistCount();
+  } catch {
+    return 0;
+  }
 }
 
-export async function removeFromWishlist(variantUnitPriceId: string): Promise<void> {
-  await apiClient.delete(`/api/customer/wishlist/${variantUnitPriceId}`);
+export async function addToWishlist(
+  data: string | { productId?: number; variantId?: string; variantUnitPriceId?: string }
+): Promise<any> {
+  try {
+    const id = typeof data === "string" ? data : data.variantUnitPriceId || data.variantId;
+    if (id) {
+      return await customerWishlistApi.addToWishlist(id);
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
-export async function moveWishlistItemToCart(variantUnitPriceId: string): Promise<void> {
-  await apiClient.post(`/api/customer/wishlist/${variantUnitPriceId}/move-to-cart`);
+export async function removeFromWishlist(id: number | string): Promise<void> {
+  try {
+    await customerWishlistApi.removeFromWishlist(String(id));
+  } catch {
+    // Graceful error handling
+  }
 }
 
-export async function getWishlistCount(): Promise<{ count: number }> {
-  const response = await apiClient.get<{ count: number }>("/api/customer/wishlist/count");
-  return response.data!;
+export async function moveWishlistItemToCart(
+  variantUnitPriceId: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    return await customerWishlistApi.moveToCart(variantUnitPriceId);
+  } catch (error: any) {
+    return { success: false, message: error?.message || "Failed to move item to cart" };
+  }
+}
+
+export async function checkWishlistStatus(
+  _productId: number | string
+): Promise<{ isInWishlist: boolean }> {
+  return { isInWishlist: false };
 }

@@ -16,7 +16,10 @@ export const POST = createApiHandler(
       }
 
       const body = (context.body || {}) as CustomerOrdersListInput;
-      const result = await orderService.getCustomerOrders(sessionUserId, body);
+      const query = (context.query || {}) as Record<string, any>;
+      const merged = { ...query, ...body };
+
+      const result = await orderService.getCustomerOrders(sessionUserId, merged);
 
       return apiSuccess(
         result.data,
@@ -28,7 +31,7 @@ export const POST = createApiHandler(
   },
   {
     requireAuth: true,
-    requiredRole: ["Customer", "ADMIN", "STAFF"],
     bodySchema: customerOrdersListSchema,
   }
 );
+
