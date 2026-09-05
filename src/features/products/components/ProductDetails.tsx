@@ -28,6 +28,7 @@ import {
   useRemoveFromWishlist,
 } from "@/features/wishlist/hooks/use-wishlist";
 import type { CustomerProductDetailDto, CustomerVariantListItemDto } from "../types";
+import { sanitizeRichText } from "@/lib/sanitize-html";
 
 interface ProductDetailsProps {
   product: CustomerProductDetailDto;
