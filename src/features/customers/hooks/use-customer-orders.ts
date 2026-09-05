@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import {
   customerOrdersApi,
   type CustomerOrdersQueryParams,
@@ -15,6 +15,7 @@ export function useCustomerOrders(params: CustomerOrdersQueryParams = {}) {
     queryKey: [...CUSTOMER_ORDERS_QUERY_KEY, params],
     queryFn: () => customerOrdersApi.listOrders(params),
     staleTime: 1000 * 30, // 30 seconds
+    placeholderData: keepPreviousData,
   });
 }
 

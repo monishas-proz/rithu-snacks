@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { formatPrice } from "@/lib/utils";
+import { ProductImage } from "@/components/common/ProductImage";
 import {
   useCustomerWishlist,
   useRemoveCustomerWishlist,
@@ -33,11 +34,11 @@ export function WishlistTab() {
         {[1, 2, 3, 4].map((n) => (
           <div
             key={n}
-            className="bg-theme-surface border border-theme-border rounded-xl p-4 animate-pulse space-y-3"
+            className="bg-theme-surface border border-theme-border rounded-xl p-4 animate-pulse space-y-3 overflow-hidden"
           >
-            <div className="h-32 bg-theme-border rounded" />
-            <div className="h-4 bg-theme-border-subtle rounded w-3/4" />
-            <div className="h-4 bg-theme-border-subtle rounded w-1/2" />
+            <div className="h-32 rounded-xl skeleton-shimmer" />
+            <div className="h-4 rounded w-3/4 skeleton-shimmer" />
+            <div className="h-4 rounded w-1/2 skeleton-shimmer" />
           </div>
         ))}
       </div>
@@ -94,10 +95,14 @@ export function WishlistTab() {
               key={item.id}
               className="bg-theme-surface border border-theme-border rounded-xl overflow-hidden shadow-2xs flex flex-col justify-between"
             >
-              <div className="h-32 sm:h-36 bg-[repeating-linear-gradient(45deg,#F6ECDC,#F6ECDC_8px,#EFE2CD_8px,#EFE2CD_16px)] flex items-center justify-center">
-                <span className="text-[10px] font-mono text-theme-text-muted uppercase tracking-wider">
-                  {item.product?.name ? item.product.name.slice(0, 16) : item.variantName ? item.variantName.slice(0, 16) : "SNACK"}
-                </span>
+              <div className="h-32 sm:h-36 overflow-hidden">
+                <ProductImage
+                  src={item.primaryImage || (item as any).image || null}
+                  alt={item.product?.name || item.variantName || "Snack"}
+                  fallbackText={item.product?.name || item.variantName || "Snack"}
+                  containerClassName="w-full h-full"
+                  className="w-full h-full object-cover"
+                />
               </div>
 
               <div className="p-3.5 sm:p-4 flex flex-col justify-between flex-1 gap-3">

@@ -9,16 +9,15 @@ import {
   Clock,
   FileText,
   Loader2,
+  Package,
+  Phone,
+  Mail,
+  ShieldCheck,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatDateTime, formatPrice } from "@/lib/utils";
 import { OrderItemsList } from "./OrderItemsList";
 import { OrderTotals } from "./OrderTotals";
-import {
-  OrderStatusBadge,
-  PaymentStatusBadge,
-} from "./OrderStatusBadge";
 import type { OrderDetailResponse, OrderDetail } from "../types";
 
 interface OrderDetailViewProps {
@@ -26,6 +25,49 @@ interface OrderDetailViewProps {
   onCancel?: () => void;
   isCancelling?: boolean;
   canCancel?: boolean;
+}
+
+function getStatusBadgeMeta(status?: string) {
+  switch (status?.toLowerCase()) {
+    case "delivered":
+      return {
+        bg: "bg-emerald-50 text-emerald-700 border-emerald-200",
+        dot: "bg-emerald-500",
+      };
+    case "cancelled":
+      return {
+        bg: "bg-red-50 text-red-700 border-red-200",
+        dot: "bg-red-500",
+      };
+    case "returned":
+      return {
+        bg: "bg-purple-50 text-purple-700 border-purple-200",
+        dot: "bg-purple-500",
+      };
+    case "out_for_delivery":
+    case "shipped":
+      return {
+        bg: "bg-blue-50 text-blue-700 border-blue-200",
+        dot: "bg-blue-500",
+      };
+    case "packed":
+    case "processing":
+      return {
+        bg: "bg-amber-50 text-amber-700 border-amber-200",
+        dot: "bg-amber-500",
+      };
+    case "pending":
+    case "confirmed":
+      return {
+        bg: "bg-orange-50 text-orange-700 border-orange-200",
+        dot: "bg-orange-500",
+      };
+    default:
+      return {
+        bg: "bg-theme-surface-alt text-theme-text-muted border-theme-border",
+        dot: "bg-theme-border",
+      };
+  }
 }
 
 export function OrderDetailView({
@@ -48,33 +90,68 @@ export function OrderDetailView({
     "statusHistory" in order ? order.statusHistory || [] : [];
   const delivery = "delivery" in order ? order.delivery : (order as any).delivery;
 
+  const statusMeta = getStatusBadgeMeta(order.status);
+  const paymentStatus = (order as any).paymentStatus || (order as any).payment_status;
+
+  const formattedDate = order.createdAt
+    ? new Date(order.createdAt).toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "—";
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      {/* Top Details Header Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-4 pb-2 border-b border-theme-border-subtle">
         <div>
-          <h2 className="text-xl font-bold text-neutral-900">
-            {order.orderNumber}
-          </h2>
-          <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
-            <CalendarDays className="h-4 w-4" />
-            Placed on {formatDateTime((order as any).placedAt || order.createdAt)}
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl sm:text-2xl font-black text-theme-text-primary font-mono tracking-tight">
+              {order.orderNumber}
+            </h1>
+          </div>
+          <p className="mt-1 flex items-center gap-1.5 text-xs text-theme-text-subtle font-medium">
+            <CalendarDays className="h-3.5 w-3.5 text-theme-text-muted" />
+            Placed on {formattedDate}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <OrderStatusBadge status={order.status} />
-          {order.paymentStatus && (
-            <PaymentStatusBadge status={order.paymentStatus} />
+
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Order Status Badge */}
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wider ${statusMeta.bg}`}
+          >
+            <span className={`h-1.5 w-1.5 rounded-full ${statusMeta.dot}`} />
+            {String(order.status).replace(/_/g, " ")}
+          </span>
+
+          {/* Payment Status Badge */}
+          {paymentStatus && (
+            <span
+              className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wider ${
+                paymentStatus.toLowerCase() === "paid"
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                  : "bg-amber-50 text-amber-700 border-amber-200"
+              }`}
+            >
+              {paymentStatus}
+            </span>
           )}
+
+          {/* Cancel Order Action */}
           {canCancel && (
             <Button
               variant="outline"
               size="sm"
-              className="text-error-600 border-error-200 hover:bg-error-50"
+              className="text-red-700 border-red-200 hover:bg-red-50 rounded-xl text-xs font-semibold min-h-[36px]"
               onClick={onCancel}
               disabled={isCancelling}
             >
               {isCancelling && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
               )}
               Cancel Order
             </Button>
@@ -82,67 +159,79 @@ export function OrderDetailView({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 items-start">
+        {/* Main Content (2 Columns) */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Order Items */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold">
+          {/* 1. Order Items Card */}
+          <div className="rounded-2xl border border-theme-border bg-theme-surface shadow-2xs overflow-hidden">
+            <div className="bg-theme-surface-alt border-b border-theme-border-subtle px-5 py-3.5 flex items-center justify-between">
+              <h2 className="text-sm sm:text-base font-bold text-theme-text-primary flex items-center gap-2">
+                <Package className="h-4 w-4 text-theme-secondary" />
                 Order Items ({order.items?.length || 0})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+              </h2>
+            </div>
+            <div className="p-5">
               <OrderItemsList items={order.items || []} />
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          {/* Customer, Address & Delivery Staff Information */}
+          {/* 2. Three Info Cards: Customer, Address & Staff */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {/* Customer Details */}
             {customer && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base font-semibold">
-                    <User className="h-4 w-4 text-muted-foreground" />
+              <div className="rounded-2xl border border-theme-border bg-theme-surface shadow-2xs overflow-hidden">
+                <div className="bg-theme-surface-alt border-b border-theme-border-subtle px-4 py-3 flex items-center gap-2">
+                  <User className="h-4 w-4 text-theme-secondary" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-theme-text-primary">
                     Customer Details
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm space-y-1.5 text-neutral-600">
-                  <p className="font-semibold text-neutral-900">
+                  </h3>
+                </div>
+                <div className="p-4 text-xs space-y-1 text-theme-text-subtle">
+                  <p className="font-bold text-theme-text-primary text-sm">
                     {customer.name || "Customer"}
                   </p>
                   {customer.customerId && (
-                    <p className="text-xs font-mono text-neutral-500">
+                    <p className="font-mono text-[11px] text-theme-text-muted">
                       ID: {customer.customerId}
                     </p>
                   )}
-                  {customer.email && <p>Email: {customer.email}</p>}
-                  {customer.phone && <p>Phone: {customer.phone}</p>}
-                </CardContent>
-              </Card>
+                  {customer.email && (
+                    <p className="flex items-center gap-1.5 truncate pt-0.5">
+                      <Mail className="h-3 w-3 shrink-0 text-theme-text-muted" />
+                      <span className="truncate">{customer.email}</span>
+                    </p>
+                  )}
+                  {customer.phone && (
+                    <p className="flex items-center gap-1.5 pt-0.5">
+                      <Phone className="h-3 w-3 shrink-0 text-theme-text-muted" />
+                      <span>{customer.phone}</span>
+                    </p>
+                  )}
+                </div>
+              </div>
             )}
 
-            {/* Shipping Address */}
+            {/* Delivery Address */}
             {shippingAddress && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base font-semibold">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
+              <div className="rounded-2xl border border-theme-border bg-theme-surface shadow-2xs overflow-hidden">
+                <div className="bg-theme-surface-alt border-b border-theme-border-subtle px-4 py-3 flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-theme-secondary" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-theme-text-primary">
                     Delivery Address
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm text-neutral-600 space-y-1">
-                  <p className="font-semibold text-neutral-900">
+                  </h3>
+                </div>
+                <div className="p-4 text-xs text-theme-text-subtle space-y-1">
+                  <p className="font-bold text-theme-text-primary text-sm">
                     {shippingAddress.fullName}
                   </p>
-                  <p>
+                  <p className="line-clamp-2">
                     {shippingAddress.addressLine1}
                     {shippingAddress.addressLine2
                       ? `, ${shippingAddress.addressLine2}`
                       : ""}
                   </p>
                   {shippingAddress.landmark && (
-                    <p className="text-xs text-neutral-500">
+                    <p className="text-[11px] text-theme-text-muted">
                       Landmark: {shippingAddress.landmark}
                     </p>
                   )}
@@ -151,130 +240,141 @@ export function OrderDetailView({
                     {shippingAddress.pincode ? `- ${shippingAddress.pincode}` : ""}
                   </p>
                   <p>{shippingAddress.country || "India"}</p>
-                  <p className="pt-1 text-xs text-neutral-500">
-                    Phone: {shippingAddress.phone}
-                  </p>
-                </CardContent>
-              </Card>
+                  {shippingAddress.phone && (
+                    <p className="flex items-center gap-1.5 text-theme-text-muted pt-1">
+                      <Phone className="h-3 w-3 shrink-0" />
+                      <span>{shippingAddress.phone}</span>
+                    </p>
+                  )}
+                </div>
+              </div>
             )}
 
             {/* Assigned Delivery Staff */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base font-semibold">
-                  <Truck className="h-4 w-4 text-muted-foreground" />
+            <div className="rounded-2xl border border-theme-border bg-theme-surface shadow-2xs overflow-hidden">
+              <div className="bg-theme-surface-alt border-b border-theme-border-subtle px-4 py-3 flex items-center gap-2">
+                <Truck className="h-4 w-4 text-theme-secondary" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-theme-text-primary">
                   Assigned Staff
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm space-y-2 text-neutral-600">
+                </h3>
+              </div>
+              <div className="p-4 text-xs space-y-2 text-theme-text-subtle">
                 {delivery?.staff ? (
                   <>
                     <div className="flex items-center gap-2.5">
-                      <div className="grid h-8 w-8 place-items-center rounded-full bg-secondary-600 text-white text-xs font-bold shrink-0">
+                      <div className="grid h-8 w-8 place-items-center rounded-xl bg-theme-surface-alt border border-theme-border text-theme-primary text-xs font-bold shrink-0">
                         {delivery.staff.name.charAt(0).toUpperCase()}
                       </div>
                       <div className="min-w-0">
-                        <p className="font-semibold text-neutral-900 truncate">
+                        <p className="font-bold text-theme-text-primary truncate">
                           {delivery.staff.name}
                         </p>
                         {delivery.assignmentStatus && (
-                          <span className="inline-block text-[11px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded capitalize">
+                          <span className="inline-block text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded capitalize">
                             {delivery.assignmentStatus.replace(/_/g, " ")}
                           </span>
                         )}
                       </div>
                     </div>
                     {delivery.staff.phone && (
-                      <p className="text-xs">
-                        Phone: <span className="font-mono">{delivery.staff.phone}</span>
+                      <p className="flex items-center gap-1.5 text-xs text-theme-text-muted">
+                        <Phone className="h-3 w-3 shrink-0" />
+                        <span className="font-mono">{delivery.staff.phone}</span>
                       </p>
                     )}
                     {delivery.staff.email && (
-                      <p className="text-xs truncate">Email: {delivery.staff.email}</p>
+                      <p className="text-xs truncate text-theme-text-muted">
+                        {delivery.staff.email}
+                      </p>
                     )}
                     {delivery.assignedAt && (
-                      <p className="text-xs text-neutral-400 pt-1">
+                      <p className="text-[11px] text-theme-text-muted pt-1">
                         Assigned on {formatDateTime(delivery.assignedAt)}
                       </p>
                     )}
                   </>
                 ) : (
                   <div className="py-2">
-                    <span className="inline-flex items-center gap-1 text-xs font-medium text-neutral-500 bg-neutral-100 px-2 py-0.5 rounded-full border border-neutral-200">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-theme-text-muted bg-theme-surface-alt px-2.5 py-0.5 rounded-full border border-theme-border">
                       Unassigned
                     </span>
-                    <p className="text-xs text-neutral-400 mt-2">
-                      No delivery staff assigned yet.
+                    <p className="text-xs text-theme-text-muted mt-2">
+                      No delivery staff assigned yet. Kitchen is packaging your order.
                     </p>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
 
-          {/* Notes */}
+          {/* Order Notes */}
           {order.notes && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-base font-semibold">
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                  Order Notes
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-neutral-700">
-                <p className="italic bg-neutral-50 p-3 rounded-lg border border-neutral-200">
+            <div className="rounded-2xl border border-theme-border bg-theme-surface shadow-2xs overflow-hidden">
+              <div className="bg-theme-surface-alt border-b border-theme-border-subtle px-4 py-3 flex items-center gap-2">
+                <FileText className="h-4 w-4 text-theme-secondary" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-theme-text-primary">
+                  Order Notes & Instructions
+                </h3>
+              </div>
+              <div className="p-4 text-xs text-theme-text-secondary">
+                <p className="italic bg-theme-surface-warm p-3 rounded-xl border border-theme-border">
                   &ldquo;{order.notes}&rdquo;
                 </p>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
 
-          {/* Status Timeline */}
+          {/* Status History Timeline */}
           {statusHistory.length > 0 && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base font-semibold">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  Status History
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {statusHistory.map((item, idx) => (
+            <div className="rounded-2xl border border-theme-border bg-theme-surface shadow-2xs overflow-hidden">
+              <div className="bg-theme-surface-alt border-b border-theme-border-subtle px-5 py-3.5 flex items-center gap-2">
+                <Clock className="h-4 w-4 text-theme-secondary" />
+                <h3 className="text-sm font-bold text-theme-text-primary">
+                  Order Timeline & Updates
+                </h3>
+              </div>
+              <div className="p-5 space-y-3 divide-y divide-theme-border-subtle">
+                {statusHistory.map((item, idx) => {
+                  const itemStatusMeta = getStatusBadgeMeta(item.status);
+                  return (
                     <div
                       key={item.id || idx}
-                      className="flex items-start gap-3 text-sm pb-3 border-b border-neutral-100 last:border-0 last:pb-0"
+                      className="flex items-start gap-3 pt-3 first:pt-0 text-xs"
                     >
-                      <div className="mt-0.5">
-                        <OrderStatusBadge status={item.status} />
-                      </div>
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${itemStatusMeta.bg}`}
+                      >
+                        <span className={`h-1.5 w-1.5 rounded-full ${itemStatusMeta.dot}`} />
+                        {item.status.replace(/_/g, " ")}
+                      </span>
+
                       <div className="flex-1 min-w-0">
                         {item.note && (
-                          <p className="text-neutral-800 font-medium">
+                          <p className="text-theme-text-primary font-medium">
                             {item.note}
                           </p>
                         )}
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-[11px] text-theme-text-muted mt-0.5">
                           {formatDateTime(item.createdAt)}
                         </p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                  );
+                })}
+              </div>
+            </div>
           )}
         </div>
 
-        {/* Order Totals Summary */}
-        <div>
-          <Card className="sticky top-24">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold">
+        {/* Sidebar: Order Totals Summary (Sticky) */}
+        <div className="sticky top-24">
+          <div className="rounded-2xl border border-theme-border bg-theme-surface shadow-2xs overflow-hidden">
+            <div className="bg-theme-surface-alt border-b border-theme-border-subtle px-5 py-3.5">
+              <h2 className="text-sm sm:text-base font-bold text-theme-text-primary">
                 Order Summary
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+              </h2>
+            </div>
+            <div className="p-5">
               <OrderTotals
                 totals={{
                   subtotal: Number(order.subtotal || 0),
@@ -285,8 +385,8 @@ export function OrderDetailView({
                 }}
                 couponLabel={(order as any).couponCode}
               />
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </div>
     </div>

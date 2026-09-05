@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Check, ShoppingBag, MapPin, CreditCard, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { CheckoutProvider } from "@/features/checkout/checkout-context";
+import { CheckoutProvider, useCheckout } from "@/features/checkout/checkout-context";
 
 const STEPS = [
   { key: "cart", label: "Cart", href: "/cart", icon: ShoppingBag },
@@ -25,8 +25,9 @@ function getActiveStepIndex(pathname: string): number {
 
 function CheckoutStepper() {
   const pathname = usePathname();
-  const activeIndex = getActiveStepIndex(pathname);
-  const isSuccessPage = pathname.startsWith("/checkout/success");
+  const { isOrderPlaced } = useCheckout();
+  const isSuccessPage = pathname.startsWith("/checkout/success") || isOrderPlaced;
+  const activeIndex = isSuccessPage ? 3 : getActiveStepIndex(pathname);
 
   return (
     <div className="mx-auto max-w-2xl px-3 py-2">
