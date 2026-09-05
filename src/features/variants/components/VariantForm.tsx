@@ -45,6 +45,14 @@ const variantFormSchema = z.object({
     .max(500, "Short description cannot exceed 500 characters")
     .optional(),
   description: z.string().trim().optional(),
+  ingredients: z.string().trim().optional(),
+  isReadyToMix: z.boolean(),
+  cookingRecipe: z.string().trim().optional(),
+  shelfLife: z
+    .string()
+    .trim()
+    .max(100, "Best before cannot exceed 100 characters")
+    .optional(),
   vegType: vegTypeEnum,
   isFeatured: z.boolean(),
 });
@@ -142,6 +150,10 @@ function VariantForm({
       slug: initialData?.slug || "",
       shortDescription: initialData?.shortDescription || "",
       description: initialData?.description || "",
+      ingredients: initialData?.ingredients || "",
+      isReadyToMix: initialData?.isReadyToMix ?? false,
+      cookingRecipe: initialData?.cookingRecipe || "",
+      shelfLife: initialData?.shelfLife || "",
       vegType: initialData?.vegType || "na",
       isFeatured: initialData?.isFeatured ?? false,
     },
@@ -149,6 +161,7 @@ function VariantForm({
 
   const selectedProductId = methods.watch("productId");
   const watchedVariantName = methods.watch("variantName");
+  const watchedIsReadyToMix = methods.watch("isReadyToMix");
 
   // Dynamic non-editable prefix based on currently selected Product
   const slugPrefix = useMemo(
@@ -184,6 +197,10 @@ function VariantForm({
         slug: initialData.slug || "",
         shortDescription: initialData.shortDescription || "",
         description: initialData.description || "",
+        ingredients: initialData.ingredients || "",
+        isReadyToMix: initialData.isReadyToMix ?? false,
+        cookingRecipe: initialData.cookingRecipe || "",
+        shelfLife: initialData.shelfLife || "",
         vegType: initialData.vegType || "na",
         isFeatured: initialData.isFeatured ?? false,
       });
@@ -420,6 +437,38 @@ function VariantForm({
           name="description"
           label="Description"
           placeholder="Detailed item information and description"
+        />
+
+        {/* Ingredients */}
+        <FormTextarea
+          name="ingredients"
+          label="Ingredients"
+          placeholder="e.g. Rice flour, Bengal gram, Groundnut oil, Salt, Spices"
+          rows={3}
+        />
+
+        {/* Ready to Mix */}
+        <FormCheckbox
+          name="isReadyToMix"
+          label="Ready to Mix"
+          description="Enable if this item needs to be mixed/prepared before eating (e.g. instant mixes)"
+        />
+
+        {/* Cooking Recipe - only relevant for Ready to Mix items */}
+        {watchedIsReadyToMix && (
+          <FormTextarea
+            name="cookingRecipe"
+            label="Cooking Recipe"
+            placeholder="Preparation / cooking instructions for this item (e.g. mix ingredients before serving)"
+            rows={4}
+          />
+        )}
+
+        {/* Best Before / Shelf Life */}
+        <FormInput
+          name="shelfLife"
+          label="Best Before"
+          placeholder="e.g. 6 months from packing"
         />
 
         <div className="flex justify-end pt-2">

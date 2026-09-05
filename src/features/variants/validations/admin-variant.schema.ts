@@ -26,6 +26,23 @@ export const createAdminVariantSchema = z
       .trim()
       .optional()
       .nullable(),
+    ingredients: z
+      .string()
+      .trim()
+      .optional()
+      .nullable(),
+    isReadyToMix: z.boolean().optional().default(false),
+    cookingRecipe: z
+      .string()
+      .trim()
+      .optional()
+      .nullable(),
+    shelfLife: z
+      .string()
+      .trim()
+      .max(100, "Best before cannot exceed 100 characters")
+      .optional()
+      .nullable(),
     vegType: vegTypeEnum.optional(),
     isFeatured: z.boolean().optional().default(false),
     isActive: z.boolean().optional().default(true),
@@ -58,6 +75,23 @@ export const updateAdminVariantSchema = z
     description: z
       .string()
       .trim()
+      .optional()
+      .nullable(),
+    ingredients: z
+      .string()
+      .trim()
+      .optional()
+      .nullable(),
+    isReadyToMix: z.boolean().optional(),
+    cookingRecipe: z
+      .string()
+      .trim()
+      .optional()
+      .nullable(),
+    shelfLife: z
+      .string()
+      .trim()
+      .max(100, "Best before cannot exceed 100 characters")
       .optional()
       .nullable(),
     vegType: vegTypeEnum.optional(),

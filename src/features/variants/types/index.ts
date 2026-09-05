@@ -66,6 +66,10 @@ export interface AdminVariantResponse {
   slug: string;
   shortDescription: string | null;
   description: string | null;
+  ingredients: string | null;
+  isReadyToMix: boolean;
+  cookingRecipe: string | null;
+  shelfLife: string | null;
   vegType: "veg" | "nonveg" | "vegan" | "na";
   isFeatured: boolean;
   primaryImage: string | null;

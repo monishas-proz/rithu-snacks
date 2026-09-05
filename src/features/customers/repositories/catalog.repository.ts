@@ -67,6 +67,10 @@ function toVariantListItemDto(
     uuid: string;
     variant_name: string | null;
     out_of_stock?: boolean;
+    ingredients?: string | null;
+    is_ready_to_mix?: boolean;
+    cooking_recipe?: string | null;
+    shelf_life?: string | null;
     variant_unit_prices?: VariantUnitPriceForDto[] | null;
     product_variant_images?: Array<{ image_url: string }> | null;
   },
@@ -108,6 +112,10 @@ function toVariantListItemDto(
       : 0,
     primaryImage: variant.product_variant_images?.[0]?.image_url ?? null,
     outOfStock: Boolean(variant.out_of_stock),
+    ingredients: variant.ingredients ?? null,
+    isReadyToMix: Boolean(variant.is_ready_to_mix),
+    cookingRecipe: variant.cooking_recipe ?? null,
+    shelfLife: variant.shelf_life ?? null,
     unitPrices,
   };
 }

@@ -735,6 +735,10 @@ export default function AdminVariantsPage() {
                 slug: formData.slug,
                 shortDescription: formData.shortDescription || null,
                 description: formData.description || null,
+                ingredients: formData.ingredients || null,
+                isReadyToMix: formData.isReadyToMix,
+                cookingRecipe: formData.cookingRecipe || null,
+                shelfLife: formData.shelfLife || null,
                 vegType: formData.vegType,
                 isFeatured: formData.isFeatured,
               };
@@ -897,6 +901,10 @@ export default function AdminVariantsPage() {
                   slug: selectedVariant.slug || "",
                   shortDescription: selectedVariant.shortDescription || "",
                   description: selectedVariant.description || "",
+                  ingredients: selectedVariant.ingredients || "",
+                  isReadyToMix: selectedVariant.isReadyToMix ?? false,
+                  cookingRecipe: selectedVariant.cookingRecipe || "",
+                  shelfLife: selectedVariant.shelfLife || "",
                   vegType: selectedVariant.vegType || "na",
                   isFeatured: selectedVariant.isFeatured ?? false,
                 }}
@@ -911,6 +919,10 @@ export default function AdminVariantsPage() {
                     slug: formData.slug,
                     shortDescription: formData.shortDescription || null,
                     description: formData.description || null,
+                    ingredients: formData.ingredients || null,
+                    isReadyToMix: formData.isReadyToMix,
+                    cookingRecipe: formData.cookingRecipe || null,
+                    shelfLife: formData.shelfLife || null,
                     vegType: formData.vegType,
                     isFeatured: formData.isFeatured,
                   };

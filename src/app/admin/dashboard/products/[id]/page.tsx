@@ -22,7 +22,6 @@ import {
   Download,
   Plus,
   X,
-  AlertCircle,
   Clock,
   ArrowDownRight,
   Filter,
@@ -172,7 +171,6 @@ export default function AdminProductDetailsPage() {
   const [newlyCreatedVariant, setNewlyCreatedVariant] = React.useState<AdminVariantResponse | null>(null);
   const [editingVariant, setEditingVariant] = React.useState<AdminVariantResponse | null>(null);
   const [editVariantTab, setEditVariantTab] = React.useState<"details" | "pricing">("details");
-  const [editingPriceVariant, setEditingPriceVariant] = React.useState<AdminVariantResponse | null>(null);
   const [deletingVariant, setDeletingVariant] = React.useState<AdminVariantResponse | null>(null);
   const [variantToDeactivate, setVariantToDeactivate] = React.useState<AdminVariantResponse | null>(null);
   const [variantToActivate, setVariantToActivate] = React.useState<AdminVariantResponse | null>(null);
@@ -258,20 +256,6 @@ export default function AdminProductDetailsPage() {
 
   // Selection State
   const [selectedVariants, setSelectedVariants] = React.useState<Record<string, boolean>>({});
-
-  // Single price edit state
-  const [singleBasePrice, setSingleBasePrice] = React.useState("");
-  const [singleSalePrice, setSingleSalePrice] = React.useState("");
-  const [singlePriceError, setSinglePriceError] = React.useState<string | null>(null);
-
-  // Populate single price modal inputs when editingPriceVariant changes
-  React.useEffect(() => {
-    if (editingPriceVariant) {
-      setSingleBasePrice(String(editingPriceVariant.basePrice ?? ""));
-      setSingleSalePrice(String(editingPriceVariant.salePrice ?? ""));
-      setSinglePriceError(null);
-    }
-  }, [editingPriceVariant]);
 
   // Labels from product response
   const categoryName = product?.categoryName || product?.category?.name || null;
@@ -410,33 +394,6 @@ export default function AdminProductDetailsPage() {
       setSelectedVariants({});
     } catch (err: any) {
       console.error("Bulk update failed", err);
-    }
-  };
-
-  // Single price save
-  const handleSaveSinglePrice = async () => {
-    if (!editingPriceVariant) return;
-    const base = parseFloat(singleBasePrice);
-    const sale = parseFloat(singleSalePrice);
-
-    if (isNaN(base) || base < 0) {
-      setSinglePriceError("Please enter a valid base price (0 or more).");
-      return;
-    }
-    if (isNaN(sale) || sale < 0) {
-      setSinglePriceError("Please enter a valid sale price (0 or more).");
-      return;
-    }
-
-    try {
-      await updateVariantMutation.mutateAsync({
-        productUuid: canonicalProductId,
-        variantUuid: editingPriceVariant.id,
-        data: { basePrice: base, salePrice: sale },
-      });
-      setEditingPriceVariant(null);
-    } catch (err: any) {
-      setSinglePriceError(err?.message || "Failed to update price");
     }
   };
 
@@ -1109,12 +1066,13 @@ export default function AdminProductDetailsPage() {
                       <span>View Product Item</span>
                     </Link>
 
-                    {/* 2. Price Change */}
+                    {/* 2. Price Change — same Units & Pricing flow as the Edit Item modal */}
                     <button
                       type="button"
                       onClick={() => {
                         setActiveMenu(null);
-                        setEditingPriceVariant(variant);
+                        setEditingVariant(variant);
+                        setEditVariantTab("pricing");
                       }}
                       className="w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-semibold text-neutral-700 hover:text-secondary-600 hover:bg-secondary-50 rounded-lg transition-colors cursor-pointer text-left"
                     >
@@ -1214,97 +1172,6 @@ export default function AdminProductDetailsPage() {
         }}
       />
 
-      {/* 2. Single Variant Price Edit Modal */}
-      <FormModal
-        open={!!editingPriceVariant}
-        onClose={() => setEditingPriceVariant(null)}
-        title="Edit Item Price"
-        description={`Update base and sale price for ${editingPriceVariant?.variantName || "this Item"}`}
-        size="sm"
-      >
-        {editingPriceVariant && (
-          <div className="space-y-4">
-            <div className="rounded-xl bg-cream-100 p-3.5 border border-cream-border space-y-1">
-              <div className="text-xs text-neutral-400">SKU: {editingPriceVariant.sku}</div>
-              <div className="text-xs font-semibold text-neutral-900">
-                Measurement: {formatMeasurement(editingPriceVariant.measurement)}
-              </div>
-            </div>
-
-            {singlePriceError && (
-              <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{singlePriceError}</span>
-              </div>
-            )}
-
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-semibold text-neutral-900 mb-1">
-                  Base Price (₹) <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={singleBasePrice}
-                  onChange={(e) => setSingleBasePrice(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-cream-border-hover text-sm focus:outline-none focus:border-secondary-600"
-                  placeholder="e.g. 500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-neutral-900 mb-1">
-                  Sale Price (₹) <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={singleSalePrice}
-                  onChange={(e) => setSingleSalePrice(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-cream-border-hover text-sm focus:outline-none focus:border-secondary-600"
-                  placeholder="e.g. 450"
-                />
-              </div>
-
-              {parseFloat(singleBasePrice) > parseFloat(singleSalePrice) && (
-                <div className="text-xs text-success-700 font-semibold bg-success-50 p-2 rounded-lg">
-                  Discount: ₹{(parseFloat(singleBasePrice) - parseFloat(singleSalePrice)).toFixed(2)} (
-                  {Math.round(
-                    ((parseFloat(singleBasePrice) - parseFloat(singleSalePrice)) /
-                      parseFloat(singleBasePrice)) *
-                      100
-                  )}
-                  % off)
-                </div>
-              )}
-            </div>
-
-            <div className="flex justify-end gap-2 pt-3 border-t border-cream-border">
-              <button
-                type="button"
-                onClick={() => setEditingPriceVariant(null)}
-                className="px-4 py-2 text-xs font-semibold rounded-lg border border-cream-border-hover text-neutral-700 hover:bg-cream-200 cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveSinglePrice}
-                disabled={updateVariantMutation.isPending}
-                className="px-4 py-2 text-xs font-bold rounded-lg bg-secondary-600 hover:bg-secondary-700 text-cream-white cursor-pointer shadow-xs disabled:opacity-50"
-              >
-                {updateVariantMutation.isPending ? "Saving..." : "Save Price"}
-              </button>
-            </div>
-          </div>
-        )}
-      </FormModal>
-
-
-
       {/* 4. Edit Product Modal */}
       <FormModal
         open={isEditProductOpen}
@@ -1379,6 +1246,10 @@ export default function AdminProductDetailsPage() {
                     slug: formData.slug,
                     shortDescription: formData.shortDescription || null,
                     description: formData.description || null,
+                    ingredients: formData.ingredients || null,
+                    isReadyToMix: formData.isReadyToMix,
+                    cookingRecipe: formData.cookingRecipe || null,
+                    shelfLife: formData.shelfLife || null,
                     vegType: formData.vegType,
                     isFeatured: formData.isFeatured,
                   },
@@ -1458,6 +1329,10 @@ export default function AdminProductDetailsPage() {
                   slug: editingVariant.slug || "",
                   shortDescription: editingVariant.shortDescription || "",
                   description: editingVariant.description || "",
+                  ingredients: editingVariant.ingredients || "",
+                  isReadyToMix: editingVariant.isReadyToMix ?? false,
+                  cookingRecipe: editingVariant.cookingRecipe || "",
+                  shelfLife: editingVariant.shelfLife || "",
                   vegType: editingVariant.vegType || "na",
                   isFeatured: editingVariant.isFeatured ?? false,
                 }}
@@ -1476,6 +1351,10 @@ export default function AdminProductDetailsPage() {
                         slug: formData.slug,
                         shortDescription: formData.shortDescription || null,
                         description: formData.description || null,
+                        ingredients: formData.ingredients || null,
+                        isReadyToMix: formData.isReadyToMix,
+                        cookingRecipe: formData.cookingRecipe || null,
+                        shelfLife: formData.shelfLife || null,
                         vegType: formData.vegType,
                         isFeatured: formData.isFeatured,
                       },
