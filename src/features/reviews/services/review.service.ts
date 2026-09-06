@@ -417,7 +417,7 @@ export const reviewService = {
   ): Promise<ReviewModerateResult> {
     const admin = await userRepository.findById(adminSessionUserId);
     if (!admin) {
-      throw ApiError.unauthorized("Admin user not found");
+      throw ApiError.unauthorized("Session expired. Please log in again.");
     }
     const adminId = BigInt(admin.internalId || admin.id);
 
@@ -445,7 +445,7 @@ export const reviewService = {
   ): Promise<void> {
     const admin = await userRepository.findById(adminSessionUserId);
     if (!admin) {
-      throw ApiError.unauthorized("Admin user not found");
+      throw ApiError.unauthorized("Session expired. Please log in again.");
     }
     const adminId = BigInt(admin.internalId || admin.id);
 

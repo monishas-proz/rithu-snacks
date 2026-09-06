@@ -33,6 +33,17 @@ export const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 export const MAX_VIDEO_FILE_SIZE = 30 * 1024 * 1024; // 30 MB
 export const MAX_FILES_PER_REQUEST = 4;
 
+// Storage lives outside `public/` so redeploys (git clean / fresh checkout) never wipe it.
+// UPLOAD_DIR can point at a path outside the deploy directory entirely for extra safety.
+export function getUploadRoot(): string {
+  return process.env.UPLOAD_DIR
+    ? path.resolve(process.env.UPLOAD_DIR)
+    : path.join(process.cwd(), "document");
+}
+
+export const UPLOAD_URL_PREFIX = "/document";
+const LEGACY_UPLOAD_URL_PREFIX = "/uploads";
+
 function validateFolder(folder: unknown): AllowedFolder {
   if (!folder || typeof folder !== "string") {
     throw ApiError.badRequest("Upload folder name is required");
@@ -108,12 +119,7 @@ export const uploadService = {
       );
     }
 
-    const uploadsDir = path.join(
-      process.cwd(),
-      "public",
-      "uploads",
-      cleanFolder
-    );
+    const uploadsDir = path.join(getUploadRoot(), cleanFolder);
 
     await fs.mkdir(uploadsDir, { recursive: true });
 
@@ -125,7 +131,7 @@ export const uploadService = {
 
     await fs.writeFile(targetFilePath, buffer);
 
-    const webPath = `/uploads/${cleanFolder}/${uniqueFilename}`;
+    const webPath = `${UPLOAD_URL_PREFIX}/${cleanFolder}/${uniqueFilename}`;
 
     return {
       path: webPath,
@@ -156,12 +162,7 @@ export const uploadService = {
       );
     }
 
-    const uploadsDir = path.join(
-      process.cwd(),
-      "public",
-      "uploads",
-      cleanFolder
-    );
+    const uploadsDir = path.join(getUploadRoot(), cleanFolder);
 
     await fs.mkdir(uploadsDir, { recursive: true });
 
@@ -202,7 +203,7 @@ export const uploadService = {
         await fs.writeFile(targetFilePath, buffer);
 
         createdPhysicalPaths.push(targetFilePath);
-        webPaths.push(`/uploads/${cleanFolder}/${uniqueFilename}`);
+        webPaths.push(`${UPLOAD_URL_PREFIX}/${cleanFolder}/${uniqueFilename}`);
       }
 
       return {
@@ -226,7 +227,8 @@ export const uploadService = {
 
   /**
    * Safe physical file deletion helper.
-   * Only deletes files inside public/uploads/<allowedFolder>/
+   * Deletes files under the persistent upload root (new `/document/...` paths),
+   * and also cleans up legacy `/uploads/...` paths still referenced by older DB records.
    * Prevents path traversal and handles non-existent files gracefully.
    */
   async deleteUploadedFile(
@@ -238,8 +240,18 @@ export const uploadService = {
     const normalizedFolder = validateFolder(allowedFolder);
     const normalizedWebPath = webPath.replace(/\\/g, "/");
 
-    const expectedPrefix = `/uploads/${normalizedFolder}/`;
-    if (!normalizedWebPath.startsWith(expectedPrefix)) {
+    let baseDir: string;
+    let expectedPrefix: string;
+
+    if (normalizedWebPath.startsWith(`${UPLOAD_URL_PREFIX}/${normalizedFolder}/`)) {
+      baseDir = path.join(getUploadRoot(), normalizedFolder);
+      expectedPrefix = `${UPLOAD_URL_PREFIX}/${normalizedFolder}/`;
+    } else if (
+      normalizedWebPath.startsWith(`${LEGACY_UPLOAD_URL_PREFIX}/${normalizedFolder}/`)
+    ) {
+      baseDir = path.join(process.cwd(), "public", "uploads", normalizedFolder);
+      expectedPrefix = `${LEGACY_UPLOAD_URL_PREFIX}/${normalizedFolder}/`;
+    } else {
       return;
     }
 
@@ -254,15 +266,9 @@ export const uploadService = {
       return;
     }
 
-    const folderDir = path.join(
-      process.cwd(),
-      "public",
-      "uploads",
-      normalizedFolder
-    );
-    const targetFilePath = path.join(folderDir, filename);
+    const targetFilePath = path.join(baseDir, filename);
 
-    const relative = path.relative(folderDir, targetFilePath);
+    const relative = path.relative(baseDir, targetFilePath);
     if (relative.startsWith("..") || path.isAbsolute(relative)) {
       return;
     }

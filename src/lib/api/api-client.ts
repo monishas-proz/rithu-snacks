@@ -127,14 +127,32 @@ async function fetchApi<T>(
     endpoint.startsWith(ep)
   );
 
-  if (response.status === 401 && !isAuthEndpoint && !_isRetry) {
-    const refreshed = await performSilentRefresh();
-    if (refreshed) {
-      // Retry the original request with the fresh token cookie
-      return fetchApi<T>(endpoint, {
-        ...options,
-        _isRetry: true,
-      });
+  if (response.status === 401 && !isAuthEndpoint) {
+    let refreshed = false;
+    if (!_isRetry) {
+      refreshed = await performSilentRefresh();
+      if (refreshed) {
+        // Retry the original request with the fresh token cookie
+        return fetchApi<T>(endpoint, {
+          ...options,
+          _isRetry: true,
+        });
+      }
+    }
+
+    // Refresh didn't help (or wasn't applicable, e.g. admin session) — send the
+    // user back to the correct login page instead of leaving them stuck on an error toast.
+    if (!refreshed && typeof window !== "undefined") {
+      const isAdminEndpoint = endpoint.startsWith("/api/admin/");
+      const loginPath = isAdminEndpoint ? "/admin/login" : "/login";
+      if (!window.location.pathname.startsWith(loginPath)) {
+        const callbackUrl = encodeURIComponent(
+          window.location.pathname + window.location.search
+        );
+        window.location.href = isAdminEndpoint
+          ? loginPath
+          : `${loginPath}?callbackUrl=${callbackUrl}`;
+      }
     }
   }
 

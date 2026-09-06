@@ -41,3 +41,7 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# persistent uploaded files (served via /document, outside the public folder so
+# redeploys / git clean never wipe them)
+/document

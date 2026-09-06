@@ -278,7 +278,7 @@ export const returnService = {
   ): Promise<ApproveReturnResult> {
     const admin = await userRepository.findById(adminSessionUserId);
     if (!admin) {
-      throw ApiError.unauthorized("Admin user not found");
+      throw ApiError.unauthorized("Session expired. Please log in again.");
     }
     const adminId = BigInt(admin.internalId || admin.id);
 
@@ -317,7 +317,7 @@ export const returnService = {
   ): Promise<RejectReturnResult> {
     const admin = await userRepository.findById(adminSessionUserId);
     if (!admin) {
-      throw ApiError.unauthorized("Admin user not found");
+      throw ApiError.unauthorized("Session expired. Please log in again.");
     }
     const adminId = BigInt(admin.internalId || admin.id);
 
@@ -354,7 +354,7 @@ export const returnService = {
   ): Promise<PickupReturnResult> {
     const admin = await userRepository.findById(adminSessionUserId);
     if (!admin) {
-      throw ApiError.unauthorized("Admin user not found");
+      throw ApiError.unauthorized("Session expired. Please log in again.");
     }
     const adminId = BigInt(admin.internalId || admin.id);
 

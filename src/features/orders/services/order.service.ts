@@ -320,7 +320,7 @@ export const orderService = {
   ): Promise<OrderDetailResponse> {
     const adminUser = await userRepository.findById(adminSessionUserId);
     if (!adminUser || !adminUser.internalId) {
-      throw ApiError.unauthorized("Admin user not found");
+      throw ApiError.unauthorized("Session expired. Please log in again.");
     }
 
     const order = await db.order.findFirst({
@@ -391,7 +391,7 @@ export const orderService = {
   ): Promise<OrderDetailResponse> {
     const adminUser = await userRepository.findById(adminSessionUserId);
     if (!adminUser || !adminUser.internalId) {
-      throw ApiError.unauthorized("Admin user not found");
+      throw ApiError.unauthorized("Session expired. Please log in again.");
     }
 
     const order = await db.order.findFirst({
@@ -425,7 +425,7 @@ export const orderService = {
   ): Promise<OrderStatusTransitionResponse> {
     const adminUser = await userRepository.findById(adminSessionUserId);
     if (!adminUser || !adminUser.internalId) {
-      throw ApiError.unauthorized("Admin user not found");
+      throw ApiError.unauthorized("Session expired. Please log in again.");
     }
 
     const order = await db.order.findFirst({
